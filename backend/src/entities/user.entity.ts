@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -18,7 +18,10 @@ export enum UserStatus {
 
 class Profile {
   @Prop()
-  fullName?: string;
+  firstName?: string;
+
+  @Prop()
+  lastName?: string;
 
   @Prop()
   avatar?: string;
@@ -49,6 +52,8 @@ class Reputation {
 
 @Schema({ timestamps: true })
 export class User {
+  readonly _id: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   email: string;
 
