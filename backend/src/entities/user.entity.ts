@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -14,23 +14,6 @@ export enum UserStatus {
   ACTIVE = 'active',
   SUSPENDED = 'suspended',
   BANNED = 'banned',
-}
-
-class Profile {
-  @Prop()
-  fullName?: string;
-
-  @Prop()
-  avatar?: string;
-
-  @Prop()
-  address?: string;
-
-  @Prop()
-  city?: string;
-
-  @Prop()
-  district?: string;
 }
 
 class Reputation {
@@ -49,6 +32,8 @@ class Reputation {
 
 @Schema({ timestamps: true })
 export class User {
+  readonly _id: Types.ObjectId;
+
   @Prop({ required: true, unique: true })
   email: string;
 
@@ -61,8 +46,23 @@ export class User {
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
 
-  @Prop({ type: Profile })
-  profile?: Profile;
+   @Prop()
+  firstName?: string;
+
+  @Prop()
+  lastName?: string;
+
+  @Prop()
+  avatar?: string;
+
+  @Prop()
+  address?: string;
+
+  @Prop()
+  city?: string;
+
+  @Prop()
+  district?: string;
 
   @Prop({ type: Reputation })
   reputation?: Reputation;
