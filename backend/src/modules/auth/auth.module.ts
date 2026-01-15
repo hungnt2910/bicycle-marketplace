@@ -17,7 +17,7 @@ import { UsersService } from '../users/users.service';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
         const secret = configService.get<string>('JWT_SECRET');
-        const expiresIn = configService.get<string | number>('JWT_EXPIRES_IN');
+        const expiresIn = configService.get<string | number>('JWT_EXPIRES_IN') || '24h';
         return {
           secret,
           signOptions: {

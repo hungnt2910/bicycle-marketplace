@@ -15,6 +15,7 @@ export class UsersService {
     const existingUser = await this.userModel.findOne({ 
       email: userData.email 
     });
+    console.log(userData)
 
     if (existingUser) {
       throw new ConflictException('Email already registered');

@@ -16,26 +16,6 @@ export enum UserStatus {
   BANNED = 'banned',
 }
 
-class Profile {
-  @Prop()
-  firstName?: string;
-
-  @Prop()
-  lastName?: string;
-
-  @Prop()
-  avatar?: string;
-
-  @Prop()
-  address?: string;
-
-  @Prop()
-  city?: string;
-
-  @Prop()
-  district?: string;
-}
-
 class Reputation {
   @Prop({ default: 0, min: 0, max: 5 })
   rating?: number;
@@ -66,8 +46,23 @@ export class User {
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
 
-  @Prop({ type: Profile })
-  profile?: Profile;
+   @Prop()
+  firstName?: string;
+
+  @Prop()
+  lastName?: string;
+
+  @Prop()
+  avatar?: string;
+
+  @Prop()
+  address?: string;
+
+  @Prop()
+  city?: string;
+
+  @Prop()
+  district?: string;
 
   @Prop({ type: Reputation })
   reputation?: Reputation;
