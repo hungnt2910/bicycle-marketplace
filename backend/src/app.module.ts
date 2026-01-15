@@ -19,18 +19,33 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { User, UserSchema } from './entities/user.entity';
 import { Bicycle, BicycleSchema } from './entities/bicycle.entity';
-import { InspectionReport, InspectionReportSchema } from './entities/inspection-report.entity';
+import {
+  InspectionReport,
+  InspectionReportSchema,
+} from './entities/inspection-report.entity';
 import { Transaction, TransactionSchema } from './entities/transaction.entity';
 import { Dispute, DisputeSchema } from './entities/dispute.entity';
 import { Review, ReviewSchema } from './entities/review.entity';
 import { Message, MessageSchema } from './entities/message.entity';
-import { Conversation, ConversationSchema } from './entities/conversation.entity';
+import {
+  Conversation,
+  ConversationSchema,
+} from './entities/conversation.entity';
 import { Wishlist, WishlistSchema } from './entities/wishlist.entity';
-import { Notification, NotificationSchema } from './entities/notification.entity';
+import {
+  Notification,
+  NotificationSchema,
+} from './entities/notification.entity';
 import { Category, CategorySchema } from './entities/category.entity';
-import { SystemSetting, SystemSettingSchema } from './entities/system-setting.entity';
+import {
+  SystemSetting,
+  SystemSettingSchema,
+} from './entities/system-setting.entity';
 import { AuditLog, AuditLogSchema } from './entities/audit-log.entity';
 import { DatabaseModule } from './database/database.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 
 @Module({
   imports: [
@@ -48,10 +63,12 @@ import { DatabaseModule } from './database/database.module';
     }),
 
     // Rate Limiting
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 10,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
 
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
@@ -102,6 +119,17 @@ import { DatabaseModule } from './database/database.module';
     // etc...
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    // Apply Roles guard globally
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
 })
 export class AppModule {}
