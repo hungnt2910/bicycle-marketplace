@@ -261,4 +261,48 @@ export class DisputesService {
 
     return dispute;
   }
+
+
+  async getDisputeById(disputeId: string): Promise<Dispute> {
+    const dispute = await this.disputeModel.findById(disputeId);
+    if (!dispute) {
+      throw new BadRequestException('Dispute not found');
+    }
+    return dispute;
+  }
+
+  async getMyDisputes(
+    userId: string,
+    status?: string,
+  ): Promise<Dispute[]> {
+    const query: any = {
+      $or: [{ reporterId: userId }, { reportedUserId: userId }],
+    };
+    if (status) {
+      query.status = status;
+    }
+    return this.disputeModel.find(query).sort({ createdAt: -1 }).exec();
+  }
+    
+  async getAllDisputes(
+    status?: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{ disputes: Dispute[]; total: number }> {
+    const query: any = {};
+    if (status) {
+      query.status = status;
+    }
+    const skip = (page - 1) * limit;
+    const [disputes, total] = await Promise.all([
+      this.disputeModel
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.disputeModel.countDocuments(query).exec(),
+    ]);
+    return { disputes, total };
+  }
 }

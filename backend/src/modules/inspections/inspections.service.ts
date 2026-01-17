@@ -121,4 +121,48 @@ export class InspectionsService {
 
     return report;
   }
+
+  async getPendingInspections(): Promise<InspectionReport[]> {
+    return this.inspectionModel.find({ verdict: InspectionVerdict.PENDING }).exec();
+  }
+
+  async getInspectionById(inspectionId: string): Promise<InspectionReport> {
+    const inspection = await this.inspectionModel.findById(inspectionId);
+    if (!inspection) {
+      throw new BadRequestException('Inspection not found');
+    }
+    return inspection;
+  }
+
+  async getAllInspections(
+    verdict?: InspectionVerdict,
+    page = 1,
+    limit = 10,
+  ): Promise<{ inspections: InspectionReport[]; total: number }> {
+    const query: any = {};
+    if (verdict) {
+      query.verdict = verdict;
+    }
+    const skip = (page - 1) * limit;
+
+    const [inspections, total] = await Promise.all([
+      this.inspectionModel
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.inspectionModel.countDocuments(query).exec(),
+    ]);
+    return { inspections, total };
+  }
+
+  async getInspectorInspections(
+    inspectorId: string,
+  ): Promise<InspectionReport[]> {
+    return this.inspectionModel
+      .find({ inspectorId })
+      .sort({ createdAt: -1 })
+      .exec();
+  }
 }
