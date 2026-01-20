@@ -20,6 +20,7 @@ export enum InspectionVerdict {
   APPROVED = 'approved',
   APPROVED_WITH_CONDITIONS = 'approved_with_conditions',
   REJECTED = 'rejected',
+  PENDING = 'pending',
 }
 
 class ComponentCheck {
