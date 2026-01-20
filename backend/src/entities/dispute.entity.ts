@@ -111,7 +111,7 @@ export class Dispute {
   @Prop({ type: Resolution })
   resolution?: Resolution;
 
-  @Prop({ type: [TimelineEntry] })
+  @Prop({ type: [TimelineEntry], default: [] })
   timeline?: TimelineEntry[];
 
   @Prop()

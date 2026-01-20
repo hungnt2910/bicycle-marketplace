@@ -104,6 +104,8 @@ class BuyerConfirmation {
 
 @Schema({ timestamps: true })
 export class Transaction {
+  readonly _id: Types.ObjectId;
+
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   buyerId: Types.ObjectId;
 
