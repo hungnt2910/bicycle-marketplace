@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Layouts
@@ -10,11 +10,13 @@ import LandingPage from './pages/guest/LandingPage';
 
 // Auth Pages
 import Register from './pages/auth/Register';
+import Login from './pages/auth/Login';
 
 // Buyer Pages
 import BuyerDashboard from './pages/buyer/BuyerDashboard';
 import Marketplace from './pages/buyer/Marketplace';
 import ProductDetail from './pages/buyer/ProductDetail';
+import Profile from './pages/buyer/Profile';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -32,19 +34,44 @@ import InspectorDashboard from './pages/inspector/InspectorDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
 const AppContent = () => {
-  const { isAuthenticated, role, login } = useAuth();
+  const { isAuthenticated, role, user, login, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('landing');
-  const [devRole, setDevRole] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
 
-  // Allow dev to override role for testing
-  const effectiveRole = devRole || role;
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('accessToken');
+    if (savedUser && savedToken) {
+      try {
+        const userData = JSON.parse(savedUser);
+        // Ensure role is lowercase
+        const normalizedRole = userData.roleName?.toLowerCase() || 'buyer';
+        const validRoles = ['guest', 'buyer', 'seller', 'inspector', 'admin'];
+
+        if (validRoles.includes(normalizedRole)) {
+          const normalizedUser = { ...userData, roleName: normalizedRole };
+          login(normalizedUser, normalizedRole);
+        } else {
+          localStorage.removeItem('user');
+          localStorage.removeItem('accessToken');
+        }
+      } catch (error) {
+        // console.error('Error loading user from localStorage:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+      }
+    }
+  }, [login]);
+
+  // Use role directly (no dev override needed)
+  const effectiveRole = role;
 
   // Handle navigation
   const handleNavigate = (page, productId = null) => {
+    // console.log('handleNavigate called with page:', page); // DEBUG
     if (page === 'landing') {
-      // When navigating to landing page, reset role
-      setDevRole(null);
+      // When navigating to landing page, reset page
       setCurrentPage('landing');
     } else {
       setCurrentPage(page);
@@ -54,54 +81,67 @@ const AppContent = () => {
     }
   };
 
-  // Handle login
-  const handleLogin = (userData, userRole) => {
+  const handleLogin = (userData) => {
+    // console.log('handleLogin - userData:', userData); // DEBUG
+
+    const userRole = userData.roleName?.toLowerCase() || 'buyer';
+    const validRoles = ['guest', 'buyer', 'seller', 'inspector', 'admin'];
+    if (!validRoles.includes(userRole)) {
+      // console.error('Invalid role:', userData.roleName);
+      return;
+    }
+
+    // console.log('handleLogin - calling login with:', userData, userRole); // DEBUG
     login(userData, userRole);
-    setCurrentPage('home');
   };
+
+  // Watch for successful authentication to navigate to home (only if on landing/auth pages)
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      role &&
+      (currentPage === 'landing' || currentPage === 'login' || currentPage === 'register')
+    ) {
+      setCurrentPage('home');
+    }
+  }, [isAuthenticated, role]);
 
   // Handle registration
-  const handleRegister = (userRole) => {
-    login({ name: 'New User' }, userRole);
-    setCurrentPage('home');
+  const handleRegister = (userData) => {
+    const userRole = userData.roleName?.toLowerCase() || 'buyer';
+
+    const validRoles = ['guest', 'buyer', 'seller', 'inspector', 'admin'];
+    if (!validRoles.includes(userRole)) {
+      // console.error('Invalid role:', userData.roleName);
+      return;
+    }
+
+    login(userData, userRole);
+    // Don't set currentPage here, let useEffect handle it after role is updated
   };
 
-  // Dev Panel to switch roles
-  const DevPanel = () => (
-    <div className="fixed bottom-4 right-4 bg-neutral-900 text-white p-4 rounded-xl shadow-2xl z-50 opacity-90 hover:opacity-100 transition-opacity">
-      <p className="font-bold mb-3 text-sm">🧪 Dev Panel - Chọn vai trò</p>
-      <div className="space-y-2">
-        {['guest', 'buyer', 'seller', 'inspector', 'admin'].map((r) => (
-          <button
-            key={r}
-            onClick={() => {
-              if (r === 'guest') {
-                setDevRole(null);
-                setCurrentPage('landing');
-              } else {
-                setDevRole(r);
-                setCurrentPage('home');
-              }
-            }}
-            className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${(r === 'guest' && !devRole) || devRole === r
-              ? 'bg-primary-600 text-white'
-              : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200'
-              }`}
-          >
-            {r === 'guest' ? '🌐 Guest' : r === 'buyer' ? '🛒 Buyer' : r === 'seller' ? '🏪 Seller' : r === 'inspector' ? '✅ Inspector' : '👨‍💼 Admin'}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
+    setCurrentPage('landing');
+  };
 
-  // Guest/Unauthenticated Routes
-  if (!isAuthenticated && !devRole) {
+  if (!isAuthenticated) {
+    // Login page
+    if (currentPage === 'login') {
+      return (
+        <>
+          <Login onLoginSuccess={handleLogin} onNavigate={handleNavigate} />
+        </>
+      );
+    }
+
     if (currentPage === 'register') {
       return (
         <>
-          <Register onRegisterSuccess={handleRegister} />
-          <DevPanel />
+          <Register onRegisterSuccess={handleRegister} onNavigate={handleNavigate} />
         </>
       );
     }
@@ -110,10 +150,15 @@ const AppContent = () => {
     if (currentPage === 'marketplace') {
       return (
         <>
-          <BuyerLayout currentPage={currentPage} onNavigate={handleNavigate}>
+          <BuyerLayout
+            currentPage={currentPage}
+            onNavigate={handleNavigate}
+            user={user}
+            onLogout={handleLogout}
+            isAuthenticated={false}
+          >
             <Marketplace onNavigate={handleNavigate} />
           </BuyerLayout>
-          <DevPanel />
         </>
       );
     }
@@ -122,10 +167,15 @@ const AppContent = () => {
     if (currentPage === 'product-detail') {
       return (
         <>
-          <BuyerLayout currentPage={currentPage} onNavigate={handleNavigate}>
+          <BuyerLayout
+            currentPage={currentPage}
+            onNavigate={handleNavigate}
+            user={user}
+            onLogout={handleLogout}
+            isAuthenticated={false}
+          >
             <ProductDetail productId={selectedProductId} />
           </BuyerLayout>
-          <DevPanel />
         </>
       );
     }
@@ -133,22 +183,28 @@ const AppContent = () => {
     return (
       <>
         <LandingPage onNavigate={handleNavigate} />
-        <DevPanel />
       </>
     );
   }
 
   // Buyer Routes
   if (effectiveRole === 'buyer') {
+    console.log('Rendering buyer route - currentPage:', currentPage); // DEBUG
     return (
       <>
-        <BuyerLayout currentPage={currentPage} onNavigate={handleNavigate}>
+        <BuyerLayout
+          currentPage={currentPage}
+          onNavigate={handleNavigate}
+          user={user}
+          onLogout={handleLogout}
+          isAuthenticated={isAuthenticated}
+        >
           {currentPage === 'home' && <Marketplace onNavigate={handleNavigate} />}
           {currentPage === 'dashboard' && <BuyerDashboard />}
           {currentPage === 'marketplace' && <Marketplace onNavigate={handleNavigate} />}
           {currentPage === 'product-detail' && <ProductDetail productId={selectedProductId} />}
+          {currentPage === 'profile' && <Profile />}
         </BuyerLayout>
-        <DevPanel />
       </>
     );
   }
@@ -157,7 +213,13 @@ const AppContent = () => {
   if (effectiveRole === 'seller') {
     return (
       <>
-        <DashboardLayout role="seller" onNavigate={handleNavigate}>
+        <DashboardLayout
+          role="seller"
+          onNavigate={handleNavigate}
+          user={user}
+          onLogout={handleLogout}
+          isAuthenticated={isAuthenticated}
+        >
           {currentPage === 'home' && <SellerDashboard />}
           {currentPage === 'dashboard' && <SellerDashboard />}
           {currentPage === 'create-listing' && <CreateListingEnhanced />}
@@ -166,8 +228,8 @@ const AppContent = () => {
           {currentPage === 'reputation' && <Reputation />}
           {currentPage === 'inspection' && <InspectionRequests />}
           {currentPage === 'messages' && <Messages />}
+          {currentPage === 'profile' && <Profile />}
         </DashboardLayout>
-        <DevPanel />
       </>
     );
   }
@@ -176,10 +238,16 @@ const AppContent = () => {
   if (effectiveRole === 'inspector') {
     return (
       <>
-        <DashboardLayout role="inspector">
-          <InspectorDashboard />
+        <DashboardLayout
+          role="inspector"
+          onNavigate={handleNavigate}
+          user={user}
+          onLogout={handleLogout}
+          isAuthenticated={isAuthenticated}
+        >
+          {currentPage === 'profile' && <Profile />}
+          {currentPage !== 'profile' && <InspectorDashboard />}
         </DashboardLayout>
-        <DevPanel />
       </>
     );
   }
@@ -188,10 +256,35 @@ const AppContent = () => {
   if (effectiveRole === 'admin') {
     return (
       <>
-        <DashboardLayout role="admin">
-          <AdminDashboard />
+        <DashboardLayout
+          role="admin"
+          onNavigate={handleNavigate}
+          user={user}
+          onLogout={handleLogout}
+          isAuthenticated={isAuthenticated}
+        >
+          {currentPage === 'profile' && <Profile />}
+          {currentPage !== 'profile' && <AdminDashboard />}
         </DashboardLayout>
-        <DevPanel />
+      </>
+    );
+  }
+
+  if (isAuthenticated && role) {
+    return (
+      <>
+        <BuyerLayout
+          currentPage={currentPage}
+          onNavigate={handleNavigate}
+          user={user}
+          onLogout={handleLogout}
+          isAuthenticated={isAuthenticated}
+        >
+          {currentPage === 'home' && <Marketplace onNavigate={handleNavigate} />}
+          {currentPage === 'dashboard' && <BuyerDashboard />}
+          {currentPage === 'marketplace' && <Marketplace onNavigate={handleNavigate} />}
+          {currentPage === 'product-detail' && <ProductDetail productId={selectedProductId} />}
+        </BuyerLayout>
       </>
     );
   }
@@ -204,7 +297,6 @@ const AppContent = () => {
           <p className="text-neutral-600">Trang không tồn tại</p>
         </div>
       </div>
-      <DevPanel />
     </>
   );
 };
