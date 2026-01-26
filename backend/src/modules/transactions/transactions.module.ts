@@ -13,6 +13,12 @@ import {
   Transaction,
   TransactionSchema,
 } from 'src/entities';
+import { WalletService } from '../wallet/wallet.service';
+import { Wallet, WalletSchema } from 'src/entities/wallet.entity';
+import {
+  WalletTransaction,
+  WalletTransactionSchema,
+} from 'src/entities/wallet-transaction.entity';
 
 @Module({
   imports: [
@@ -20,6 +26,8 @@ import {
       { name: Transaction.name, schema: TransactionSchema },
       { name: Bicycle.name, schema: BicycleSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Wallet.name, schema: WalletSchema },
+      { name: WalletTransaction.name, schema: WalletTransactionSchema },
     ]),
   ],
   providers: [
@@ -27,6 +35,7 @@ import {
     EscrowService,
     NotificationsService,
     ConfigService,
+    WalletService,
   ],
   controllers: [TransactionsController],
 })
