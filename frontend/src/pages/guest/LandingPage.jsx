@@ -1,15 +1,57 @@
-import React, { useState } from 'react';
-import { Button, Card, Badge, Rating, Input } from '../../components/ui';
-import { Header } from '../../components/common';
+import React, { useEffect, useState } from 'react';
+import { Button, Card, Badge, Rating, Input, Select } from '../../components/ui';
+import { Header, Footer } from '../../components/common';
 
-const LandingPage = ({ onNavigate }) => {
+const LandingPage = ({
+  onNavigate,
+  isAuthenticated = false,
+  role = null,
+  user = null,
+  onLogout,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [searchFilters, setSearchFilters] = useState({ location: '', category: '' });
+
+  const heroSlides = [
+    {
+      title: 'Tìm xe đạp chất lượng với giá tốt',
+      subtitle: 'Hơn 2.500 tin đăng uy tín, kiểm định minh bạch, giao dịch an toàn.',
+      image: '/marketplace_hero_banner_1768417779045.png',
+      accent: 'Giao dịch an toàn',
+    },
+    {
+      title: 'Đăng tin bán xe trong 60 giây',
+      subtitle: 'Giao diện tối ưu cho người bán, hỗ trợ kiểm định và quản lý đơn hàng.',
+      image: '/road_bike_hero_1768417748558.png',
+      accent: 'Đăng tin miễn phí',
+    },
+    {
+      title: 'Mua xe đã kiểm định, hoàn tiền nếu không đúng mô tả',
+      subtitle: 'Đội ngũ kiểm định viên chuyên nghiệp, quy trình ký quỹ minh bạch.',
+      image: '/mountain_bike_hero_1768417732962.png',
+      accent: 'Kiểm định chuyên nghiệp',
+    },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5200);
+
+    return () => clearInterval(interval);
+  }, [heroSlides.length]);
 
   const categories = [
-    { name: 'Xe Đạp Địa Hình', icon: '', count: 245, color: 'from-green-500 to-emerald-600' },
-    { name: 'Xe Đạp Đường Trường', icon: '', count: 189, color: 'from-red-500 to-rose-600' },
-    { name: 'Xe Đạp Hybrid', icon: '', count: 156, color: 'from-blue-500 to-cyan-600' },
-    { name: 'Xe Đạp BMX', icon: '', count: 78, color: 'from-purple-500 to-pink-600' },
+    {
+      name: 'Xe Đạp Địa Hình',
+      icon: '⛰️',
+      count: 245,
+      color: 'from-themeSecondary to-themePrimary',
+    },
+    { name: 'Xe Đạp Đường Trường', icon: '🚴‍♂️', count: 189, color: 'from-indigo-500 to-sky-500' },
+    { name: 'Xe Đạp Hybrid', icon: '🛣️', count: 156, color: 'from-emerald-500 to-teal-500' },
+    { name: 'Xe Đạp BMX', icon: '🏆', count: 78, color: 'from-amber-500 to-orange-500' },
   ];
 
   const featuredBikes = [
@@ -50,10 +92,33 @@ const LandingPage = ({ onNavigate }) => {
   ];
 
   const stats = [
-    { label: 'Người dùng', value: '10,000+', icon: ' ' },
-    { label: 'Xe đang bán', value: '2,500+', icon: ' ' },
-    { label: 'Giao dịch thành công', value: '8,000+', icon: ' ' },
-    { label: 'Đánh giá 5 sao', value: '95%', icon: ' ' },
+    { label: 'Người dùng', value: '10,000+', icon: '👥' },
+    { label: 'Xe đang bán', value: '2,500+', icon: '🚲' },
+    { label: 'Giao dịch thành công', value: '8,000+', icon: '✅' },
+    { label: 'Đánh giá 5 sao', value: '95%', icon: '⭐' },
+  ];
+
+  const searchSuggestions = ['Trek Domane size M', 'Giant TCR dưới 20 triệu', 'Hybrid daily ride'];
+
+  const trustPoints = [
+    {
+      title: 'Kiểm định chuyên sâu',
+      desc: 'Báo cáo 18 hạng mục khung, phanh, truyền động và bánh.',
+      pill: 'Bởi chuyên gia',
+      icon: '🛠️',
+    },
+    {
+      title: 'Ký quỹ an toàn',
+      desc: 'Giữ tiền đến khi xác nhận xe đúng mô tả; hoàn tiền nếu sai.',
+      pill: 'Escrow',
+      icon: '🛡️',
+    },
+    {
+      title: 'Vận chuyển & bảo hiểm',
+      desc: 'Giao nhận có bảo hiểm, cập nhật trạng thái theo thời gian thực.',
+      pill: 'Shipping+',
+      icon: '📦',
+    },
   ];
 
   const handleSearch = () => {
@@ -71,106 +136,176 @@ const LandingPage = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
       {/* Navigation */}
-      <Header isAuthenticated={false} onNavigate={onNavigate} />
+      <Header
+        isAuthenticated={isAuthenticated}
+        role={role}
+        currentPage="landing"
+        onNavigate={onNavigate}
+        userName={user?.fullName}
+        userEmail={user?.email}
+        onLogout={onLogout}
+      />
 
       {/* Hero Section */}
-      <section className="section">
-        <div className="container-custom">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6 animate-slide-up">
-              <h2 className="text-5xl lg:text-6xl font-bold leading-tight">
-                Chợ Xe Đạp <span className="gradient-text">Uy Tín</span>
-                <br />
-                Giao Dịch <span className="gradient-text">An Toàn</span>
-              </h2>
-              <p className="text-xl text-neutral-600 leading-relaxed">
-                Nền tảng mua bán xe đạp thể thao chuyên nghiệp với hệ thống kiểm định, ký quỹ an
-                toàn và cộng đồng tin cậy.
+      <section className="relative bg-themeBlackAlt text-white">
+        <div
+          className="absolute inset-0 opacity-80"
+          style={{
+            backgroundImage: `linear-gradient(120deg, rgba(0,19,36,0.95) 10%, rgba(24,73,169,0.8) 55%, rgba(99,102,241,0.45) 90%), url(${heroSlides[activeSlide].image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-themePrimary/30" />
+
+        <div className="container-custom relative pt-16 lg:pt-20 pb-36 lg:pb-44">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div className="space-y-6 max-w-2xl animate-slide-up">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur">
+                <span className="size-2 rounded-full bg-themeGreenLight animate-pulse" />
+                <span className="text-sm font-semibold text-themePrimaryLighter uppercase tracking-wide">
+                  {heroSlides[activeSlide].accent}
+                </span>
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-lg">
+                {heroSlides[activeSlide].title}
+              </h1>
+              <p className="text-lg md:text-xl text-white/80 leading-relaxed">
+                {heroSlides[activeSlide].subtitle}
               </p>
 
-              {/* Search Bar */}
+              <div className="flex flex-wrap gap-3">
+                {['Kiểm định chuyên nghiệp', 'Ký quỹ an toàn', 'Giao dịch 24/7'].map((chip) => (
+                  <span
+                    key={chip}
+                    className="px-3 py-2 rounded-full bg-white/10 border border-white/15 text-sm font-medium text-white/90"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Tìm kiếm xe đạp (Giant, Trek, Specialized...)"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-12 md:h-14 text-base md:text-lg"
-                  />
-                </div>
                 <Button
                   variant="primary"
-                  className="h-12 md:h-14 px-6 md:px-8"
+                  className="h-12 md:h-14 px-6 md:px-8 shadow-frontShadow"
                   onClick={handleSearch}
                 >
-                  Tìm kiếm
+                  Khám phá marketplace
                 </Button>
               </div>
 
-              {/* Trust Indicators */}
-              <div className="flex flex-wrap gap-4 pt-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl"></span>
-                  <span className="text-sm font-medium text-neutral-700">
-                    Kiểm định chuyên nghiệp
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl"></span>
-                  <span className="text-sm font-medium text-neutral-700">Ký quỹ an toàn</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl"></span>
-                  <span className="text-sm font-medium text-neutral-700">Đánh giá minh bạch</span>
-                </div>
+              <div className="flex items-center gap-2">
+                {heroSlides.map((slide, index) => (
+                  <button
+                    key={slide.title}
+                    onClick={() => setActiveSlide(index)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      index === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/50 hover:bg-white/80'
+                    }`}
+                    aria-label={`Chuyển tới slide ${index + 1}`}
+                  />
+                ))}
               </div>
             </div>
 
-            <div className="relative animate-fade-in">
-              <img
-                src="/marketplace_hero_banner_1768417779045.png"
-                alt="Bicycle Marketplace"
-                className="w-full rounded-2xl shadow-2xl"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+            <div className="relative lg:justify-self-end w-full">
+              <div className="relative rounded-2xl overflow-hidden shadow-frontShadow ring-1 ring-white/15 backdrop-blur card-surface">
+                <img
+                  src={heroSlides[activeSlide].image}
+                  alt="Bicycle Marketplace"
+                  className="w-full h-full object-cover max-h-[420px]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-      {/* Stats Section */}
-      <section className="py-12 bg-gradient-to-r from-primary-600 to-secondary-600">
-        <div className="container-custom">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center text-white animate-scale-in">
-                <div className="text-4xl mb-2">{stat.icon}</div>
-                <div className="text-3xl font-bold mb-1">{stat.value}</div>
-                <div className="text-sm opacity-90">{stat.label}</div>
+                <div className="absolute bottom-4 left-4 right-4 bg-white/90 rounded-xl p-4 text-neutral-900 shadow-lg backdrop-blur">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <span className="h-10 w-10 rounded-full bg-themePrimary/10 text-themePrimary flex items-center justify-center font-semibold">
+                        24h
+                      </span>
+                      <div>
+                        <p className="text-sm text-neutral-500">Báo cáo kiểm định</p>
+                        <p className="font-semibold">Trong 24h bởi chuyên gia</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-semibold">
+                        Escrow
+                      </span>
+                      <div>
+                        <p className="text-sm text-neutral-500">Ký quỹ an toàn</p>
+                        <p className="font-semibold">Hoàn tiền nếu sai mô tả</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Categories */}
-      <section className="section">
+      <section className="section pt-28 md:pt-32">
         <div className="container-custom">
-          <h3 className="text-3xl font-bold text-center mb-12">Danh Mục Xe Đạp</h3>
+          <div className="flex flex-col gap-3 mb-10 text-center">
+            <p className="text-sm font-semibold text-themePrimary/80">Khám phá nhanh</p>
+            <h3 className="text-3xl font-bold">Danh Mục Xe Đạp</h3>
+            <p className="text-neutral-600">
+              Lọc theo nhu cầu: địa hình, đường trường, hybrid, BMX
+            </p>
+          </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {categories.map((category, index) => (
               <Card
                 key={index}
                 hover
-                className="p-6 text-center cursor-pointer group"
+                className="p-6 text-center cursor-pointer group card-surface"
                 onClick={handleSearch}
               >
                 <div
-                  className={`w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r ${category.color} flex items-center justify-center text-4xl transform group-hover:scale-110 transition-transform`}
+                  className={`w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r ${category.color} flex items-center justify-center text-3xl transform group-hover:scale-110 transition-transform text-white shadow-[0_18px_36px_-18px_rgba(0,0,0,0.4)]`}
                 >
                   {category.icon}
                 </div>
-                <h4 className="font-semibold text-lg mb-2">{category.name}</h4>
+                <h4 className="font-semibold text-lg mb-1">{category.name}</h4>
                 <p className="text-neutral-600">{category.count} xe</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust & Safety */}
+      <section className="section pt-12 pb-8">
+        <div className="container-custom">
+          <div className="flex flex-col gap-2 mb-8 text-center">
+            <p className="text-sm font-semibold text-themePrimary/80">An tâm giao dịch</p>
+            <h3 className="text-3xl font-bold">Minh bạch - An toàn - Nhanh chóng</h3>
+            <p className="text-neutral-600 max-w-2xl mx-auto">
+              Từ kiểm định đến ký quỹ và vận chuyển, mọi bước đều có lớp bảo vệ rõ ràng.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {trustPoints.map((item) => (
+              <Card key={item.title} className="card-surface p-6 h-full flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="h-12 w-12 rounded-xl bg-themePrimary/10 text-themePrimary flex items-center justify-center text-xl">
+                    {item.icon}
+                  </span>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-themePrimary font-semibold">
+                      {item.pill}
+                    </p>
+                    <h4 className="text-lg font-semibold">{item.title}</h4>
+                  </div>
+                </div>
+                <p className="text-neutral-600 leading-relaxed flex-1">{item.desc}</p>
+                <div className="flex items-center gap-2 text-sm text-neutral-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-themePrimary"></span>
+                  <span>Theo dõi tiến trình thời gian thực</span>
+                </div>
               </Card>
             ))}
           </div>
@@ -185,33 +320,31 @@ const LandingPage = ({ onNavigate }) => {
             Quy trình đơn giản, minh bạch để mua bán xe đạp an toàn
           </p>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-2xl font-bold">
-                1
+            {[
+              {
+                step: '1',
+                title: 'Đăng ký & Tìm kiếm',
+                desc: 'Tạo tài khoản, lọc theo loại xe, giá, kích thước khung.',
+              },
+              {
+                step: '2',
+                title: 'Kiểm định & Đặt cọc',
+                desc: 'Xe được kiểm định; đặt cọc qua ký quỹ an toàn, phí cấu hình linh hoạt.',
+              },
+              {
+                step: '3',
+                title: 'Nhận xe & Đánh giá',
+                desc: 'Xác nhận nhận xe đúng báo cáo kiểm định, giải ngân cho người bán và đánh giá uy tín.',
+              },
+            ].map((item) => (
+              <div key={item.step} className="text-center card-surface p-6">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-themePrimary/10 text-themePrimary flex items-center justify-center text-2xl font-bold">
+                  {item.step}
+                </div>
+                <h4 className="font-semibold text-xl mb-3">{item.title}</h4>
+                <p className="text-neutral-600">{item.desc}</p>
               </div>
-              <h4 className="font-semibold text-xl mb-3">Đăng ký & Tìm kiếm</h4>
-              <p className="text-neutral-600">
-                Tạo tài khoản miễn phí và tìm kiếm xe đạp phù hợp với nhu cầu của bạn
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary-100 text-secondary-600 flex items-center justify-center text-2xl font-bold">
-                2
-              </div>
-              <h4 className="font-semibold text-xl mb-3">Kiểm định & Đặt cọc</h4>
-              <p className="text-neutral-600">
-                Xe được kiểm định chuyên nghiệp. Đặt cọc an toàn qua hệ thống ký quỹ
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success-100 text-success-600 flex items-center justify-center text-2xl font-bold">
-                3
-              </div>
-              <h4 className="font-semibold text-xl mb-3">Nhận xe & Đánh giá</h4>
-              <p className="text-neutral-600">
-                Nhận xe, xác nhận chất lượng. Tiền được chuyển cho người bán sau khi hoàn tất
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -230,7 +363,7 @@ const LandingPage = ({ onNavigate }) => {
               <Card
                 key={bike.id}
                 variant="product"
-                className="overflow-hidden cursor-pointer hover-lift"
+                className="overflow-hidden cursor-pointer hover-lift card-surface"
                 onClick={() => handleProductClick(bike.id)}
               >
                 <div className="relative aspect-product bg-neutral-100">
@@ -242,7 +375,7 @@ const LandingPage = ({ onNavigate }) => {
                   )}
                 </div>
                 <div className="p-4">
-                  <h4 className="font-semibold text-lg mb-2">{bike.name}</h4>
+                  <h4 className="font-semibold text-lg mb-2 line-clamp-2">{bike.name}</h4>
                   <div className="flex items-center gap-2 mb-3">
                     <Rating value={bike.rating} size="sm" readonly />
                     <span className="text-sm text-neutral-600">({bike.reviews})</span>
@@ -293,72 +426,7 @@ const LandingPage = ({ onNavigate }) => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-neutral-900 text-white py-12">
-        <div className="container-custom">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-3xl">🚴</span>
-                <h4 className="text-xl font-bold">Bicycle-Marketplace</h4>
-              </div>
-              <p className="text-neutral-400">
-                Chợ xe đạp uy tín. Giao dịch an toàn. Cộng đồng tin cậy.
-              </p>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Về chúng tôi</h5>
-              <ul className="space-y-2 text-neutral-400">
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Giới thiệu
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Liên hệ
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Tuyển dụng
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Hỗ trợ</h5>
-              <ul className="space-y-2 text-neutral-400">
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Trung tâm trợ giúp
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Chính sách bảo mật
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Điều khoản sử dụng
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Liên hệ</h5>
-              <ul className="space-y-2 text-neutral-400">
-                <li>📧 support@routin.vn</li>
-                <li>📱 1900-xxxx</li>
-                <li>🌐 www.routin.vn</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-neutral-800 mt-8 pt-8 text-center text-neutral-400">
-            <p>&copy; 2026 Bicycle-MarketPlace. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
