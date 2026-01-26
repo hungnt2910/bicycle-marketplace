@@ -7,6 +7,8 @@ import { EscrowService } from '../escrow/escrow.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ConfigService } from '@nestjs/config';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { WalletService } from '../wallet/wallet.service';
+import { WalletTransactionType } from 'src/entities/wallet-transaction.entity';
 
 @Injectable()
 export class TransactionsService {
@@ -14,6 +16,7 @@ export class TransactionsService {
     @InjectModel(Transaction.name) private transactionModel: Model<TransactionDocument>,
     @InjectModel(Bicycle.name) private bicycleModel: Model<BicycleDocument>,
     private escrowService: EscrowService,
+    private walletService: WalletService,
     private notificationsService: NotificationsService,
     private configService: ConfigService,
   ) {}
@@ -103,6 +106,21 @@ export class TransactionsService {
     // 6. Reserve bicycle
     bicycle.status = BicycleStatus.RESERVED;
     await bicycle.save();
+
+    await this.walletService.debit(
+    buyerId,
+    amount,
+    WalletTransactionType.PURCHASE,
+    `Payment for bicycle: ${bicycle.title}`,
+    { transactionId: transaction._id.toString(), bicycleId: bicycle._id.toString() }
+  );
+
+  // Hold in escrow
+  await this.walletService.holdInEscrow(
+    buyerId,
+    amount,
+    transaction._id.toString()
+  );
 
     // 7. Send notifications
     // await this.notificationsService.create({
@@ -293,6 +311,25 @@ export class TransactionsService {
       status: 'sold',
       soldAt: new Date(),
     });
+
+    const commissionAmount = transaction.fees?.commissionAmount || 0;
+  const sellerAmount = transaction.amount - commissionAmount;
+
+  // Credit seller's wallet
+  await this.walletService.releaseFromEscrow(
+    transaction.sellerId.toString(),
+    sellerAmount,
+    transactionId
+  );
+
+  // Credit platform wallet (commission)
+  await this.walletService.credit(
+    'PLATFORM_USER_ID',
+    commissionAmount,
+    WalletTransactionType.COMMISSION,
+    `Commission from transaction ${transactionId}`,
+    { transactionId }
+  );
 
     // Notify seller
     // await this.notificationsService.create({

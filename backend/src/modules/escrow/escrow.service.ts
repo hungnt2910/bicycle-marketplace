@@ -1,18 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Transaction, TransactionDocument } from '../../entities/transaction.entity';
+import {
+  Transaction,
+  TransactionDocument,
+} from '../../entities/transaction.entity';
 import { AuditLog, AuditLogDocument } from '../../entities/audit-log.entity';
+import { WalletService } from '../wallet/wallet.service';
+import { WalletTransactionType } from 'src/entities/wallet-transaction.entity';
 
 @Injectable()
 export class EscrowService {
   private readonly logger = new Logger(EscrowService.name);
 
   constructor(
-    @InjectModel(Transaction.name) 
+    @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
-    @InjectModel(AuditLog.name) 
+    @InjectModel(AuditLog.name)
     private auditLogModel: Model<AuditLogDocument>,
+    private walletService: WalletService,
   ) {}
 
   /**
@@ -20,12 +26,12 @@ export class EscrowService {
    */
   async holdFunds(transaction: TransactionDocument): Promise<void> {
     this.logger.log(
-      `Holding ${transaction.amount} VND in escrow for transaction ${transaction._id}`
+      `Holding ${transaction.amount} VND in escrow for transaction ${transaction._id}`,
     );
 
     // In production, this would call payment gateway API
     // For now, we just log the action
-    
+
     await this.auditLogModel.create({
       adminId: new Types.ObjectId('000000000000000000000000'), // System placeholder
       action: 'escrow_hold_funds',
@@ -46,9 +52,9 @@ export class EscrowService {
     // Check if fees exist and have commissionAmount
     const commissionAmount = transaction.fees?.commissionAmount || 0;
     const sellerAmount = transaction.amount - commissionAmount;
-    
+
     this.logger.log(
-      `Releasing ${sellerAmount} VND to seller ${transaction.sellerId}`
+      `Releasing ${sellerAmount} VND to seller ${transaction.sellerId}`,
     );
 
     // In production, this would:
@@ -75,7 +81,15 @@ export class EscrowService {
    */
   async refundFunds(transaction: TransactionDocument): Promise<void> {
     this.logger.log(
-      `Refunding ${transaction.amount} VND to buyer ${transaction.buyerId}`
+      `Refunding ${transaction.amount} VND to buyer ${transaction.buyerId}`,
+    );
+
+    await this.walletService.credit(
+      transaction.buyerId.toString(),
+      transaction.amount,
+      WalletTransactionType.REFUND,
+      `Refund for transaction ${transaction._id}`,
+      { transactionId: transaction._id.toString() },
     );
 
     // In production, this would call payment gateway refund API
@@ -97,9 +111,7 @@ export class EscrowService {
    * Freeze transaction (when dispute is opened)
    */
   async freezeTransaction(transaction: TransactionDocument): Promise<void> {
-    this.logger.log(
-      `Freezing transaction ${transaction._id} due to dispute`
-    );
+    this.logger.log(`Freezing transaction ${transaction._id} due to dispute`);
 
     await this.auditLogModel.create({
       adminId: new Types.ObjectId('000000000000000000000000'), // System placeholder
@@ -113,6 +125,4 @@ export class EscrowService {
       timestamp: new Date(),
     });
   }
-
-  
 }
