@@ -1,233 +1,751 @@
 import React, { useState } from 'react';
-import { Avatar, Badge } from '../components/ui';
+import { Avatar } from '../components/ui';
+import { Footer } from '../components/common';
 
-const DashboardLayout = ({ children, role = 'seller' }) => {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [showProfile, setShowProfile] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const DashboardLayout = ({
+  children,
+  role = 'seller',
+  onNavigate,
+  user,
+  onLogout,
+  isAuthenticated = false,
+  currentPage = 'dashboard',
+}) => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showProfile, setShowProfile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    const menuItems = {
-        seller: [
-            { icon: '', label: 'Dashboard', path: 'dashboard' },
-            { icon: '', label: 'Đăng tin mới', path: 'create-listing' },
-            { icon: '', label: 'Quản lý tin đăng', path: 'manage-listings' },
-            { icon: '', label: 'Quản lý đơn hàng', path: 'orders' },
-            { icon: '', label: 'Uy tín & Đánh giá', path: 'reputation' },
-            { icon: '', label: 'Yêu cầu kiểm định', path: 'inspection' },
-            { icon: '', label: 'Tin nhắn', path: 'messages', badge: 3 },
-        ],
-        inspector: [
-            { icon: '', label: 'Dashboard', path: 'dashboard' },
-            { icon: '', label: 'Hàng đợi kiểm định', path: 'queue' },
-            { icon: '', label: 'Đang kiểm định', path: 'active' },
-            { icon: '', label: 'Báo cáo đã hoàn thành', path: 'reports' },
-            { icon: '', label: 'Hỗ trợ tranh chấp', path: 'disputes' },
-            { icon: '', label: 'Thống kê', path: 'stats' },
-        ],
-        admin: [
-            { icon: '', label: 'Dashboard', path: 'dashboard' },
-            { icon: '', label: 'Quản lý người dùng', path: 'users' },
-            { icon: '', label: 'Kiểm duyệt tin đăng', path: 'moderation' },
-            { icon: '', label: 'Giải quyết tranh chấp', path: 'disputes' },
-            { icon: '', label: 'Quản lý danh mục', path: 'categories' },
-            { icon: '', label: 'Quản lý giao dịch', path: 'transactions' },
-            { icon: '', label: 'Báo cáo hệ thống', path: 'reports' },
-        ],
-    };
+  const menuItems = {
+    seller: [
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
+          </svg>
+        ),
+        label: 'Dashboard',
+        path: 'dashboard',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        ),
+        label: 'Đăng tin mới',
+        path: 'create-listing',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
+          </svg>
+        ),
+        label: 'Quản lý tin đăng',
+        path: 'manage-listings',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+            />
+          </svg>
+        ),
+        label: 'Quản lý đơn hàng',
+        path: 'orders',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+            />
+          </svg>
+        ),
+        label: 'Uy tín & Đánh giá',
+        path: 'reputation',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        ),
+        label: 'Yêu cầu kiểm định',
+        path: 'inspection',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+            />
+          </svg>
+        ),
+        label: 'Tin nhắn',
+        path: 'messages',
+        badge: 3,
+      },
+    ],
+    inspector: [
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
+          </svg>
+        ),
+        label: 'Dashboard',
+        path: 'dashboard',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        ),
+        label: 'Hàng đợi kiểm định',
+        path: 'queue',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+            />
+          </svg>
+        ),
+        label: 'Đang kiểm định',
+        path: 'active',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+        ),
+        label: 'Báo cáo đã hoàn thành',
+        path: 'reports',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        ),
+        label: 'Hỗ trợ tranh chấp',
+        path: 'disputes',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+        ),
+        label: 'Thống kê',
+        path: 'stats',
+      },
+    ],
+    admin: [
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
+          </svg>
+        ),
+        label: 'Dashboard',
+        path: 'dashboard',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
+          </svg>
+        ),
+        label: 'Quản lý người dùng',
+        path: 'users',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+            />
+          </svg>
+        ),
+        label: 'Kiểm duyệt tin đăng',
+        path: 'moderation',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        ),
+        label: 'Giải quyết tranh chấp',
+        path: 'disputes',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+            />
+          </svg>
+        ),
+        label: 'Quản lý danh mục',
+        path: 'categories',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+        ),
+        label: 'Quản lý giao dịch',
+        path: 'transactions',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+        ),
+        label: 'Báo cáo hệ thống',
+        path: 'reports',
+      },
+    ],
+  };
 
-    const roleNames = {
-        seller: 'Người bán',
-        inspector: 'Kiểm định viên',
-        admin: 'Quản trị viên',
-    };
+  const roleNames = {
+    seller: 'Người bán',
+    inspector: 'Kiểm định viên',
+    admin: 'Quản trị viên',
+  };
 
-    const roleColors = {
-        seller: 'from-blue-500 to-cyan-600',
-        inspector: 'from-green-500 to-emerald-600',
-        admin: 'from-purple-500 to-pink-600',
-    };
+  const roleConfig = {
+    seller: {
+      gradient: 'from-themePrimary to-accent',
+      bgColor: 'bg-themePrimary/10',
+      textColor: 'text-themePrimary',
+      icon: (
+        <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="currentColor"
+            fillOpacity="0.2"
+          />
+          <path
+            d="M9 22V12h6v10"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
+    inspector: {
+      gradient: 'from-accent to-emerald-600',
+      bgColor: 'bg-accent/10',
+      textColor: 'text-accent',
+      icon: (
+        <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="currentColor"
+            fillOpacity="0.2"
+          />
+        </svg>
+      ),
+    },
+    admin: {
+      gradient: 'from-purple-500 to-pink-600',
+      bgColor: 'bg-purple-100',
+      textColor: 'text-purple-600',
+      icon: (
+        <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="currentColor"
+            fillOpacity="0.2"
+          />
+          <path
+            d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
+  };
 
-    return (
-        <div className="min-h-screen bg-neutral-50 flex flex-col md:flex-row">
-            {/* Mobile Header */}
-            <div className="md:hidden bg-white border-b border-neutral-200 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl">🚴</span>
-                    <h1 className="text-lg font-bold gradient-text">Bicycle-Marketplace</h1>
-                </div>
-                <button
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-                >
-                    <span className="text-xl">{mobileMenuOpen ? '✕' : '☰'}</span>
-                </button>
+  const config = roleConfig[role];
+
+  const handleNavigateItem = (path) => {
+    if (onNavigate) {
+      onNavigate(path);
+    }
+    setMobileMenuOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 flex">
+      {/* Sidebar - Desktop */}
+      <aside
+        className={`hidden lg:flex flex-col bg-white shadow-lg transition-all duration-300 ${
+          sidebarOpen ? 'w-64' : 'w-20'
+        } border-r border-neutral-200`}
+      >
+        {/* Logo & Toggle */}
+        <div
+          className={`h-16 border-b border-neutral-100 flex items-center bg-gradient-to-r from-white to-neutral-50 ${
+            sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'
+          }`}
+        >
+          {sidebarOpen && (
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
+                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
+                  <path
+                    d="M5 18c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M16 8.5l-3-1-3 1L7.8 6.3c-.2-.2-.5-.3-.8-.3-.6 0-1 .4-1 1 0 .3.1.6.3.8L8.5 10l-.5 5h2l.5-5 2.5-1 2 2v4h2v-4.5c0-.4-.2-.8-.5-1l-2-2z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-lg font-bold text-themePrimary">Bicycle-MP</h1>
             </div>
-
-            {/* Sidebar - Desktop */}
-            <aside className={`hidden md:flex bg-white border-r border-neutral-200 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} flex-col`}>
-                {/* Logo */}
-                <div className="h-16 border-b border-neutral-200 flex items-center justify-between px-4">
-                    {sidebarOpen && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl">🚴</span>
-                            <h1 className="text-xl font-bold gradient-text">Bicycle-Marketplace</h1>
-                        </div>
-                    )}
-                    <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-                    >
-                        <span className="text-lg">{sidebarOpen ? '«' : '»'}</span>
-                    </button>
-                </div>
-
-                {/* Role Badge */}
-                <div className={`mx-4 my-4 p-3 rounded-lg bg-gradient-to-r ${roleColors[role]} text-white text-center`}>
-                    {sidebarOpen ? (
-                        <div>
-                            <div className="text-2xl mb-1">
-                                {role === 'seller' ? '🏪' : role === 'inspector' ? '✅' : '👨‍💼'}
-                            </div>
-                            <div className="text-sm font-semibold">{roleNames[role]}</div>
-                        </div>
-                    ) : (
-                        <div className="text-2xl">
-                            {role === 'seller' ? '🏪' : role === 'inspector' ? '✅' : '👨‍💼'}
-                        </div>
-                    )}
-                </div>
-
-                {/* Menu Items */}
-                <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto scrollbar-thin">
-                    {menuItems[role].map((item, index) => (
-                        <a
-                            key={index}
-                            href={`#${item.path}`}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-100 transition-colors text-neutral-700 hover:text-neutral-900 relative"
-                        >
-                            <span className="text-xl">{item.icon}</span>
-                            {sidebarOpen && (
-                                <>
-                                    <span className="text-sm font-medium">{item.label}</span>
-                                    {item.badge && (
-                                        <span className="ml-auto bg-danger-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                            {item.badge}
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                            {!sidebarOpen && item.badge && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-danger-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                                    {item.badge}
-                                </span>
-                            )}
-                        </a>
-                    ))}
-                </nav>
-
-                {/* User Profile */}
-                <div className="border-t border-neutral-200 p-4">
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowProfile(!showProfile)}
-                            className="flex items-center gap-3 w-full hover:bg-neutral-100 rounded-lg p-2 transition-colors"
-                        >
-                            <Avatar name="Nguyễn Văn A" size="sm" />
-                            {sidebarOpen && (
-                                <div className="flex-1 text-left">
-                                    <div className="text-sm font-medium">Nguyễn Văn A</div>
-                                    <div className="text-xs text-neutral-500">admin@Bicycle-Marketplace.vn</div>
-                                </div>
-                            )}
-                        </button>
-
-                        {showProfile && sidebarOpen && (
-                            <div className="dropdown bottom-full mb-2 left-0 right-0">
-                                <div className="dropdown-item">
-                                    <span className="mr-2"></span>
-                                    Tài khoản
-                                </div>
-                                <div className="dropdown-item">
-                                    <span className="mr-2"></span>
-                                    Cài đặt
-                                </div>
-                                <div className="border-t border-neutral-200 my-1"></div>
-                                <div className="dropdown-item text-danger-600">
-                                    <span className="mr-2"></span>
-                                    Đăng xuất
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </aside>
-
-            {/* Mobile Menu */}
-            {mobileMenuOpen && (
-                <div className="md:hidden bg-white border-b border-neutral-200">
-                    <div className={`p-4 mb-2 mx-4 rounded-lg bg-gradient-to-r ${roleColors[role]} text-white text-center`}>
-                        <div className="text-2xl mb-1">
-                            {role === 'seller' ? '🏪' : role === 'inspector' ? '✅' : '👨‍💼'}
-                        </div>
-                        <div className="text-sm font-semibold">{roleNames[role]}</div>
-                    </div>
-                    <nav className="px-2 pb-4">
-                        {menuItems[role].map((item, index) => (
-                            <a
-                                key={index}
-                                href={`#${item.path}`}
-                                className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors text-neutral-700"
-                            >
-                                <span className="text-xl">{item.icon}</span>
-                                <span className="text-sm font-medium">{item.label}</span>
-                                {item.badge && (
-                                    <span className="ml-auto bg-danger-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                        {item.badge}
-                                    </span>
-                                )}
-                            </a>
-                        ))}
-                    </nav>
-                </div>
-            )}
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-h-screen">
-                {/* Top Bar */}
-                <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-4 md:px-6">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-lg md:text-xl font-semibold text-neutral-900">Dashboard</h2>
-                    </div>
-
-                    <div className="flex items-center gap-2 md:gap-4">
-                        {/* Notifications */}
-                        <button className="relative p-2 hover:bg-neutral-100 rounded-lg transition-colors">
-                            <span className="text-xl md:text-2xl">🔔</span>
-                            <span className="notification-badge">5</span>
-                        </button>
-
-                        {/* Messages */}
-                        <button className="relative p-2 hover:bg-neutral-100 rounded-lg transition-colors">
-                            <span className="text-xl md:text-2xl">💬</span>
-                            <span className="notification-badge">3</span>
-                        </button>
-                    </div>
-                </header>
-
-                {/* Page Content */}
-                <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-                    {children}
-                </main>
-
-                {/* Footer */}
-                <footer className="bg-white border-t border-neutral-200 px-4 md:px-6 py-4">
-                    <div className="text-xs md:text-sm text-neutral-600 text-center">
-                        &copy; 2024 Bicycle-Marketplace. All rights reserved.
-                    </div>
-                </footer>
+          )}
+          {!sidebarOpen && (
+            <div className="flex flex-col items-center gap-1.5 w-full">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
+                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
+                  <path
+                    d="M5 18c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M16 8.5l-3-1-3 1L7.8 6.3c-.2-.2-.5-.3-.8-.3-.6 0-1 .4-1 1 0 .3.1.6.3.8L8.5 10l-.5 5h2l.5-5 2.5-1 2 2v4h2v-4.5c0-.4-.2-.8-.5-1l-2-2z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </div>
+              <div className="text-center w-full px-1">
+                <p className="text-[9px] font-semibold text-neutral-700 break-words leading-tight">
+                  {user?.fullName?.split(' ').slice(0, 2).join(' ') || 'User'}
+                </p>
+              </div>
             </div>
+          )}
+          {sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
+              title="Thu gọn"
+            >
+              <svg
+                className="w-5 h-5 text-neutral-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
+              </svg>
+            </button>
+          )}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="absolute top-2 right-2 p-1 hover:bg-neutral-100 rounded-lg transition-colors"
+              title="Mở rộng"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          )}
         </div>
-    );
+
+        {/* Role Badge */}
+        <div className={`${sidebarOpen ? 'px-4 py-4' : 'px-2 py-3'}`}>
+          <div
+            className={`${sidebarOpen ? 'p-4' : 'p-2'} rounded-2xl bg-gradient-to-br ${
+              config.gradient
+            } shadow-lg text-white transition-all overflow-hidden`}
+          >
+            {sidebarOpen ? (
+              <div className="text-center">
+                <div className="w-12 h-12 mx-auto mb-3">{config.icon}</div>
+                <div className="text-sm font-bold">{roleNames[role]}</div>
+                <div className="text-xs opacity-90 mt-1 truncate px-2">
+                  {user?.fullName || 'User'}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="w-7 h-7 mx-auto mb-1">{config.icon}</div>
+                <p className="text-[8px] font-bold leading-tight break-words">
+                  {user?.fullName?.split(' ').slice(0, 2).join(' ') || 'User'}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Menu Items */}
+        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+          {menuItems[role].map((item, index) => {
+            const isActive = currentPage === item.path;
+            return (
+              <button
+                key={index}
+                onClick={() => handleNavigateItem(item.path)}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative ${
+                  isActive
+                    ? `${config.bgColor} ${config.textColor} shadow-sm font-semibold`
+                    : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                }`}
+                title={!sidebarOpen ? item.label : ''}
+              >
+                <span
+                  className={`transition-colors ${isActive ? config.textColor : 'text-neutral-400 group-hover:text-neutral-600'}`}
+                >
+                  {item.icon}
+                </span>
+                {sidebarOpen && (
+                  <>
+                    <span className="text-sm flex-1 text-left">{item.label}</span>
+                    {item.badge && (
+                      <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+                {!sidebarOpen && item.badge && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User Profile */}
+        <div className="border-t border-neutral-100 p-3">
+          <div className="relative">
+            <button
+              onClick={() => setShowProfile(!showProfile)}
+              className={`w-full flex items-center gap-3 p-2 hover:bg-neutral-50 rounded-xl transition-all ${
+                sidebarOpen ? '' : 'justify-center'
+              }`}
+            >
+              <Avatar name={user?.fullName || 'User'} size="sm" />
+              {sidebarOpen && (
+                <div className="flex-1 text-left min-w-0">
+                  <div className="text-sm font-semibold text-neutral-900 truncate">
+                    {user?.fullName || 'User'}
+                  </div>
+                  <div className="text-xs text-neutral-500 truncate">
+                    {user?.email || 'user@example.com'}
+                  </div>
+                </div>
+              )}
+              {sidebarOpen && (
+                <svg
+                  className={`w-4 h-4 text-neutral-400 transition-transform ${showProfile ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              )}
+            </button>
+
+            {showProfile && sidebarOpen && (
+              <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-xl shadow-xl border border-neutral-100 overflow-hidden z-50">
+                <button
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+                  onClick={() => {
+                    handleNavigateItem('profile');
+                    setShowProfile(false);
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  Tài khoản
+                </button>
+                <button
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+                  onClick={() => {
+                    handleNavigateItem('settings');
+                    setShowProfile(false);
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  Cài đặt
+                </button>
+                <div className="border-t border-neutral-100">
+                  <button
+                    className="w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2 font-medium"
+                    onClick={() => {
+                      onLogout && onLogout();
+                      setShowProfile(false);
+                    }}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    Đăng xuất
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-black/50"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <div
+            className="bg-white h-full max-w-xs w-full shadow-2xl overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
+                    <path
+                      d="M5 18c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M16 8.5l-3-1-3 1L7.8 6.3c-.2-.2-.5-.3-.8-.3-.6 0-1 .4-1 1 0 .3.1.6.3.8L8.5 10l-.5 5h2l.5-5 2.5-1 2 2v4h2v-4.5c0-.4-.2-.8-.5-1l-2-2z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </div>
+                <h1 className="text-lg font-bold bg-gradient-to-r from-themePrimary to-accent bg-clip-text text-transparent">
+                  Bicycle-MP
+                </h1>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 hover:bg-neutral-100 rounded-lg"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div
+                className={`p-4 rounded-2xl bg-gradient-to-br ${config.gradient} shadow-lg text-white text-center mb-4`}
+              >
+                <div className="w-14 h-14 mx-auto mb-3">{config.icon}</div>
+                <div className="text-sm font-bold">{roleNames[role]}</div>
+                <div className="text-xs opacity-90 mt-1 truncate px-2">
+                  {user?.fullName || 'User'}
+                </div>
+              </div>
+
+              <nav className="space-y-1">
+                {menuItems[role].map((item, index) => {
+                  const isActive = currentPage === item.path;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleNavigateItem(item.path)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                        isActive
+                          ? `${config.bgColor} ${config.textColor} shadow-sm font-semibold`
+                          : 'text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      <span className={isActive ? config.textColor : 'text-neutral-400'}>
+                        {item.icon}
+                      </span>
+                      <span className="text-sm flex-1 text-left">{item.label}</span>
+                      {item.badge && (
+                        <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* Page Content */}
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto bg-gradient-to-br from-neutral-50 to-neutral-100">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 };
 
 export default DashboardLayout;

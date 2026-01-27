@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Layouts
@@ -10,11 +11,13 @@ import LandingPage from './pages/guest/LandingPage';
 
 // Auth Pages
 import Register from './pages/auth/Register';
+import Login from './pages/auth/Login';
 
 // Buyer Pages
 import BuyerDashboard from './pages/buyer/BuyerDashboard';
 import Marketplace from './pages/buyer/Marketplace';
 import ProductDetail from './pages/buyer/ProductDetail';
+import Profile from './pages/buyer/Profile';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -31,190 +34,368 @@ import InspectorDashboard from './pages/inspector/InspectorDashboard';
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 
-const AppContent = () => {
-  const { isAuthenticated, role, login } = useAuth();
-  const [currentPage, setCurrentPage] = useState('landing');
-  const [devRole, setDevRole] = useState(null);
-  const [selectedProductId, setSelectedProductId] = useState(null);
+// Route Guard
+import PrivateRoute from './routes/PrivateRoute';
 
-  // Allow dev to override role for testing
-  const effectiveRole = devRole || role;
+const pageToPath = (page, productId = null, role = 'buyer') => {
+  switch (page) {
+    case 'landing':
+      return '/';
+    case 'marketplace':
+    case 'home':
+      return '/marketplace';
+    case 'product-detail':
+      return productId ? `/product/${productId}` : '/product';
+    case 'login':
+      return '/login';
+    case 'register':
+      return '/register';
+    case 'dashboard':
+      if (role === 'seller') return '/seller/dashboard';
+      if (role === 'inspector') return '/inspector/dashboard';
+      if (role === 'admin') return '/admin/dashboard';
+      return '/buyer/dashboard';
+    case 'profile':
+      return '/buyer/profile';
+    case 'create-listing':
+      return '/seller/create-listing';
+    case 'manage-listings':
+      return '/seller/manage-listings';
+    case 'orders':
+      return '/seller/orders';
+    case 'reputation':
+      return '/seller/reputation';
+    case 'inspection':
+      return '/seller/inspection';
+    case 'messages':
+      return '/seller/messages';
+    default:
+      return '/';
+  }
+};
 
-  // Handle navigation
-  const handleNavigate = (page, productId = null) => {
-    if (page === 'landing') {
-      // When navigating to landing page, reset role
-      setDevRole(null);
-      setCurrentPage('landing');
-    } else {
-      setCurrentPage(page);
-      if (productId) {
-        setSelectedProductId(productId);
+const ProductDetailRoute = ({ onNavigate }) => {
+  const { id } = useParams();
+  const productId = Number(id);
+  return (
+    <ProductDetail productId={Number.isNaN(productId) ? null : productId} onNavigate={onNavigate} />
+  );
+};
+
+const AppRoutes = () => {
+  const { isAuthenticated, role, user, login, logout } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('accessToken');
+    if (savedUser && savedToken) {
+      try {
+        const userData = JSON.parse(savedUser);
+        const normalizedRole = userData.roleName?.toLowerCase() || 'buyer';
+        const validRoles = ['guest', 'buyer', 'seller', 'inspector', 'admin'];
+
+        if (validRoles.includes(normalizedRole)) {
+          const normalizedUser = { ...userData, roleName: normalizedRole };
+          login(normalizedUser, normalizedRole);
+        } else {
+          localStorage.removeItem('user');
+          localStorage.removeItem('accessToken');
+        }
+      } catch (error) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
       }
     }
+  }, [login]);
+
+  const effectiveRole = role || 'guest';
+
+  const handleNavigate = (page, productId = null) => {
+    const targetPath = pageToPath(page, productId, effectiveRole);
+    navigate(targetPath);
   };
 
-  // Handle login
-  const handleLogin = (userData, userRole) => {
+  const handleLogin = (userData) => {
+    const userRole = userData.roleName?.toLowerCase() || 'buyer';
+    const validRoles = ['guest', 'buyer', 'seller', 'inspector', 'admin'];
+    if (!validRoles.includes(userRole)) return;
     login(userData, userRole);
-    setCurrentPage('home');
+    navigate('/');
   };
 
-  // Handle registration
-  const handleRegister = (userRole) => {
-    login({ name: 'New User' }, userRole);
-    setCurrentPage('home');
+  const handleRegister = (userData) => {
+    const userRole = userData.roleName?.toLowerCase() || 'buyer';
+    const validRoles = ['guest', 'buyer', 'seller', 'inspector', 'admin'];
+    if (!validRoles.includes(userRole)) return;
+    login(userData, userRole);
+    navigate('/');
   };
 
-  // Dev Panel to switch roles
-  const DevPanel = () => (
-    <div className="fixed bottom-4 right-4 bg-neutral-900 text-white p-4 rounded-xl shadow-2xl z-50 opacity-90 hover:opacity-100 transition-opacity">
-      <p className="font-bold mb-3 text-sm">🧪 Dev Panel - Chọn vai trò</p>
-      <div className="space-y-2">
-        {['guest', 'buyer', 'seller', 'inspector', 'admin'].map((r) => (
-          <button
-            key={r}
-            onClick={() => {
-              if (r === 'guest') {
-                setDevRole(null);
-                setCurrentPage('landing');
-              } else {
-                setDevRole(r);
-                setCurrentPage('home');
-              }
-            }}
-            className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${(r === 'guest' && !devRole) || devRole === r
-              ? 'bg-primary-600 text-white'
-              : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200'
-              }`}
-          >
-            {r === 'guest' ? '🌐 Guest' : r === 'buyer' ? '🛒 Buyer' : r === 'seller' ? '🏪 Seller' : r === 'inspector' ? '✅ Inspector' : '👨‍💼 Admin'}
-          </button>
-        ))}
-      </div>
-    </div>
+  const handleLogout = () => {
+    logout();
+    localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
+    navigate('/');
+  };
+
+  const buyerShell = (page, child) => (
+    <BuyerLayout
+      currentPage={page}
+      onNavigate={handleNavigate}
+      user={user}
+      onLogout={handleLogout}
+      isAuthenticated={isAuthenticated}
+    >
+      {child}
+    </BuyerLayout>
   );
 
-  // Guest/Unauthenticated Routes
-  if (!isAuthenticated && !devRole) {
-    if (currentPage === 'register') {
-      return (
-        <>
-          <Register onRegisterSuccess={handleRegister} />
-          <DevPanel />
-        </>
-      );
-    }
-
-    // Allow guests to view marketplace
-    if (currentPage === 'marketplace') {
-      return (
-        <>
-          <BuyerLayout currentPage={currentPage} onNavigate={handleNavigate}>
-            <Marketplace onNavigate={handleNavigate} />
-          </BuyerLayout>
-          <DevPanel />
-        </>
-      );
-    }
-
-    // Allow guests to view product details
-    if (currentPage === 'product-detail') {
-      return (
-        <>
-          <BuyerLayout currentPage={currentPage} onNavigate={handleNavigate}>
-            <ProductDetail productId={selectedProductId} />
-          </BuyerLayout>
-          <DevPanel />
-        </>
-      );
-    }
-
-    return (
-      <>
-        <LandingPage onNavigate={handleNavigate} />
-        <DevPanel />
-      </>
-    );
-  }
-
-  // Buyer Routes
-  if (effectiveRole === 'buyer') {
-    return (
-      <>
-        <BuyerLayout currentPage={currentPage} onNavigate={handleNavigate}>
-          {currentPage === 'home' && <Marketplace onNavigate={handleNavigate} />}
-          {currentPage === 'dashboard' && <BuyerDashboard />}
-          {currentPage === 'marketplace' && <Marketplace onNavigate={handleNavigate} />}
-          {currentPage === 'product-detail' && <ProductDetail productId={selectedProductId} />}
-        </BuyerLayout>
-        <DevPanel />
-      </>
-    );
-  }
-
-  // Seller Routes
-  if (effectiveRole === 'seller') {
-    return (
-      <>
-        <DashboardLayout role="seller" onNavigate={handleNavigate}>
-          {currentPage === 'home' && <SellerDashboard />}
-          {currentPage === 'dashboard' && <SellerDashboard />}
-          {currentPage === 'create-listing' && <CreateListingEnhanced />}
-          {currentPage === 'manage-listings' && <ManageListings />}
-          {currentPage === 'orders' && <SellerOrders />}
-          {currentPage === 'reputation' && <Reputation />}
-          {currentPage === 'inspection' && <InspectionRequests />}
-          {currentPage === 'messages' && <Messages />}
-        </DashboardLayout>
-        <DevPanel />
-      </>
-    );
-  }
-
-  // Inspector Routes
-  if (effectiveRole === 'inspector') {
-    return (
-      <>
-        <DashboardLayout role="inspector">
-          <InspectorDashboard />
-        </DashboardLayout>
-        <DevPanel />
-      </>
-    );
-  }
-
-  // Admin Routes
-  if (effectiveRole === 'admin') {
-    return (
-      <>
-        <DashboardLayout role="admin">
-          <AdminDashboard />
-        </DashboardLayout>
-        <DevPanel />
-      </>
-    );
-  }
-
   return (
-    <>
-      <div className="min-h-screen flex items-center justify-center bg-neutral-100">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-neutral-900 mb-4">404</h1>
-          <p className="text-neutral-600">Trang không tồn tại</p>
-        </div>
-      </div>
-      <DevPanel />
-    </>
+    <Routes>
+      {/* Public */}
+      <Route
+        path="/"
+        element={
+          <LandingPage
+            onNavigate={handleNavigate}
+            isAuthenticated={isAuthenticated}
+            role={role}
+            user={user}
+            onLogout={handleLogout}
+          />
+        }
+      />
+      <Route
+        path="/login"
+        element={<Login onLoginSuccess={handleLogin} onNavigate={handleNavigate} />}
+      />
+      <Route
+        path="/register"
+        element={<Register onRegisterSuccess={handleRegister} onNavigate={handleNavigate} />}
+      />
+      <Route
+        path="/marketplace"
+        element={buyerShell('marketplace', <Marketplace onNavigate={handleNavigate} />)}
+      />
+      <Route
+        path="/product/:id"
+        element={buyerShell('product-detail', <ProductDetailRoute onNavigate={handleNavigate} />)}
+      />
+
+      {/* Buyer protected */}
+      <Route
+        path="/buyer/dashboard"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('dashboard', <BuyerDashboard onNavigate={handleNavigate} />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/profile"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('profile', <Profile onNavigate={handleNavigate} />)}
+          </PrivateRoute>
+        }
+      />
+
+      {/* Seller protected */}
+      <Route
+        path="/seller/dashboard"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <SellerDashboard />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/create-listing"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <CreateListingEnhanced />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/manage-listings"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <ManageListings />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/orders"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <SellerOrders />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/reputation"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <Reputation />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/inspection"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <InspectionRequests />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/messages"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <Messages />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+
+      {/* Inspector protected */}
+      <Route
+        path="/inspector/dashboard"
+        element={
+          <PrivateRoute allowedRoles={['inspector']}>
+            <DashboardLayout
+              role="inspector"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <InspectorDashboard />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/inspector/profile"
+        element={
+          <PrivateRoute allowedRoles={['inspector']}>
+            <DashboardLayout
+              role="inspector"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <Profile />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+
+      {/* Admin protected */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <AdminDashboard />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/profile"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <Profile />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+
+      {/* Fallbacks */}
+      <Route path="/buyer/home" element={<Navigate to="/marketplace" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 
-const App = () => {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
-};
+const App = () => (
+  <AuthProvider>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  </AuthProvider>
+);
 
 export default App;

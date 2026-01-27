@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import authApi from '../../api/authApi';
+// import { useAuth } from '../../contexts/AuthContext';
 
-const Login = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('buyer@test.com');
-  const [password, setPassword] = useState('password');
+const Login = ({ onLoginSuccess, onNavigate }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  // const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,14 +15,36 @@ const Login = ({ onLoginSuccess }) => {
     setError('');
 
     try {
-      const result = await login(email, password);
-      if (result.success) {
-        onLoginSuccess?.();
+      const result = await authApi.signin({ email, password });
+
+      if (result.status === 200 && result.data.data && result.data.data.user) {
+        const apiUser = result.data.data.user;
+        const { accessToken } = result.data.data;
+
+        localStorage.setItem('accessToken', accessToken);
+        const fullName = `${apiUser.firstName || ''} ${apiUser.lastName || ''}`.trim();
+        const roleName = apiUser.role ? apiUser.role.toLowerCase() : 'buyer';
+
+        const user = {
+          userId: apiUser._id || apiUser.email,
+          fullName: fullName,
+          email: apiUser.email,
+          roleId: null,
+          roleName: roleName,
+        };
+
+        localStorage.setItem('user', JSON.stringify(user));
+
+        if (onLoginSuccess) {
+          onLoginSuccess(user);
+        } else {
+          window.location.reload();
+        }
       } else {
-        setError(result.error || 'Đăng nhập thất bại');
+        setError(result.data.message || 'Đăng nhập thất bại');
       }
     } catch (err) {
-      setError('Có lỗi xảy ra');
+      setError(err.response?.data?.message || 'Có lỗi xảy ra');
     } finally {
       setLoading(false);
     }
@@ -32,8 +55,14 @@ const Login = ({ onLoginSuccess }) => {
       {/* Animated Background Circles */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-secondary rounded-full blur-3xl opacity-30 animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-ocean rounded-full blur-3xl opacity-30 animate-float" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-sunset rounded-full blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
+        <div
+          className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-ocean rounded-full blur-3xl opacity-30 animate-float"
+          style={{ animationDelay: '1s' }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-sunset rounded-full blur-3xl opacity-20 animate-float"
+          style={{ animationDelay: '2s' }}
+        ></div>
       </div>
 
       {/* Login Card */}
@@ -51,14 +80,12 @@ const Login = ({ onLoginSuccess }) => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email Input */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Email hoặc Số điện thoại
-            </label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Nhập email hoặc số điện thoại"
+              placeholder="Nhập email "
               className="input"
               required
             />
@@ -121,7 +148,10 @@ const Login = ({ onLoginSuccess }) => {
         <div className="mt-6">
           <p className="text-center text-gray-600 text-sm">
             Chưa có tài khoản?{' '}
-            <button className="text-gradient-pink font-bold hover:underline">
+            <button
+              onClick={() => onNavigate && onNavigate('register')}
+              className="text-gradient-pink font-bold hover:underline"
+            >
               Đăng ký ngay
             </button>
           </p>
@@ -130,7 +160,7 @@ const Login = ({ onLoginSuccess }) => {
         <div className="divider my-6"></div>
 
         {/* Demo Accounts */}
-        <div className="glass rounded-xl p-5 border-2 border-primary-200">
+        {/* <div className="glass rounded-xl p-5 border-2 border-primary-200">
           <p className="text-sm font-bold text-primary-900 mb-3 flex items-center gap-2">
             <span className="text-lg"></span>
             Tài khoản Demo
@@ -153,11 +183,10 @@ const Login = ({ onLoginSuccess }) => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
 };
 
 export default Login;
-
