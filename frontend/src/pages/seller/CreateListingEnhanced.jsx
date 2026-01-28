@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button } from '../../components/ui';
 
 const CreateListingEnhanced = () => {
   const [step, setStep] = useState(1);
@@ -150,8 +151,8 @@ const CreateListingEnhanced = () => {
 
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-sm text-blue-900">
-              <strong>💡 Gợi ý:</strong> Mô tả càng chi tiết, xe sẽ được tin cậy và bán nhanh hơn.
-              Hãy kể về tình trạng, lịch sử bảo dưỡng, và bất kỳ sửa chữa nào.
+              <strong> Gợi ý:</strong> Mô tả càng chi tiết, xe sẽ được tin cậy và bán nhanh hơn. Hãy
+              kể về tình trạng, lịch sử bảo dưỡng, và bất kỳ sửa chữa nào.
             </p>
           </div>
 
@@ -393,7 +394,7 @@ const CreateListingEnhanced = () => {
 
           <div className="bg-green-50 p-4 rounded-lg">
             <p className="text-sm text-green-900">
-              <strong>💡 Mẹo:</strong> Ảnh sắc nét, rõ ràng sẽ giúp xe bán nhanh hơn. Hãy chụp từ
+              <strong> Mẹo:</strong> Ảnh sắc nét, rõ ràng sẽ giúp xe bán nhanh hơn. Hãy chụp từ
               nhiều góc độ, cả toàn cảnh lẫn chi tiết.
             </p>
           </div>
@@ -450,7 +451,7 @@ const CreateListingEnhanced = () => {
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg space-y-2">
-            <h3 className="font-bold text-blue-900">📋 Tóm tắt tin đăng</h3>
+            <h3 className="font-bold text-blue-900"> Tóm tắt tin đăng</h3>
             <p className="text-sm text-blue-900">
               <strong>Sản phẩm:</strong> {formData.name || 'Chưa nhập'}
             </p>
@@ -468,7 +469,7 @@ const CreateListingEnhanced = () => {
 
           <div className="bg-yellow-50 p-4 rounded-lg">
             <p className="text-sm text-yellow-900 mb-2">
-              <strong>⚠️ Lưu ý quan trọng:</strong>
+              <strong> Lưu ý quan trọng:</strong>
             </p>
             <ul className="text-xs text-yellow-900 space-y-1 ml-4 list-disc">
               <li>Tin đăng sẽ được gửi cho người kiểm định để xác thực chất lượng</li>
@@ -480,7 +481,7 @@ const CreateListingEnhanced = () => {
 
           <div className="bg-green-50 p-4 rounded-lg">
             <p className="text-sm text-green-900">
-              <strong>✓ Lợi ích của kiểm định:</strong> Tin đăng được xác thực sẽ được tin cậy hơn,
+              <strong> Lợi ích của kiểm định:</strong> Tin đăng được xác thực sẽ được tin cậy hơn,
               giúp bán nhanh và với giá tốt hơn!
             </p>
           </div>
@@ -499,12 +500,12 @@ const CreateListingEnhanced = () => {
             >
               ← Quay lại
             </button>
-            <button
+            <Button
               onClick={handleSubmit}
               className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-bold"
             >
-              ✓ Đăng tin
-            </button>
+              Đăng tin
+            </Button>
           </div>
         </div>
       )}

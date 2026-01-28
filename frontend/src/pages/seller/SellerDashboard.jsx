@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button } from '../../components/ui';
 
 const SellerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -110,14 +111,14 @@ const SellerDashboard = () => {
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Tin đang bán', value: sellerStats.activeListings, icon: '📋' },
-            { label: 'Đã bán', value: sellerStats.soldListings, icon: '✓' },
+            { label: 'Tin đang bán', value: sellerStats.activeListings, icon: '' },
+            { label: 'Đã bán', value: sellerStats.soldListings, icon: '' },
             {
               label: 'Doanh thu',
               value: `${(sellerStats.totalEarnings / 1000000).toFixed(0)}M`,
-              icon: '💰',
+              icon: '',
             },
-            { label: 'Điểm uy tín', value: sellerStats.trustScore, icon: '⭐' },
+            { label: 'Điểm uy tín', value: sellerStats.trustScore, icon: '' },
           ].map((stat, idx) => (
             <div key={idx} className="bg-white p-4 rounded-lg shadow border border-gray-200">
               <div className="text-2xl mb-2">{stat.icon}</div>
@@ -131,18 +132,19 @@ const SellerDashboard = () => {
       {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b border-gray-200 flex-wrap">
         {[
-          { key: 'overview', label: '📊 Tổng quan' },
-          { key: 'listings', label: '📋 Quản lý tin đăng' },
-          { key: 'orders', label: '💳 Đơn hàng & Cọc' },
-          { key: 'reviews', label: '⭐ Đánh giá' },
+          { key: 'overview', label: ' Tổng quan' },
+          { key: 'listings', label: ' Quản lý tin đăng' },
+          { key: 'orders', label: ' Đơn hàng & Cọc' },
+          { key: 'reviews', label: ' Đánh giá' },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-3 font-medium border-b-2 transition whitespace-nowrap ${activeTab === tab.key
+            className={`px-4 py-3 font-medium border-b-2 transition whitespace-nowrap ${
+              activeTab === tab.key
                 ? 'text-blue-600 border-blue-600'
                 : 'text-gray-600 border-transparent hover:text-gray-900'
-              }`}
+            }`}
           >
             {tab.label}
           </button>
@@ -174,18 +176,19 @@ const SellerDashboard = () => {
                       <p className="text-sm text-gray-600">Đăng ngày: {listing.createdDate}</p>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded text-sm font-bold ${listing.status === 'active'
+                      className={`px-3 py-1 rounded text-sm font-bold ${
+                        listing.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : listing.status === 'pending_inspection'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}
+                      }`}
                     >
                       {listing.status === 'active'
-                        ? '✓ Đang bán'
+                        ? ' Đang bán'
                         : listing.status === 'pending_inspection'
-                          ? '⏳ Chờ kiểm định'
-                          : '✓ Đã bán'}
+                          ? ' Chờ kiểm định'
+                          : ' Đã bán'}
                     </span>
                   </div>
 
@@ -206,29 +209,29 @@ const SellerDashboard = () => {
 
                   {listing.inspectionStatus === 'pending' && (
                     <div className="bg-yellow-50 p-2 rounded text-sm text-yellow-900 mb-2">
-                      <strong>⚠️ Chờ kiểm định:</strong> Yêu cầu kiểm định để có thể nhận cọc
+                      <strong> Chờ kiểm định:</strong> Yêu cầu kiểm định để có thể nhận cọc
                     </div>
                   )}
 
                   {listing.inspectionStatus === 'passed' && (
                     <div className="bg-green-50 p-2 rounded text-sm text-green-900 mb-2">
-                      <strong>✓ Đã kiểm định:</strong> Hạn hữu hiệu đến {listing.inspectionExpiry}
+                      <strong> Đã kiểm định:</strong> Hạn hữu hiệu đến {listing.inspectionExpiry}
                     </div>
                   )}
 
                   <div className="flex gap-2">
-                    <button className="text-blue-600 hover:underline text-sm font-medium">
+                    <Button className="text-blue-600 hover:underline text-sm font-medium">
                       Chỉnh sửa
-                    </button>
+                    </Button>
                     {listing.status === 'pending_inspection' && (
-                      <button className="text-orange-600 hover:underline text-sm font-medium">
+                      <Button className="text-orange-600 hover:underline text-sm font-medium">
                         Yêu cầu kiểm định
-                      </button>
+                      </Button>
                     )}
                     {listing.status === 'active' && (
-                      <button className="text-red-600 hover:underline text-sm font-medium">
+                      <Button className="text-red-600 hover:underline text-sm font-medium">
                         Ẩn tin
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -251,12 +254,13 @@ const SellerDashboard = () => {
                   <p className="text-sm text-gray-600">Người mua: {order.buyer}</p>
                 </div>
                 <span
-                  className={`px-3 py-1 rounded text-sm font-bold ${order.status === 'confirmed'
+                  className={`px-3 py-1 rounded text-sm font-bold ${
+                    order.status === 'confirmed'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-yellow-100 text-yellow-800'
-                    }`}
+                  }`}
                 >
-                  {order.status === 'confirmed' ? '✓ Xác nhận' : '⏳ Chờ xác nhận'}
+                  {order.status === 'confirmed' ? ' Xác nhận' : 'Chờ xác nhận'}
                 </span>
               </div>
 
@@ -277,18 +281,18 @@ const SellerDashboard = () => {
                 </div>
                 <div>
                   <p className="text-gray-600">Trạng thái cọc</p>
-                  <p className="font-bold text-green-600">🔒 Ký quỹ</p>
+                  <p className="font-bold text-green-600">Ký quỹ</p>
                 </div>
               </div>
 
               <div className="bg-blue-50 p-2 rounded text-sm text-blue-900 mb-3">
-                <strong>💼 Thanh toán:</strong> Tiền cọc được giữ an toàn bởi hệ thống. Sẽ được giải
+                <strong> Thanh toán:</strong> Tiền cọc được giữ an toàn bởi hệ thống. Sẽ được giải
                 ngân sau khi người mua xác nhận nhận xe.
               </div>
 
               <div className="flex gap-2">
                 <button className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
-                  💬 Nhắn tin người mua
+                  Nhắn tin người mua
                 </button>
                 <button className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 font-medium">
                   Cập nhật trạng thái giao hàng
@@ -308,7 +312,7 @@ const SellerDashboard = () => {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-gray-600 text-sm">Đánh giá trung bình</p>
-                <p className="text-3xl font-bold text-yellow-500">⭐ {sellerStats.trustScore}</p>
+                <p className="text-3xl font-bold text-yellow-500">{sellerStats.trustScore}</p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm">Tổng đánh giá</p>
@@ -345,10 +349,10 @@ const SellerDashboard = () => {
             <h2 className="text-lg font-bold mb-4">Hoạt động gần đây</h2>
             <div className="space-y-3">
               {[
-                '📋 Đăng tin mới: Giant XTC SLR 29 (ngày hôm nay)',
-                '✓ Tin đăng: Trek Domane SLR 7 vượt kiểm định',
-                '💳 Nhận cọc: 5M từ Nguyễn Văn A',
-                '⭐ Nhận đánh giá 5 sao từ Trần Minh B',
+                ' Đăng tin mới: Giant XTC SLR 29 (ngày hôm nay)',
+                ' Tin đăng: Trek Domane SLR 7 vượt kiểm định',
+                ' Nhận cọc: 5M từ Nguyễn Văn A',
+                ' Nhận đánh giá 5 sao từ Trần Minh B',
               ].map((activity, idx) => (
                 <p key={idx} className="text-gray-700 text-sm">
                   {activity}
@@ -359,10 +363,10 @@ const SellerDashboard = () => {
 
           {/* Need Attention */}
           <div className="bg-yellow-50 rounded-lg shadow p-6 border border-yellow-200">
-            <h2 className="text-lg font-bold text-yellow-900 mb-4">⚠️ Cần chú ý</h2>
+            <h2 className="text-lg font-bold text-yellow-900 mb-4"> Cần chú ý</h2>
             <ul className="space-y-2 text-yellow-900 text-sm">
-              <li>🔔 Tin đăng "Trek Domane SLR 7" đang chờ kiểm định</li>
-              <li>📅 Tin đăng "Specialized Tarmac SL7" sắp hết hạn kiểm định (5 ngày)</li>
+              <li> Tin đăng "Trek Domane SLR 7" đang chờ kiểm định</li>
+              <li> Tin đăng "Specialized Tarmac SL7" sắp hết hạn kiểm định (5 ngày)</li>
             </ul>
           </div>
         </div>

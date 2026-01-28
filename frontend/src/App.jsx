@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CompareProvider } from './contexts/CompareContext';
 
 // Layouts
 import BuyerLayout from './layouts/BuyerLayout';
@@ -18,6 +19,7 @@ import BuyerDashboard from './pages/buyer/BuyerDashboard';
 import Marketplace from './pages/buyer/Marketplace';
 import ProductDetail from './pages/buyer/ProductDetail';
 import Profile from './pages/buyer/Profile';
+import Compare from './pages/buyer/Compare';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -44,6 +46,8 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
     case 'marketplace':
     case 'home':
       return '/marketplace';
+    case 'compare':
+      return '/compare';
     case 'product-detail':
       return productId ? `/product/${productId}` : '/product';
     case 'login':
@@ -56,6 +60,9 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
       if (role === 'admin') return '/admin/dashboard';
       return '/buyer/dashboard';
     case 'profile':
+      if (role === 'seller') return '/seller/profile';
+      if (role === 'inspector') return '/inspector/profile';
+      if (role === 'admin') return '/admin/profile';
       return '/buyer/profile';
     case 'create-listing':
       return '/seller/create-listing';
@@ -177,6 +184,10 @@ const AppRoutes = () => {
       <Route
         path="/marketplace"
         element={buyerShell('marketplace', <Marketplace onNavigate={handleNavigate} />)}
+      />
+      <Route
+        path="/compare"
+        element={buyerShell('compare', <Compare onNavigate={handleNavigate} />)}
       />
       <Route
         path="/product/:id"
@@ -314,6 +325,22 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/seller/profile"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <Profile onNavigate={handleNavigate} />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
 
       {/* Inspector protected */}
       <Route
@@ -392,9 +419,11 @@ const AppRoutes = () => {
 
 const App = () => (
   <AuthProvider>
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <CompareProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </CompareProvider>
   </AuthProvider>
 );
 

@@ -17,10 +17,10 @@ const CreateListing = () => {
   };
 
   const tabs = [
-    { id: 'general', label: 'Thông tin chung', icon: '📋' },
-    { id: 'specs', label: 'Thông số kỹ thuật', icon: '⚙️' },
-    { id: 'media', label: 'Hình ảnh & Video', icon: '📷' },
-    { id: 'pricing', label: 'Giá & Xác nhận', icon: '💰' },
+    { id: 'general', label: 'Thông tin chung' },
+    { id: 'specs', label: 'Thông số kỹ thuật' },
+    { id: 'media', label: 'Hình ảnh & Video' },
+    { id: 'pricing', label: 'Giá & Xác nhận' },
   ];
 
   return (
@@ -37,18 +37,18 @@ const CreateListing = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-2">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           {tabs.map((tab) => (
-            <button
+            <Button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              variant="primary"
               className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-themePrimary to-accent text-white shadow-lg'
                   : 'text-neutral-600 hover:bg-neutral-50'
               }`}
             >
-              <span className="text-lg">{tab.icon}</span>
               <span className="hidden sm:inline">{tab.label}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </div>

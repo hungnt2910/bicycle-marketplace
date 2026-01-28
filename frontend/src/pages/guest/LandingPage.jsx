@@ -406,9 +406,8 @@ const LandingPage = ({
           </p>
           <div className="flex gap-4 justify-center">
             <Button
-              variant="secondary"
-              size="lg"
-              className="bg-white text-primary-600 hover:bg-neutral-100"
+              variant="primary"
+              className="text-primary-600 hover:bg-neutral-100"
               onClick={() => onNavigate && onNavigate('register')}
             >
               Đăng ký ngay

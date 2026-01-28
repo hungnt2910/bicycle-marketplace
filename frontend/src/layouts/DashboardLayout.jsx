@@ -400,23 +400,7 @@ const DashboardLayout = ({
             sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'
           }`}
         >
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
-                  <path
-                    d="M5 18c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-                    fill="currentColor"
-                  />
-                  <path
-                    d="M16 8.5l-3-1-3 1L7.8 6.3c-.2-.2-.5-.3-.8-.3-.6 0-1 .4-1 1 0 .3.1.6.3.8L8.5 10l-.5 5h2l.5-5 2.5-1 2 2v4h2v-4.5c0-.4-.2-.8-.5-1l-2-2z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </div>
-              <h1 className="text-lg font-bold text-themePrimary">Bicycle-MP</h1>
-            </div>
-          )}
+          {sidebarOpen && <div className="flex items-center gap-2"></div>}
           {!sidebarOpen && (
             <div className="flex flex-col items-center gap-1.5 w-full">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
@@ -492,8 +476,8 @@ const DashboardLayout = ({
             {sidebarOpen ? (
               <div className="text-center">
                 <div className="w-12 h-12 mx-auto mb-3">{config.icon}</div>
-                <div className="text-sm font-bold">{roleNames[role]}</div>
-                <div className="text-xs opacity-90 mt-1 truncate px-2">
+                <div className="text-black font-bold">{roleNames[role]}</div>
+                <div className="text-black opacity-90 mt-1 truncate px-2 ">
                   {user?.fullName || 'User'}
                 </div>
               </div>
