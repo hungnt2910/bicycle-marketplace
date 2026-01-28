@@ -85,4 +85,15 @@ export class BicyclesService {
 
     return !!existed;
   }
+
+  async searchBicyclesBykeyword(keyword: string): Promise<Bicycle[]> {
+    return await this.bicycleModel
+      .find({
+        $or: [
+          { title: { $regex: keyword, $options: 'i' } },
+          { description: { $regex: keyword, $options: 'i' } },
+        ],
+      })
+      .exec();
+  }
 }

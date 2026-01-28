@@ -1,8 +1,9 @@
 import { BicyclesService } from './bicycles.service';
-import { Controller, Body, Post } from '@nestjs/common';
+import { Controller, Body, Post, Headers, Patch, Delete } from '@nestjs/common';
 import { CreateBicyclesDto } from './dto/create-bicycles.dto';
 import { Bicycle } from 'src/entities';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { UpdateBicycleDto } from './dto/update-bicyce.dto';
 
 @Controller('bicycles')
 export class BicyclesController {
@@ -16,6 +17,84 @@ export class BicyclesController {
     const result = await this.BicyclesService.createBicycle(bicycle);
     return {
       message: 'Bicycle created successfully',
+      data: result,
+    };
+  }
+
+  @Post('search-bicycles')
+  @ApiOperation({ summary: 'Search bicycles by keyword' })
+  @ApiResponse({ status: 200, description: 'Bicycles successfully retrieved' })
+  @ApiResponse({ status: 409, description: 'Bicycles not exist' })
+  async searchBicycles(@Body() keyword: string) {
+    const result = await this.BicyclesService.searchBicyclesBykeyword(keyword);
+    return {
+      message: 'Bicycles retrieved successfully',
+      data: result,
+    };
+  }
+
+  @Post('filter-bicycles')
+  @ApiOperation({ summary: 'Filter bicycles based on criteria' })
+  @ApiResponse({ status: 200, description: 'Bicycles successfully filtered' })
+  @ApiResponse({
+    status: 409,
+    description: 'No bicycles match the filter criteria',
+  })
+  async filterBicycles(@Headers() filter: any) {
+    const result = await this.BicyclesService.fillerBicycles(filter);
+    return {
+      message: 'Bicycles filtered successfully',
+      data: result,
+    };
+  }
+
+  @Post('get-all-bicycles')
+  @ApiOperation({ summary: 'Get all bicycle listings' })
+  @ApiResponse({ status: 200, description: 'Bicycles successfully retrieved' })
+  @ApiResponse({ status: 409, description: 'No bicycles found' })
+  async getAllBicycles() {
+    const result = await this.BicyclesService.findAllBicycles();
+    return {
+      message: 'Bicycles retrieved successfully',
+      data: result,
+    };
+  }
+
+  @Post('get-bicycle-by-id')
+  @ApiOperation({ summary: 'Get bicycle by ID' })
+  @ApiResponse({ status: 200, description: 'Bicycle successfully retrieved' })
+  @ApiResponse({ status: 409, description: 'Bicycle not found' })
+  async getBicycleById(@Body('id') id: string) {
+    const result = await this.BicyclesService.findBicycleById(id);
+    return {
+      message: 'Bicycle retrieved successfully',
+      data: result,
+    };
+  }
+
+  @Patch('update-bicycle')
+  @ApiOperation({ summary: 'Update bicycle details' })
+  @ApiResponse({ status: 200, description: 'Bicycle successfully updated' })
+  @ApiResponse({ status: 409, description: 'Bicycle update failed' })
+  async updateBicycle(
+    @Body('id') id: string,
+    @Body() bicycle: UpdateBicycleDto,
+  ) {
+    const result = await this.BicyclesService.updateBicycle(id, bicycle);
+    return {
+      message: 'Bicycle updated successfully',
+      data: result,
+    };
+  }
+
+  @Delete('delete-bicycle')
+  @ApiOperation({ summary: 'Delete a bicycle listing' })
+  @ApiResponse({ status: 200, description: 'Bicycle successfully deleted' })
+  @ApiResponse({ status: 409, description: 'Bicycle deletion failed' })
+  async deleteBicycle(@Body('id') id: string) {
+    const result = await this.BicyclesService.deleteBicycle(id);
+    return {
+      message: 'Bicycle deleted successfully',
       data: result,
     };
   }
