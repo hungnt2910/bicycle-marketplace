@@ -14,6 +14,12 @@ import {
   TransactionSchema,
 } from 'src/entities';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Wallet, WalletSchema } from 'src/entities/wallet.entity';
+import {
+  WalletTransaction,
+  WalletTransactionSchema,
+} from 'src/entities/wallet-transaction.entity';
+import { WalletService } from '../wallet/wallet.service';
 
 @Module({
   imports: [
@@ -22,9 +28,11 @@ import { MongooseModule } from '@nestjs/mongoose';
       { name: Dispute.name, schema: DisputeSchema },
       { name: InspectionReport.name, schema: InspectionReportSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Wallet.name, schema: WalletSchema },
+      { name: WalletTransaction.name, schema: WalletTransactionSchema },
     ]),
   ],
-  providers: [DisputesService, EscrowService, NotificationsService],
+  providers: [DisputesService, EscrowService, NotificationsService, WalletService],
   controllers: [DisputesController],
 })
 export class DisputesModule {}
