@@ -9,6 +9,8 @@ import {
   BicycleSchema,
   InspectionReport,
   InspectionReportSchema,
+  User,
+  UserSchema,
 } from 'src/entities';
 
 @Module({
@@ -16,6 +18,7 @@ import {
     MongooseModule.forFeature([
       { name: InspectionReport.name, schema: InspectionReportSchema },
       { name: Bicycle.name, schema: BicycleSchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   providers: [InspectionsService, ConfigService, BicyclesService],
