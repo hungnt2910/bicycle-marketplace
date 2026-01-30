@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { SettingCategory } from 'src/entities/category-systemField-entity';
 import {
   SystemSetting,
   SystemSettingDocument,
@@ -11,42 +12,50 @@ export class AdminService {
   constructor(
     @InjectModel(SystemSetting.name)
     private systemSettingModel: Model<SystemSettingDocument>,
+
+    @InjectModel(SettingCategory.name)
+    private settingCategoryModel: Model<SettingCategory>,
   ) {}
 
-  async getSystemConfig(): Promise<SystemSetting | null> {
-    let config = await this.systemSettingModel.findOne();
-    return config;
+  //-------------------------------------------
+  // CRUD category SystemSetting
+  async createCategory(title: string): Promise<SettingCategory> {
+    const existedField = await this.settingCategoryModel.findOne({
+      title,
+    });
+    if (existedField) {
+      throw new Error('Title already exists');
+    }
+    return await new this.settingCategoryModel({ title }).save();
   }
 
-  // thêm được key và value
-  async createSetting(
-    data: Pick<SystemSetting, 'key' | 'value' | 'category' | 'description'>,
-  ): Promise<SystemSetting> {
-    const exists = await this.systemSettingModel.findOne({ key: data.key });
-    if (exists) {
-      throw new Error(`Setting with key "${data.key}" already exists`);
+  async getAllCategories(): Promise<SettingCategory[]> {
+    return await this.settingCategoryModel.find().exec();
+  }
+
+  async updateCategory(
+    id: string,
+    title: string,
+  ): Promise<SettingCategory | null> {
+    const existedField = await this.settingCategoryModel.findOne({
+      title,
+      _id: { $ne: id }, //loại trừ chính nó
+    });
+
+    if (existedField) {
+      throw new Error('Title already exists');
     }
 
-    const setting = new this.systemSettingModel(data);
-    return setting.save();
+    return await this.settingCategoryModel
+      .findByIdAndUpdate(new Types.ObjectId(id), { title }, { new: true })
+      .exec();
   }
 
-  async updateSettingByKey(
-    key: string,
-    value: any,
-    updatedBy?: Types.ObjectId,
-  ): Promise<SystemSetting | null> {
-    return this.systemSettingModel.findOneAndUpdate(
-      { key },
-      {
-        value,
-        updatedBy,
-      },
-      { new: true },
-    );
+  async deleteCategory(id: string): Promise<SettingCategory | null> {
+    return await this.settingCategoryModel
+      .findByIdAndDelete(new Types.ObjectId(id))
+      .exec();
   }
 
-  async deleteSettingByKey(key: string): Promise<SystemSetting | null> {
-    return this.systemSettingModel.findOneAndDelete({ key });
-  }
+  //-------------------------------------------
 }

@@ -1,14 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { SettingCategory } from './category-systemField-entity';
 
 export type SystemSettingDocument = SystemSetting & Document;
-
-export enum SettingCategory {
-  FEES = 'fees',
-  LIMITS = 'limits',
-  FEATURES = 'features',
-  GENERAL = 'general',
-}
 
 @Schema({ timestamps: true })
 export class SystemSetting {
@@ -21,7 +15,7 @@ export class SystemSetting {
   @Prop()
   description?: string;
 
-  @Prop({ enum: SettingCategory })
+  @Prop({ type: SettingCategory })
   category?: SettingCategory;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })

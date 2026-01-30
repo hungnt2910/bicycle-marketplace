@@ -6,11 +6,21 @@ import {
   SystemSetting,
   SystemSettingSchema,
 } from 'src/entities/system-setting.entity';
+import {
+  SettingCategory,
+  SettingCategorySchema,
+} from 'src/entities/category-systemField-entity';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: SystemSetting.name, schema: SystemSettingSchema },
+    ]),
+    MongooseModule.forFeature([
+      {
+        name: SettingCategory.name,
+        schema: SettingCategorySchema,
+      },
     ]),
   ],
   providers: [AdminService],
