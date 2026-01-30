@@ -20,12 +20,15 @@ export class DatabaseSeederService implements OnModuleInit {
     private systemSettingModel: Model<SystemSettingDocument>,
     @InjectModel(Category.name)
     private categoryModel: Model<CategoryDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
   ) {}
 
   async onModuleInit() {
     this.logger.log('🌱 Starting database seeding...');
 
     await this.seedCategories();
+    await this.seedDefaultUsers();
     this.logger.log('✅ Database seeding completed!');
   }
 

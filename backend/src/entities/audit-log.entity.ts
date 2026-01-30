@@ -5,7 +5,7 @@ export type AuditLogDocument = AuditLog & Document;
 
 @Schema({ timestamps: false })
 export class AuditLog {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User', nullable: true })
   adminId: Types.ObjectId;
 
   @Prop({ required: true })

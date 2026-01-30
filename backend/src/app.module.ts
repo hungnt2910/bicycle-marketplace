@@ -46,6 +46,8 @@ import { DatabaseModule } from './database/database.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { EscrowModule } from './modules/escrow/escrow.module';
+import { WalletModule } from './modules/wallet/wallet.module';
 
 @Module({
   imports: [
@@ -112,6 +114,10 @@ import { RolesGuard } from './common/guards/roles.guard';
     AuthModule,
 
     AdminModule,
+
+    EscrowModule,
+
+    WalletModule,
 
     // Your feature modules will go here
     // UsersModule,
