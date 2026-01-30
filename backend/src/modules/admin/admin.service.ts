@@ -9,6 +9,7 @@ import {
   SystemSetting,
   SystemSettingDocument,
 } from 'src/entities/system-setting.entity';
+import { User, UserDocument } from 'src/entities/user.entity';
 
 @Injectable()
 export class AdminService {
@@ -18,6 +19,9 @@ export class AdminService {
 
     @InjectModel(SettingCategory.name)
     private settingCategoryModel: Model<SettingCategoryDocument>,
+
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
   ) {}
 
   //-------------------------------------------
@@ -61,4 +65,41 @@ export class AdminService {
   }
 
   //-------------------------------------------
+  // sửa thông số hê thống
+  async createSystemSetting(data: SystemSetting): Promise<SystemSetting> {
+    const existedSetting = await this.systemSettingModel.findOne({
+      key: data.key,
+    });
+    if (existedSetting) {
+      throw new Error('Key already exists');
+    }
+    return await new this.systemSettingModel(data).save();
+  }
+
+  async updateSystemSetting(
+    dataUpdate: Partial<SystemSetting> & { key: string },
+  ): Promise<SystemSetting | null> {
+    const { key, ...updateData } = dataUpdate;
+    return await this.systemSettingModel
+      .findOneAndUpdate({ key }, updateData, { new: true })
+      .exec();
+  }
+
+  async getAllSystemSettings(): Promise<SystemSetting[]> {
+    return await this.systemSettingModel.find().populate('category').exec();
+  }
+
+  async deleteSystemSetting(key: string): Promise<SystemSetting | null> {
+    return await this.systemSettingModel.findOneAndDelete({ key });
+  }
+
+  //-------------------------------------------
+  // CRUD user
+
+  //-------------------------------------------
+
+  // CRUD post
+  //-------------------------------------------
+
+  // CRUD revenue
 }
