@@ -10,6 +10,7 @@ import {
   CategoryDocument,
   CategoryType,
 } from '../entities/category.entity';
+import { User, UserDocument } from 'src/entities';
 
 @Injectable()
 export class DatabaseSeederService implements OnModuleInit {
@@ -28,7 +29,7 @@ export class DatabaseSeederService implements OnModuleInit {
     this.logger.log('🌱 Starting database seeding...');
 
     await this.seedCategories();
-    await this.seedDefaultUsers();
+
     this.logger.log('✅ Database seeding completed!');
   }
 
