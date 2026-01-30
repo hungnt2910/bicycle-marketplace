@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { SettingCategory } from 'src/entities/category-systemField-entity';
+import {
+  SettingCategory,
+  SettingCategoryDocument,
+} from 'src/entities/category-systemField-entity';
 import {
   SystemSetting,
   SystemSettingDocument,
@@ -14,7 +17,7 @@ export class AdminService {
     private systemSettingModel: Model<SystemSettingDocument>,
 
     @InjectModel(SettingCategory.name)
-    private settingCategoryModel: Model<SettingCategory>,
+    private settingCategoryModel: Model<SettingCategoryDocument>,
   ) {}
 
   //-------------------------------------------
