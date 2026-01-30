@@ -10,6 +10,7 @@ import {
   SettingCategory,
   SettingCategorySchema,
 } from 'src/entities/category-systemField-entity';
+import { User, UserSchema } from 'src/entities/user.entity';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import {
         schema: SettingCategorySchema,
       },
     ]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   providers: [AdminService],
   controllers: [AdminController],

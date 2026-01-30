@@ -95,10 +95,36 @@ export class AdminService {
 
   //-------------------------------------------
   // CRUD user
+  //cấp quuyền cho user
+  async changeUserRole(userId: string, newRole: string): Promise<User | null> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('User not found');
+    } else if ((user.role as string) !== 'ADMIN') {
+      throw new Error('You are not an Admin');
+    }
+    user.role = newRole as any;
+    return await user.save();
+  }
+
+  async changeUserStatus(
+    userId: string,
+    newStatus: string,
+  ): Promise<User | null> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('User not found');
+    } else if ((user.role as string) === 'ADMIN') {
+      throw new Error('Cannot change status of Admin user');
+    }
+    user.status = newStatus as any;
+    return await user.save();
+  }
 
   //-------------------------------------------
 
   // CRUD post
+
   //-------------------------------------------
 
   // CRUD revenue
