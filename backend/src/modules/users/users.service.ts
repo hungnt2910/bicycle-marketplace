@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument, UserStatus } from '../../entities/user.entity';
@@ -6,16 +10,14 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async create(userData: Partial<User> | any): Promise<User> {
     // Check if user already exists
-    const existingUser = await this.userModel.findOne({ 
-      email: userData.email 
+    const existingUser = await this.userModel.findOne({
+      email: userData.email,
     });
-    console.log(userData)
+    console.log(userData);
 
     if (existingUser) {
       throw new ConflictException('Email already registered');
@@ -46,24 +48,28 @@ export class UsersService {
 
   async findById(id: string): Promise<User> {
     const user = await this.userModel.findById(id).exec();
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    
+
     return user;
   }
 
-  async validatePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+  async validatePassword(
+    plainPassword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return await bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  async updateProfile(userId: string, updateData: Partial<User>): Promise<User> {
-    const user = await this.userModel.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true }
-    ).exec();
+  async updateProfile(
+    userId: string,
+    updateData: Partial<User>,
+  ): Promise<User> {
+    const user = await this.userModel
+      .findByIdAndUpdate(userId, { $set: updateData }, { new: true })
+      .exec();
 
     if (!user) {
       throw new NotFoundException('User not found');
