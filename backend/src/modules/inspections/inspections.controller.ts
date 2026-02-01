@@ -42,6 +42,7 @@ export class InspectionsController {
     const inspection = await this.inspectionsService.requestInspection(
       requestInspectionDto.bicycleId,
       requestInspectionDto.inspectionType,
+      user._id.toString(),
     );
 
     return {
