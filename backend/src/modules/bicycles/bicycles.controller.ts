@@ -1,9 +1,18 @@
 import { BicyclesService } from './bicycles.service';
-import { Controller, Body, Post, Headers, Patch, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Body,
+  Post,
+  Headers,
+  Patch,
+  Delete,
+  Param,
+} from '@nestjs/common';
 import { CreateBicyclesDto } from './dto/create-bicycles.dto';
 import { Bicycle } from 'src/entities';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdateBicycleDto } from './dto/update-bicyce.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('bicycles')
 export class BicyclesController {
@@ -72,12 +81,13 @@ export class BicyclesController {
     };
   }
 
-  @Patch('update-bicycle')
+  @Public()
+  @Patch('update-bicycle/:id')
   @ApiOperation({ summary: 'Update bicycle details' })
   @ApiResponse({ status: 200, description: 'Bicycle successfully updated' })
   @ApiResponse({ status: 409, description: 'Bicycle update failed' })
   async updateBicycle(
-    @Body('id') id: string,
+    @Param('id') id: string,
     @Body() bicycle: UpdateBicycleDto,
   ) {
     const result = await this.BicyclesService.updateBicycle(id, bicycle);
@@ -87,11 +97,11 @@ export class BicyclesController {
     };
   }
 
-  @Delete('delete-bicycle')
+  @Delete('delete-bicycle/:id')
   @ApiOperation({ summary: 'Delete a bicycle listing' })
   @ApiResponse({ status: 200, description: 'Bicycle successfully deleted' })
   @ApiResponse({ status: 409, description: 'Bicycle deletion failed' })
-  async deleteBicycle(@Body('id') id: string) {
+  async deleteBicycle(@Param('id') id: string) {
     const result = await this.BicyclesService.deleteBicycle(id);
     return {
       message: 'Bicycle deleted successfully',
