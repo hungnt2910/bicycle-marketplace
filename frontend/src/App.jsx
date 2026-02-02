@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CompareProvider } from './contexts/CompareContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Layouts
 import BuyerLayout from './layouts/BuyerLayout';
@@ -23,6 +25,8 @@ import Compare from './pages/buyer/Compare';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
+import CreateListing from './pages/seller/CreateListing';
+import EditListing from './pages/seller/EditListing';
 import CreateListingEnhanced from './pages/seller/CreateListingEnhanced';
 import ManageListings from './pages/seller/ManageListings';
 import SellerOrders from './pages/seller/SellerOrders';
@@ -35,9 +39,15 @@ import InspectorDashboard from './pages/inspector/InspectorDashboard';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import ListingModeration from './pages/admin/ListingModeration';
+import DisputeResolution from './pages/admin/DisputeResolution';
+import CategoryManagement from './pages/admin/CategoryManagement';
+import TransactionManagement from './pages/admin/TransactionManagement';
+import SystemReports from './pages/admin/SystemReports';
 
 // Route Guard
 import PrivateRoute from './routes/PrivateRoute';
+import InspectorManagement from './pages/admin/InspectorManagement';
 
 const pageToPath = (page, productId = null, role = 'buyer') => {
   switch (page) {
@@ -119,8 +129,13 @@ const AppRoutes = () => {
   const effectiveRole = role || 'guest';
 
   const handleNavigate = (page, productId = null) => {
-    const targetPath = pageToPath(page, productId, effectiveRole);
-    navigate(targetPath);
+    // If page starts with '/', treat it as a full path
+    if (typeof page === 'string' && page.startsWith('/')) {
+      navigate(page);
+    } else {
+      const targetPath = pageToPath(page, productId, effectiveRole);
+      navigate(targetPath);
+    }
   };
 
   const handleLogin = (userData) => {
@@ -240,7 +255,7 @@ const AppRoutes = () => {
               onLogout={handleLogout}
               isAuthenticated={isAuthenticated}
             >
-              <CreateListingEnhanced />
+              <CreateListing />
             </DashboardLayout>
           </PrivateRoute>
         }
@@ -257,6 +272,22 @@ const AppRoutes = () => {
               isAuthenticated={isAuthenticated}
             >
               <ManageListings />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/edit-listing/:id"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <EditListing />
             </DashboardLayout>
           </PrivateRoute>
         }
@@ -388,7 +419,103 @@ const AppRoutes = () => {
               onLogout={handleLogout}
               isAuthenticated={isAuthenticated}
             >
-              <AdminDashboard />
+              <AdminDashboard user={user} />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/inspectormanagement"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <InspectorManagement />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/moderation"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <ListingModeration />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/disputes"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <DisputeResolution />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/categories"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <CategoryManagement />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/transactions"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <TransactionManagement />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <SystemReports />
             </DashboardLayout>
           </PrivateRoute>
         }
@@ -422,6 +549,18 @@ const App = () => (
     <CompareProvider>
       <BrowserRouter>
         <AppRoutes />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
       </BrowserRouter>
     </CompareProvider>
   </AuthProvider>
