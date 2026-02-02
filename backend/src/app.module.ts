@@ -48,6 +48,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { EscrowModule } from './modules/escrow/escrow.module';
 import { WalletModule } from './modules/wallet/wallet.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -118,6 +119,8 @@ import { WalletModule } from './modules/wallet/wallet.module';
     EscrowModule,
 
     WalletModule,
+
+    PaymentModule,
 
     // Your feature modules will go here
     // UsersModule,
