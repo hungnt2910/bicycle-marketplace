@@ -1,24 +1,43 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Transaction, TransactionDocument, TransactionStatus } from '../../entities/transaction.entity';
-import { Bicycle, BicycleDocument, BicycleStatus } from '../../entities/bicycle.entity';
+import {
+  Transaction,
+  TransactionDocument,
+  TransactionStatus,
+} from '../../entities/transaction.entity';
+import {
+  Bicycle,
+  BicycleDocument,
+  BicycleStatus,
+} from '../../entities/bicycle.entity';
 import { EscrowService } from '../escrow/escrow.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ConfigService } from '@nestjs/config';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { WalletTransactionType } from 'src/entities/wallet-transaction.entity';
+import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
 export class TransactionsService {
   constructor(
-    @InjectModel(Transaction.name) private transactionModel: Model<TransactionDocument>,
+    @InjectModel(Transaction.name)
+    private transactionModel: Model<TransactionDocument>,
     @InjectModel(Bicycle.name) private bicycleModel: Model<BicycleDocument>,
     private escrowService: EscrowService,
     private walletService: WalletService,
     private notificationsService: NotificationsService,
     private configService: ConfigService,
+    @Inject(forwardRef(() => PaymentService))
+    private readonly paymentService: PaymentService,
   ) {}
 
   /**
@@ -27,12 +46,12 @@ export class TransactionsService {
   async createTransaction(
     buyerId: string,
     createDto: CreateTransactionDto,
-  ): Promise<Transaction> {
+  ): Promise<any> {
     const { bicycleId, amount, type, paymentMethod } = createDto;
 
     // 1. Verify bicycle exists and is available
     const bicycle = await this.bicycleModel.findById(bicycleId);
-    
+
     if (!bicycle) {
       throw new BadRequestException('Bicycle not found');
     }
@@ -44,7 +63,7 @@ export class TransactionsService {
     // 2. CRITICAL: Check if bicycle has valid inspection
     if (!bicycle.inspection?.isInspected) {
       throw new BadRequestException(
-        'This bicycle must be inspected before purchase. Please request inspection from seller.'
+        'This bicycle must be inspected before purchase. Please request inspection from seller.',
       );
     }
 
@@ -52,16 +71,21 @@ export class TransactionsService {
     const now = new Date();
     if (bicycle.inspection.expiryDate && bicycle.inspection.expiryDate < now) {
       throw new BadRequestException(
-        'Inspection report has expired. A new inspection is required.'
+        'Inspection report has expired. A new inspection is required.',
       );
     }
 
     // 3. Check if bicycle is already reserved
     const existingTransaction = await this.transactionModel.findOne({
       bicycleId,
-      status: { 
-        $in: ['payment_received', 'held_in_escrow', 'awaiting_delivery', 'delivered'] 
-      }
+      status: {
+        $in: [
+          'payment_received',
+          'held_in_escrow',
+          'awaiting_delivery',
+          'delivered',
+        ],
+      },
     });
 
     if (existingTransaction) {
@@ -69,14 +93,15 @@ export class TransactionsService {
     }
 
     // 4. Calculate fees
-    const commissionRate = this.configService.get<number>('COMMISSION_RATE') || 0.05;
+    const commissionRate =
+      this.configService.get<number>('COMMISSION_RATE') || 0.05;
     const commissionAmount = amount * commissionRate;
 
     // 5. Create transaction with escrow
     const autoReleaseDeadline = new Date();
     autoReleaseDeadline.setDate(
-      autoReleaseDeadline.getDate() + 
-      this.configService.get<number>('ESCROW_AUTO_RELEASE_DAYS', 7)
+      autoReleaseDeadline.getDate() +
+        this.configService.get<number>('ESCROW_AUTO_RELEASE_DAYS', 7),
     );
 
     const transaction = await this.transactionModel.create({
@@ -107,20 +132,28 @@ export class TransactionsService {
     bicycle.status = BicycleStatus.RESERVED;
     await bicycle.save();
 
-    await this.walletService.debit(
-    buyerId,
-    amount,
-    WalletTransactionType.PURCHASE,
-    `Payment for bicycle: ${bicycle.title}`,
-    { transactionId: transaction._id.toString(), bicycleId: bicycle._id.toString() }
-  );
+    return this.paymentService.createZaloPayPayment(
+      transaction._id.toString(),
+      buyerId,
+    );
 
-  // Hold in escrow
-  await this.walletService.holdInEscrow(
-    buyerId,
-    amount,
-    transaction._id.toString()
-  );
+    // await this.walletService.debit(
+    //   buyerId,
+    //   amount,
+    //   WalletTransactionType.PURCHASE,
+    //   `Payment for bicycle: ${bicycle.title}`,
+    //   {
+    //     transactionId: transaction._id.toString(),
+    //     bicycleId: bicycle._id.toString(),
+    //   },
+    // );
+
+    // // Hold in escrow
+    // await this.walletService.holdInEscrow(
+    //   buyerId,
+    //   amount,
+    //   transaction._id.toString(),
+    // );
 
     // 7. Send notifications
     // await this.notificationsService.create({
@@ -142,9 +175,10 @@ export class TransactionsService {
    */
   async confirmPayment(
     transactionId: string,
-    paymentData: { transactionId: string }
+    paymentData: { transactionId: string },
   ): Promise<Transaction> {
-    const transaction : any = await this.transactionModel.findById(transactionId);
+    const transaction: any =
+      await this.transactionModel.findById(transactionId);
 
     if (!transaction) {
       throw new BadRequestException('Transaction not found');
@@ -182,7 +216,7 @@ export class TransactionsService {
   async updateShipping(
     transactionId: string,
     sellerId: string,
-    shippingData: { provider: string; trackingNumber: string }
+    shippingData: { provider: string; trackingNumber: string },
   ): Promise<Transaction> {
     const transaction = await this.transactionModel.findById(transactionId);
 
@@ -227,7 +261,8 @@ export class TransactionsService {
    * Step 4: Mark as delivered (by logistics or manual)
    */
   async markAsDelivered(transactionId: string): Promise<Transaction> {
-    const transaction : any = await this.transactionModel.findById(transactionId);
+    const transaction: any =
+      await this.transactionModel.findById(transactionId);
 
     if (!transaction) {
       throw new BadRequestException('Transaction not found');
@@ -268,7 +303,7 @@ export class TransactionsService {
   async confirmDelivery(
     transactionId: string,
     buyerId: string,
-    confirmationData: { matchesReport: boolean; notes?: string }
+    confirmationData: { matchesReport: boolean; notes?: string },
   ): Promise<Transaction> {
     const transaction = await this.transactionModel.findById(transactionId);
 
@@ -287,7 +322,7 @@ export class TransactionsService {
     if (!confirmationData.matchesReport) {
       // Buyer reports bicycle doesn't match inspection - auto-create dispute
       throw new BadRequestException(
-        'Please file a dispute if the bicycle does not match the inspection report'
+        'Please file a dispute if the bicycle does not match the inspection report',
       );
     }
 
@@ -313,23 +348,23 @@ export class TransactionsService {
     });
 
     const commissionAmount = transaction.fees?.commissionAmount || 0;
-  const sellerAmount = transaction.amount - commissionAmount;
+    const sellerAmount = transaction.amount - commissionAmount;
 
-  // Credit seller's wallet
-  await this.walletService.releaseFromEscrow(
-    transaction.sellerId.toString(),
-    sellerAmount,
-    transactionId
-  );
+    // Credit seller's wallet
+    await this.walletService.releaseFromEscrow(
+      transaction.sellerId.toString(),
+      sellerAmount,
+      transactionId,
+    );
 
-  // Credit platform wallet (commission)
-  await this.walletService.credit(
-    'PLATFORM_USER_ID',
-    commissionAmount,
-    WalletTransactionType.COMMISSION,
-    `Commission from transaction ${transactionId}`,
-    { transactionId }
-  );
+    // Credit platform wallet (commission)
+    await this.walletService.credit(
+      'PLATFORM_USER_ID',
+      commissionAmount,
+      WalletTransactionType.COMMISSION,
+      `Commission from transaction ${transactionId}`,
+      { transactionId },
+    );
 
     // Notify seller
     // await this.notificationsService.create({
@@ -350,7 +385,8 @@ export class TransactionsService {
    * Auto-refund if seller doesn't ship within deadline
    */
   async autoRefundNoShipment(transactionId: string): Promise<Transaction> {
-    const transaction : any = await this.transactionModel.findById(transactionId);
+    const transaction: any =
+      await this.transactionModel.findById(transactionId);
 
     if (!transaction) {
       throw new BadRequestException('Transaction not found');
@@ -377,27 +413,27 @@ export class TransactionsService {
       });
 
       // Notify both parties
-    //   await this.notificationsService.create({
-    //     userId: transaction.buyerId,
-    //     type: 'dispute_resolved',
-    //     title: 'Transaction Refunded',
-    //     message: 'Seller did not ship within deadline. Your payment has been refunded.',
-    //     relatedEntity: {
-    //       entityType: 'transaction',
-    //       entityId: transaction._id,
-    //     },
-    //   });
+      //   await this.notificationsService.create({
+      //     userId: transaction.buyerId,
+      //     type: 'dispute_resolved',
+      //     title: 'Transaction Refunded',
+      //     message: 'Seller did not ship within deadline. Your payment has been refunded.',
+      //     relatedEntity: {
+      //       entityType: 'transaction',
+      //       entityId: transaction._id,
+      //     },
+      //   });
 
-    //   await this.notificationsService.create({
-    //     userId: transaction.sellerId,
-    //     type: 'dispute_resolved',
-    //     title: 'Transaction Cancelled',
-    //     message: 'Failed to ship within deadline. Transaction has been refunded to buyer.',
-    //     relatedEntity: {
-    //       entityType: 'transaction',
-    //       entityId: transaction._id,
-    //     },
-    //   });
+      //   await this.notificationsService.create({
+      //     userId: transaction.sellerId,
+      //     type: 'dispute_resolved',
+      //     title: 'Transaction Cancelled',
+      //     message: 'Failed to ship within deadline. Transaction has been refunded to buyer.',
+      //     relatedEntity: {
+      //       entityType: 'transaction',
+      //       entityId: transaction._id,
+      //     },
+      //   });
 
       return transaction;
     }
@@ -409,7 +445,8 @@ export class TransactionsService {
    * Auto-confirm and release if buyer doesn't confirm within 7 days
    */
   async autoConfirmDelivery(transactionId: string): Promise<Transaction> {
-    const transaction : any = await this.transactionModel.findById(transactionId);
+    const transaction: any =
+      await this.transactionModel.findById(transactionId);
 
     if (!transaction) {
       throw new BadRequestException('Transaction not found');
@@ -442,16 +479,16 @@ export class TransactionsService {
       });
 
       // Notify seller
-    //   await this.notificationsService.create({
-    //     userId: transaction.sellerId,
-    //     type: 'payment_received',
-    //     title: 'Payment Released (Auto-confirmed)',
-    //     message: 'Transaction auto-confirmed after 7 days. Funds released.',
-    //     relatedEntity: {
-    //       entityType: 'transaction',
-    //       entityId: transaction._id,
-    //     },
-    //   });
+      //   await this.notificationsService.create({
+      //     userId: transaction.sellerId,
+      //     type: 'payment_received',
+      //     title: 'Payment Released (Auto-confirmed)',
+      //     message: 'Transaction auto-confirmed after 7 days. Funds released.',
+      //     relatedEntity: {
+      //       entityType: 'transaction',
+      //       entityId: transaction._id,
+      //     },
+      //   });
 
       return transaction;
     }
@@ -476,23 +513,24 @@ export class TransactionsService {
       query.sellerId = userId;
     } else {
       // Get all transactions where user is either buyer or seller
-      query.$or = [
-        { buyerId: userId },
-        { sellerId: userId }
-      ];
+      query.$or = [{ buyerId: userId }, { sellerId: userId }];
     }
 
     // Filter by status if provided
     if (status) {
-      if(TransactionStatus[status as keyof typeof TransactionStatus]) query.status = status;
+      if (TransactionStatus[status as keyof typeof TransactionStatus])
+        query.status = status;
     }
-    
-    console.log(query)
+
+    console.log(query);
     const transactions = await this.transactionModel
       .find(query)
       .populate('buyerId', 'email profile.fullName')
       .populate('sellerId', 'email profile.fullName')
-      .populate('bicycleId', 'title price specifications.brand specifications.type media.mainImage')
+      .populate(
+        'bicycleId',
+        'title price specifications.brand specifications.type media.mainImage',
+      )
       .sort({ createdAt: -1 })
       .exec();
 
@@ -522,7 +560,9 @@ export class TransactionsService {
     const isSeller = transaction.sellerId._id.toString() === userId;
 
     if (!isBuyer && !isSeller) {
-      throw new ForbiddenException('You do not have access to this transaction');
+      throw new ForbiddenException(
+        'You do not have access to this transaction',
+      );
     }
 
     return transaction;
@@ -547,7 +587,9 @@ export class TransactionsService {
     const isSeller = transaction.sellerId.toString() === userId;
 
     if (!isBuyer && !isSeller) {
-      throw new ForbiddenException('You are not authorized to cancel this transaction');
+      throw new ForbiddenException(
+        'You are not authorized to cancel this transaction',
+      );
     }
 
     // Check if transaction can be cancelled
@@ -559,16 +601,19 @@ export class TransactionsService {
 
     if (!cancellableStatuses.includes(transaction.status)) {
       throw new BadRequestException(
-        `Cannot cancel transaction with status: ${transaction.status}`
+        `Cannot cancel transaction with status: ${transaction.status}`,
       );
     }
 
     // Buyer can only cancel before payment or within 1 hour after payment
     if (isBuyer && transaction.status !== TransactionStatus.PENDING_PAYMENT) {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      if (!transaction.payment?.paidAt || transaction.payment.paidAt < oneHourAgo) {
+      if (
+        !transaction.payment?.paidAt ||
+        transaction.payment.paidAt < oneHourAgo
+      ) {
         throw new BadRequestException(
-          'Buyer can only cancel within 1 hour after payment'
+          'Buyer can only cancel within 1 hour after payment',
         );
       }
     }
@@ -583,10 +628,9 @@ export class TransactionsService {
     await transaction.save();
 
     // Release bicycle back to market
-    await this.bicycleModel.findByIdAndUpdate(
-      transaction.bicycleId,
-      { status: BicycleStatus.ACTIVE }
-    );
+    await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
+      status: BicycleStatus.ACTIVE,
+    });
 
     // Refund if payment was made
     if (transaction.payment?.paidAt) {
@@ -625,12 +669,12 @@ export class TransactionsService {
     const escrowResult = await this.transactionModel.aggregate([
       {
         $match: {
-          status: { 
+          status: {
             $in: [
               TransactionStatus.HELD_IN_ESCROW,
               TransactionStatus.AWAITING_DELIVERY,
               TransactionStatus.DELIVERED,
-            ] 
+            ],
           },
         },
       },
@@ -643,8 +687,10 @@ export class TransactionsService {
       },
     ]);
 
-    const totalInEscrow = escrowResult.length > 0 ? escrowResult[0].totalAmount : 0;
-    const transactionsInEscrow = escrowResult.length > 0 ? escrowResult[0].count : 0;
+    const totalInEscrow =
+      escrowResult.length > 0 ? escrowResult[0].totalAmount : 0;
+    const transactionsInEscrow =
+      escrowResult.length > 0 ? escrowResult[0].count : 0;
 
     // Completed transactions (last 30 days)
     const thirtyDaysAgo = new Date();
@@ -670,7 +716,8 @@ export class TransactionsService {
       },
     ]);
 
-    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    const totalRevenue =
+      revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
 
     // Average transaction value
     const avgTransactionResult = await this.transactionModel.aggregate([
@@ -682,9 +729,10 @@ export class TransactionsService {
       },
     ]);
 
-    const averageTransactionValue = avgTransactionResult.length > 0 
-      ? avgTransactionResult[0].averageAmount 
-      : 0;
+    const averageTransactionValue =
+      avgTransactionResult.length > 0
+        ? avgTransactionResult[0].averageAmount
+        : 0;
 
     // Transactions requiring attention (auto-release soon)
     const twoDaysFromNow = new Date();
@@ -746,9 +794,10 @@ export class TransactionsService {
     const totalDisputed = await this.transactionModel.countDocuments({
       'dispute.isDisputed': true,
     });
-    const disputeRate : any = totalTransactions > 0 
-      ? ((totalDisputed / totalTransactions) * 100).toFixed(2) 
-      : 0;
+    const disputeRate: any =
+      totalTransactions > 0
+        ? ((totalDisputed / totalTransactions) * 100).toFixed(2)
+        : 0;
 
     return {
       overview: {
@@ -849,7 +898,8 @@ export class TransactionsService {
       },
     ]);
 
-    const totalHeld = totalHeldResult.length > 0 ? totalHeldResult[0].totalHeld : 0;
+    const totalHeld =
+      totalHeldResult.length > 0 ? totalHeldResult[0].totalHeld : 0;
 
     // Average hold time (for completed transactions)
     const avgHoldTimeResult = await this.transactionModel.aggregate([
@@ -875,10 +925,11 @@ export class TransactionsService {
       },
     ]);
 
-    const averageHoldTimeMs = avgHoldTimeResult.length > 0 
-      ? avgHoldTimeResult[0].averageHoldTime 
-      : 0;
-    const averageHoldTimeDays = Math.round(averageHoldTimeMs / (1000 * 60 * 60 * 24));
+    const averageHoldTimeMs =
+      avgHoldTimeResult.length > 0 ? avgHoldTimeResult[0].averageHoldTime : 0;
+    const averageHoldTimeDays = Math.round(
+      averageHoldTimeMs / (1000 * 60 * 60 * 24),
+    );
 
     return {
       totalHeld,
