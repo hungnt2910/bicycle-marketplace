@@ -58,7 +58,7 @@ export class ZaloPayService {
         amount,
         description: `Payment for transaction ${transactionId}`,
         bank_code: '',
-        callback_url: this.config.callback_url,
+        callback_url: "http://localhost:3000/api/v1/payment/zalopay/callback",
       };
 
       // Create MAC signature

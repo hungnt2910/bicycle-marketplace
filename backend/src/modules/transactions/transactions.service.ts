@@ -132,29 +132,6 @@ export class TransactionsService {
     bicycle.status = BicycleStatus.RESERVED;
     await bicycle.save();
 
-    return this.paymentService.createZaloPayPayment(
-      transaction._id.toString(),
-      buyerId,
-    );
-
-    // await this.walletService.debit(
-    //   buyerId,
-    //   amount,
-    //   WalletTransactionType.PURCHASE,
-    //   `Payment for bicycle: ${bicycle.title}`,
-    //   {
-    //     transactionId: transaction._id.toString(),
-    //     bicycleId: bicycle._id.toString(),
-    //   },
-    // );
-
-    // // Hold in escrow
-    // await this.walletService.holdInEscrow(
-    //   buyerId,
-    //   amount,
-    //   transaction._id.toString(),
-    // );
-
     // 7. Send notifications
     // await this.notificationsService.create({
     //   userId: bicycle.sellerId,
@@ -167,7 +144,12 @@ export class TransactionsService {
     //   },
     // });
 
-    return transaction;
+    return this.paymentService.createZaloPayPayment(
+      transaction._id.toString(),
+      buyerId,
+    );
+
+    // return transaction;
   }
 
   /**

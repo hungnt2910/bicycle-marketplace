@@ -1,20 +1,33 @@
-import { Injectable, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Transaction, TransactionDocument, TransactionStatus } from '../../entities/transaction.entity';
+import {
+  Transaction,
+  TransactionDocument,
+  TransactionStatus,
+} from '../../entities/transaction.entity';
 import { ZaloPayService } from './zalopay/zalopay.service';
 import { TransactionsService } from '../transactions/transactions.service';
+import { WalletTransactionType } from 'src/entities/wallet-transaction.entity';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
 
   constructor(
-    @InjectModel(Transaction.name) 
+    @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
     private zaloPayService: ZaloPayService,
     @Inject(forwardRef(() => TransactionsService))
     private readonly transactionsService: TransactionsService,
+    private readonly walletService: WalletService,
   ) {}
 
   /**
@@ -64,7 +77,9 @@ export class PaymentService {
 
     // Ensure required fields exist
     if (!zaloPayResponse.order_url || !zaloPayResponse.zp_trans_token) {
-      throw new BadRequestException('ZaloPay response missing order_url or transaction token');
+      throw new BadRequestException(
+        'ZaloPay response missing order_url or transaction token',
+      );
     }
 
     // Store ZaloPay transaction ID
@@ -73,7 +88,6 @@ export class PaymentService {
       transactionId: zaloPayResponse.zp_trans_token,
     };
 
-    
     await transaction.save();
 
     this.logger.log(`Created ZaloPay payment for transaction ${transactionId}`);
@@ -87,7 +101,10 @@ export class PaymentService {
   /**
    * Handle ZaloPay callback
    */
-  async handleZaloPayCallback(dataStr: string, mac: string): Promise<{
+  async handleZaloPayCallback(
+    dataStr: string,
+    mac: string,
+  ): Promise<{
     return_code: number;
     return_message: string;
   }> {
@@ -105,7 +122,9 @@ export class PaymentService {
     const embedData = JSON.parse(callbackData.embed_data);
     const transactionId = embedData.transactionId;
 
-    this.logger.log(`Processing ZaloPay callback for transaction ${transactionId}`);
+    this.logger.log(
+      `Processing ZaloPay callback for transaction ${transactionId}`,
+    );
 
     try {
       // Get transaction
@@ -120,12 +139,32 @@ export class PaymentService {
 
       transaction.status = TransactionStatus.PAYMENT_RECEIVED;
 
+      await this.walletService.credit(
+        transaction.buyerId.toString(),
+        transaction.amount,
+        WalletTransactionType.PURCHASE,
+        `Payment for bicycle: ${transaction.bicycleId}`,
+        {
+          transactionId: transaction._id.toString(),
+          bicycleId: transaction.bicycleId.toString(),
+        },
+      );
+
+      // Hold in escrow
+      await this.walletService.holdInEscrow(
+        transaction.buyerId.toString(),
+        transaction.amount,
+        transaction._id.toString(),
+      );
+
       // Confirm payment
       await this.transactionsService.confirmPayment(transactionId, {
         transactionId: callbackData.zp_trans_id || callbackData.app_trans_id,
       });
 
-      this.logger.log(`ZaloPay payment confirmed for transaction ${transactionId}`);
+      this.logger.log(
+        `ZaloPay payment confirmed for transaction ${transactionId}`,
+      );
 
       return {
         return_code: 1,
