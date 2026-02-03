@@ -19,8 +19,9 @@ const ManageListings = () => {
   const fetchListings = async () => {
     try {
       setLoading(true);
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      const sellerId = userInfo._id || userInfo.id;
+      const storedUser = localStorage.getItem('user') || localStorage.getItem('userInfo');
+      const userInfo = JSON.parse(storedUser || '{}');
+      const sellerId = userInfo._id || userInfo.id || userInfo.userId;
 
       if (!sellerId) {
         toast.error('Vui lòng đăng nhập để xem tin đăng');
@@ -29,9 +30,8 @@ const ManageListings = () => {
       }
 
       const response = await bicycleApi.getMyBicycles(sellerId);
-      if (response.data) {
-        setListings(response.data);
-      }
+      const data = response?.data?.data || response?.data || [];
+      setListings(data);
     } catch (error) {
       console.error('Error fetching listings:', error);
       toast.error('Không thể tải danh sách tin đăng');

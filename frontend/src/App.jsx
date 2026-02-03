@@ -27,7 +27,7 @@ import Compare from './pages/buyer/Compare';
 import SellerDashboard from './pages/seller/SellerDashboard';
 import CreateListing from './pages/seller/CreateListing';
 import EditListing from './pages/seller/EditListing';
-import CreateListingEnhanced from './pages/seller/CreateListingEnhanced';
+// import CreateListingEnhanced from './pages/seller/CreateListingEnhanced';
 import ManageListings from './pages/seller/ManageListings';
 import SellerOrders from './pages/seller/SellerOrders';
 import Reputation from './pages/seller/Reputation';
@@ -93,10 +93,7 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
 
 const ProductDetailRoute = ({ onNavigate }) => {
   const { id } = useParams();
-  const productId = Number(id);
-  return (
-    <ProductDetail productId={Number.isNaN(productId) ? null : productId} onNavigate={onNavigate} />
-  );
+  return <ProductDetail productId={id || null} onNavigate={onNavigate} />;
 };
 
 const AppRoutes = () => {

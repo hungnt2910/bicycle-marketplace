@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Card, Badge, Rating, Input, Select } from '../../components/ui';
 import { Header, Footer } from '../../components/common';
+import bicycleApi from '../../api/postNewsApi';
 
 const LandingPage = ({
   onNavigate,
@@ -54,42 +55,67 @@ const LandingPage = ({
     { name: 'Xe Đạp BMX', icon: '🏆', count: 78, color: 'from-amber-500 to-orange-500' },
   ];
 
-  const featuredBikes = [
-    {
-      id: 1,
-      name: 'Giant Talon 3 2024',
-      price: 12500000,
-      oldPrice: 15000000,
-      image: '/mountain_bike_hero_1768417732962.png',
-      condition: 'Like New',
-      verified: true,
-      rating: 4.8,
-      reviews: 24,
-      seller: 'Nguyễn Văn A',
-    },
-    {
-      id: 2,
-      name: 'Trek Domane AL 2',
-      price: 18900000,
-      image: '/road_bike_hero_1768417748558.png',
-      condition: 'Excellent',
-      verified: true,
-      rating: 4.9,
-      reviews: 18,
-      seller: 'Trần Thị B',
-    },
-    {
-      id: 3,
-      name: 'Specialized Sirrus X 3.0',
-      price: 16200000,
-      image: '/hybrid_bike_hero_1768417761473.png',
-      condition: 'Good',
-      verified: false,
-      rating: 4.6,
-      reviews: 12,
-      seller: 'Lê Văn C',
-    },
-  ];
+  const [featuredBikes, setFeaturedBikes] = useState([]);
+  const conditionLabelMap = {
+    new: 'Mới 100%',
+    'like-new': 'Như mới',
+    good: 'Tốt',
+    fair: 'Khá',
+    poor: 'Cần sửa chữa',
+  };
+
+  const getSellerName = (bike) => {
+    const sellerFromId = bike?.sellerId;
+    const nameFromSellerId = sellerFromId
+      ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
+      : '';
+    const profile = bike?.seller?.profile || bike?.sellerProfile || bike?.profile;
+    const fromProfile = profile
+      ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+      : '';
+    return (
+      nameFromSellerId ||
+      fromProfile ||
+      bike?.seller?.fullName ||
+      bike?.sellerName ||
+      user?.fullName ||
+      'Người bán'
+    );
+  };
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const response = await bicycleApi.getAllBicycles();
+        const apiData = response?.data?.data || response?.data || [];
+        const mapped = apiData
+          .filter((bike) => bike?.status === 'active')
+          .slice(0, 3)
+          .map((bike) => ({
+            id: bike?._id || bike?.id,
+            name: bike?.title || 'Không có tiêu đề',
+            price: bike?.price || 0,
+            oldPrice: bike?.oldPrice,
+            image:
+              bike?.media?.mainImage ||
+              bike?.media?.images?.[0] ||
+              '/mountain_bike_hero_1768417732962.png',
+            condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
+            verified: !!bike?.inspection?.isInspected,
+            rating: bike?.rating || 0,
+            reviews: bike?.reviewsCount || 0,
+            seller: getSellerName(bike),
+          }));
+
+        setFeaturedBikes(mapped);
+      } catch (error) {
+        console.error('Error fetching featured bikes:', error);
+        setFeaturedBikes([]);
+      }
+    };
+
+    fetchFeatured();
+  }, []);
 
   const stats = [
     { label: 'Người dùng', value: '10,000+', icon: '👥' },

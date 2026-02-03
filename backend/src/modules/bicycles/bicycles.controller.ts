@@ -17,7 +17,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 @Controller('bicycles')
 export class BicyclesController {
   constructor(private readonly BicyclesService: BicyclesService) {}
-
+  @Public()
   @Post('create-bicycle')
   @ApiOperation({ summary: 'Create a new bicycle listing' })
   @ApiResponse({ status: 201, description: 'Bicycle successfully created' })

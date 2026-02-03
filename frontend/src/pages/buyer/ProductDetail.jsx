@@ -1,199 +1,190 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Badge, Rating, Button, ImageGallery, Avatar, Modal } from '../../components/ui';
+import bicycleApi from '../../api/postNewsApi';
+import authApi from '../../api/authApi';
 
 const ProductDetail = ({ productId }) => {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState(50);
+  const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [similarBikes, setSimilarBikes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Database of all bikes (same as Marketplace)
-  const allBikes = [
-    {
-      id: 1,
-      name: 'Giant Talon 3 2024',
-      price: 12500000,
-      oldPrice: 15000000,
-      image: '/mountain_bike_hero_1768417732962.png',
-      condition: 'Like New',
-      verified: true,
-      rating: 4.8,
-      reviews: 24,
-      seller: 'Nguyễn Văn A',
-      location: 'Hà Nội',
-      views: 245,
-      type: 'mountain',
-      brand: 'Giant',
-      year: '2024',
-      frameSize: 'M (17.5")',
-      description:
-        'Xe đạp địa hình Giant Talon 3 2024 trong tình trạng như mới, chỉ sử dụng 3 tháng. Xe được bảo dưỡng định kỳ, tất cả linh kiện hoạt động tốt. Phù hợp cho người mới bắt đầu hoặc đi phượt địa hình nhẹ.',
-    },
-    {
-      id: 2,
-      name: 'Trek Domane AL 2',
-      price: 18900000,
-      image: '/road_bike_hero_1768417748558.png',
-      condition: 'Excellent',
-      verified: true,
-      rating: 4.9,
-      reviews: 18,
-      seller: 'Trần Thị B',
-      location: 'TP.HCM',
-      views: 189,
-      type: 'road',
-      brand: 'Trek',
-      year: '2023',
-      frameSize: 'L (19")',
-      description:
-        'Xe đạp đường trường Trek Domane AL 2 tình trạng xuất sắc. Phù hợp cho việc đạp đường dài và tập luyện thể thao.',
-    },
-    {
-      id: 3,
-      name: 'Specialized Sirrus X 3.0',
-      price: 16200000,
-      image: '/hybrid_bike_hero_1768417761473.png',
-      condition: 'Good',
-      verified: false,
-      rating: 4.6,
-      reviews: 12,
-      seller: 'Lê Văn C',
-      location: 'Đà Nẵng',
-      views: 156,
-      type: 'hybrid',
-      brand: 'Specialized',
-      year: '2023',
-      frameSize: 'M (17")',
-      description:
-        'Xe đạp Hybrid Specialized Sirrus X 3.0 đa năng, phù hợp cả đường phố và địa hình nhẹ.',
-    },
-    {
-      id: 4,
-      name: 'Giant TCR Advanced 2',
-      price: 25000000,
-      image: '/road_bike_hero_1768417748558.png',
-      condition: 'Like New',
-      verified: true,
-      rating: 4.9,
-      reviews: 31,
-      seller: 'Phạm Văn D',
-      location: 'Hà Nội',
-      views: 312,
-      type: 'road',
-      brand: 'Giant',
-      year: '2024',
-      frameSize: 'M (18")',
-      description: 'Xe đạp đua cao cấp Giant TCR Advanced 2 với khung carbon, cực kỳ nhẹ và nhanh.',
-    },
-    {
-      id: 5,
-      name: 'Trek Marlin 7',
-      price: 14500000,
-      image: '/mountain_bike_hero_1768417732962.png',
-      condition: 'Excellent',
-      verified: true,
-      rating: 4.7,
-      reviews: 22,
-      seller: 'Hoàng Thị E',
-      location: 'Cần Thơ',
-      views: 198,
-      type: 'mountain',
-      brand: 'Trek',
-      year: '2023',
-      frameSize: 'L (19.5")',
-      description: 'Trek Marlin 7 là lựa chọn tuyệt vời cho người yêu thích đạp xe địa hình.',
-    },
-    {
-      id: 6,
-      name: 'Cannondale Quick 4',
-      price: 11900000,
-      image: '/hybrid_bike_hero_1768417761473.png',
-      condition: 'Good',
-      verified: false,
-      rating: 4.5,
-      reviews: 15,
-      seller: 'Vũ Văn F',
-      location: 'Hải Phòng',
-      views: 134,
-      type: 'hybrid',
-      brand: 'Cannondale',
-      year: '2022',
-      frameSize: 'M (17")',
-      description: 'Cannondale Quick 4 - xe đạp thành phố linh hoạt, phù hợp đi làm và tập luyện.',
-    },
-  ];
-
-  // Find the bike by ID, default to first bike if not found
-  const bike = allBikes.find((b) => b.id === productId) || allBikes[0];
-
-  // Build product object from bike data
-  const product = {
-    ...bike,
-    images: [bike.image, bike.image, bike.image], // Use same image 3 times for gallery
-    seller: {
-      name: bike.seller,
-      avatar: null,
-      rating: bike.rating,
-      responseTime: '< 1 giờ',
-      successRate: '98%',
-      totalSales: Math.floor(Math.random() * 50) + 10,
-    },
-    specs: {
-      'Loại xe':
-        bike.type === 'mountain'
-          ? 'Xe đạp địa hình'
-          : bike.type === 'road'
-            ? 'Xe đạp đường trường'
-            : 'Xe đạp Hybrid',
-      'Thương hiệu': bike.brand,
-      'Năm sản xuất': bike.year,
-      'Kích thước khung': bike.frameSize,
-      'Chất liệu khung': 'Nhôm ALUXX-Grade',
-      'Hệ thống treo': bike.type === 'mountain' ? 'SR Suntour XCM 100mm' : 'N/A',
-      Phanh: 'Phanh đĩa thủy lực Shimano',
-      'Bộ truyền động': 'Shimano Deore 1x12',
-      'Bánh xe': bike.type === 'road' ? '700c' : '27.5"',
-      'Trọng lượng': '13.5 kg',
-    },
-    inspectionReport: bike.verified
-      ? {
-          score: 9.2,
-          date: '10/01/2024',
-          inspector: 'Trần Văn B',
-          notes: 'Xe trong tình trạng xuất sắc. Tất cả linh kiện hoạt động tốt.',
-        }
-      : null,
+  const typeLabelMap = {
+    mountain: 'Xe đạp địa hình',
+    road: 'Xe đạp đường trường',
+    hybrid: 'Xe đạp Hybrid',
+    electric: 'Xe đạp điện',
+    folding: 'Xe đạp gấp',
+    bmx: 'Xe đạp BMX',
+    cruiser: 'Xe đạp dạo phố',
   };
 
-  const reviews = [
-    {
-      id: 1,
-      user: 'Lê Thị C',
-      rating: 5,
-      comment: 'Người bán rất nhiệt tình, xe đúng như mô tả!',
-      date: '12/01/2024',
-    },
-    {
-      id: 2,
-      user: 'Phạm Văn D',
-      rating: 4.5,
-      comment: 'Xe tốt, giao hàng nhanh.',
-      date: '08/01/2024',
-    },
-  ];
+  const conditionLabelMap = {
+    new: 'Mới 100%',
+    'like-new': 'Như mới',
+    good: 'Tốt',
+    fair: 'Khá',
+    poor: 'Cần sửa chữa',
+  };
 
-  const similarBikes = [
-    {
-      id: 2,
-      name: 'Trek Marlin 7',
-      price: 14500000,
-      image: '/mountain_bike_hero_1768417732962.png',
-    },
-    {
-      id: 3,
-      name: 'Specialized Rockhopper',
-      price: 13200000,
-      image: '/mountain_bike_hero_1768417732962.png',
-    },
-  ];
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!productId) return;
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await bicycleApi.getBicycleById(productId);
+        const bike = response?.data?.data || response?.data;
+
+        if (!bike) {
+          setError('Không tìm thấy sản phẩm');
+          setProduct(null);
+          return;
+        }
+
+        const location = [bike?.location?.district, bike?.location?.city]
+          .filter(Boolean)
+          .join(', ');
+
+        const images = bike?.media?.images?.length
+          ? bike.media.images
+          : bike?.media?.mainImage
+            ? [bike.media.mainImage]
+            : [];
+
+        const profileResponse = await authApi.profile().catch(() => null);
+        const profile = profileResponse?.data?.data || null;
+        const profileFullName = profile
+          ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+          : '';
+
+        const sellerProfile = bike?.seller?.profile || bike?.sellerProfile || bike?.profile;
+        const sellerProfileName = sellerProfile
+          ? `${sellerProfile.firstName || ''} ${sellerProfile.lastName || ''}`.trim()
+          : '';
+        const sellerFromId = bike?.sellerId;
+        const sellerIdName = sellerFromId
+          ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
+          : '';
+
+        const mappedProduct = {
+          id: bike?._id || bike?.id,
+          name: bike?.title || 'Không có tiêu đề',
+          price: bike?.price || 0,
+          oldPrice: bike?.oldPrice,
+          images,
+          description: bike?.description || 'Chưa có mô tả',
+          verified: !!bike?.inspection?.isInspected,
+          rating: bike?.rating || 0,
+          reviews: bike?.reviewsCount || 0,
+          condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
+          location: location || '—',
+          views: bike?.views || 0,
+          seller: {
+            name:
+              sellerIdName ||
+              sellerProfileName ||
+              bike?.seller?.fullName ||
+              bike?.sellerName ||
+              profileFullName ||
+              'Người bán',
+            avatar: sellerFromId?.avatar || bike?.seller?.avatar || null,
+            rating: bike?.seller?.rating || 0,
+            responseTime: bike?.seller?.responseTime || '—',
+            successRate: bike?.seller?.successRate ? `${bike.seller.successRate}%` : '—',
+            totalSales: bike?.seller?.totalSales || 0,
+            phone:
+              sellerFromId?.phone ||
+              bike?.seller?.phone ||
+              bike?.seller?.phoneNumber ||
+              bike?.sellerPhone ||
+              profile?.phone ||
+              '—',
+            email:
+              sellerFromId?.email ||
+              bike?.seller?.email ||
+              bike?.sellerEmail ||
+              profile?.email ||
+              '—',
+          },
+          specs: {
+            'Loại xe': typeLabelMap[bike?.specifications?.type] || '—',
+            'Thương hiệu': bike?.specifications?.brand || '—',
+            'Năm sản xuất': bike?.specifications?.year || '—',
+            'Kích thước khung': bike?.specifications?.frameSize || '—',
+            'Chất liệu khung': bike?.specifications?.frameMaterial || '—',
+            'Hệ thống treo': bike?.specifications?.suspension || '—',
+            Phanh: bike?.specifications?.brakeType || '—',
+            'Bộ truyền động': bike?.specifications?.gears || '—',
+            'Bánh xe': bike?.specifications?.wheelSize || '—',
+            'Trọng lượng': bike?.specifications?.weight || '—',
+          },
+          inspectionReport: bike?.inspection?.isInspected
+            ? {
+                score: bike?.inspection?.score || 0,
+                date: bike?.inspection?.inspectionDate
+                  ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
+                  : '—',
+                inspector: bike?.inspection?.inspectorName || '—',
+                notes: bike?.inspection?.label || 'Đã kiểm định',
+              }
+            : null,
+          rawType: bike?.specifications?.type || '',
+        };
+
+        setProduct(mappedProduct);
+
+        const allResponse = await bicycleApi.getAllBicycles();
+        const allData = allResponse?.data?.data || allResponse?.data || [];
+        const related = allData
+          .filter((item) => item?.status === 'active')
+          .filter((item) => (item?._id || item?.id) !== mappedProduct.id)
+          .filter((item) => item?.specifications?.type === mappedProduct.rawType)
+          .slice(0, 4)
+          .map((item) => ({
+            id: item?._id || item?.id,
+            name: item?.title || 'Không có tiêu đề',
+            price: item?.price || 0,
+            image: item?.media?.mainImage || item?.media?.images?.[0] || '',
+          }));
+
+        setSimilarBikes(related);
+        setReviews(bike?.reviews || []);
+      } catch (err) {
+        console.error('Error fetching product detail:', err);
+        setError('Không thể tải dữ liệu sản phẩm');
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="container-custom py-10">
+          <div className="text-neutral-600">Đang tải dữ liệu...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="container-custom py-10">
+          <div className="text-rose-600">{error || 'Không có dữ liệu sản phẩm'}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -225,7 +216,13 @@ const ProductDetail = ({ productId }) => {
             {/* Images Gallery - Modern Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200/50 overflow-hidden">
               <div className="p-6">
-                <ImageGallery images={product.images} alt={product.name} />
+                {product.images?.length ? (
+                  <ImageGallery images={product.images} alt={product.name} />
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-neutral-500">
+                    Chưa có hình ảnh
+                  </div>
+                )}
               </div>
             </div>
 
@@ -406,26 +403,34 @@ const ProductDetail = ({ productId }) => {
               </div>
 
               <div className="space-y-4">
-                {reviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="bg-neutral-50 rounded-xl p-5 hover:bg-neutral-100 transition-colors"
-                  >
-                    <div className="flex items-start gap-4">
-                      <Avatar name={review.user} size="sm" />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-semibold text-neutral-900">{review.user}</div>
-                          <span className="text-xs text-neutral-500">{review.date}</span>
+                {reviews.length === 0 ? (
+                  <div className="text-neutral-500">Chưa có đánh giá</div>
+                ) : (
+                  reviews.map((review) => (
+                    <div
+                      key={review.id || `${review.user}-${review.date}`}
+                      className="bg-neutral-50 rounded-xl p-5 hover:bg-neutral-100 transition-colors"
+                    >
+                      <div className="flex items-start gap-4">
+                        <Avatar name={review.user || 'Ẩn danh'} size="sm" />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-semibold text-neutral-900">
+                              {review.user || 'Ẩn danh'}
+                            </div>
+                            <span className="text-xs text-neutral-500">{review.date || '—'}</span>
+                          </div>
+                          <div className="mb-2">
+                            <Rating value={review.rating || 0} size="sm" readonly />
+                          </div>
+                          <p className="text-neutral-700 leading-relaxed">
+                            {review.comment || 'Không có nội dung'}
+                          </p>
                         </div>
-                        <div className="mb-2">
-                          <Rating value={review.rating} size="sm" readonly />
-                        </div>
-                        <p className="text-neutral-700 leading-relaxed">{review.comment}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -576,12 +581,18 @@ const ProductDetail = ({ productId }) => {
                 <div className="flex items-center gap-4 mb-5 pb-5 border-b border-neutral-200">
                   <Avatar name={product.seller.name} size="lg" />
                   <div className="flex-1">
-                    <div className="font-bold text-neutral-900 mb-1">{product.seller.name}</div>
+                    <div className="font-bold text-neutral-900 mb-1">
+                      Người bán: {product.seller.name}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Rating value={product.seller.rating} size="sm" readonly />
                       <span className="text-sm text-neutral-600">
                         ({product.seller.totalSales} đã bán)
                       </span>
+                    </div>
+                    <div className="mt-2 text-sm text-neutral-700">
+                      <div>Email: {product.seller.email}</div>
+                      <div>Số điện thoại: {product.seller.phone}</div>
                     </div>
                   </div>
                 </div>
@@ -789,32 +800,42 @@ const ProductDetail = ({ productId }) => {
           </div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {similarBikes.map((bike) => (
-              <div
-                key={bike.id}
-                className="group bg-white rounded-2xl shadow-sm border border-neutral-200/50 overflow-hidden hover:shadow-xl hover:border-themePrimary/30 transition-all duration-300 cursor-pointer"
-              >
-                <div className="aspect-product bg-neutral-100 relative overflow-hidden">
-                  <img
-                    src={bike.image}
-                    alt={bike.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-                </div>
-                <div className="p-5">
-                  <h4 className="font-bold text-neutral-900 mb-3 line-clamp-2 group-hover:text-themePrimary transition-colors">
-                    {bike.name}
-                  </h4>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-themePrimary">
-                      {bike.price.toLocaleString('vi-VN')}
-                    </span>
-                    <span className="text-lg font-bold text-themePrimary">₫</span>
+            {similarBikes.length === 0 ? (
+              <div className="text-neutral-500">Chưa có xe tương tự</div>
+            ) : (
+              similarBikes.map((bike) => (
+                <div
+                  key={bike.id}
+                  className="group bg-white rounded-2xl shadow-sm border border-neutral-200/50 overflow-hidden hover:shadow-xl hover:border-themePrimary/30 transition-all duration-300 cursor-pointer"
+                >
+                  <div className="aspect-product bg-neutral-100 relative overflow-hidden">
+                    {bike.image ? (
+                      <img
+                        src={bike.image}
+                        alt={bike.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                        Chưa có ảnh
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                  </div>
+                  <div className="p-5">
+                    <h4 className="font-bold text-neutral-900 mb-3 line-clamp-2 group-hover:text-themePrimary transition-colors">
+                      {bike.name}
+                    </h4>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-themePrimary">
+                        {bike.price.toLocaleString('vi-VN')}
+                      </span>
+                      <span className="text-lg font-bold text-themePrimary">₫</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

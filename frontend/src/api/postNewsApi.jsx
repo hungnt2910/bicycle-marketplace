@@ -10,12 +10,11 @@ const bicycleApi = {
   // Read - Lấy bicycle theo ID
   getBicycleById: (id) => axiosClient.post('/api/v1/bicycles/get-bicycle-by-id', { id }),
 
-  // Update - Cập nhật bicycle
-  updateBicycle: (id, data) =>
-    axiosClient.patch('/api/v1/bicycles/update-bicycle', { id, ...data }),
+  updateBicycle: (id, data = {}) =>
+    axiosClient.patch(`/api/v1/bicycles/update-bicycle/${id}`, data),
 
   // Delete - Xóa bicycle
-  deleteBicycle: (id) => axiosClient.delete('/api/v1/bicycles/delete-bicycle', { data: { id } }),
+  deleteBicycle: (id) => axiosClient.delete(`/api/v1/bicycles/delete-bicycle/${id}`),
 
   // Search - Tìm kiếm bicycles
   searchBicycles: (keyword) => axiosClient.post('/api/v1/bicycles/search-bicycles', { keyword }),
@@ -30,7 +29,10 @@ const bicycleApi = {
       if (res.data?.data) {
         return {
           ...res.data,
-          data: res.data.data.filter((bike) => bike.sellerId === sellerId),
+          data: res.data.data.filter((bike) => {
+            const bikeSellerId = bike?.sellerId?._id || bike?.sellerId;
+            return bikeSellerId === sellerId;
+          }),
         };
       }
       return res.data;

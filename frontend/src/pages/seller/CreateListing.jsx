@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bicycleApi from '../../api/postNewsApi';
+import adminApi from '../../api/adminApi';
 import { toast } from 'react-toastify';
 import { Button, Card, Input, Select, Textarea } from '../../components/ui';
 
@@ -11,6 +12,8 @@ const CreateListing = () => {
   const [inspectionType, setInspectionType] = useState('none');
   const [userPostCount, setUserPostCount] = useState(0);
   const [loadingPostCount, setLoadingPostCount] = useState(true);
+  const [typeOptions, setTypeOptions] = useState([]);
+  const [loadingTypes, setLoadingTypes] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -75,8 +78,9 @@ const CreateListing = () => {
   useEffect(() => {
     const fetchUserPostCount = async () => {
       try {
-        const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-        const sellerId = userInfo._id || userInfo.id;
+        const storedUser = localStorage.getItem('user') || localStorage.getItem('userInfo');
+        const userInfo = JSON.parse(storedUser || '{}');
+        const sellerId = userInfo._id || userInfo.id || userInfo.userId;
 
         if (sellerId) {
           const response = await bicycleApi.getMyBicycles(sellerId);
@@ -91,6 +95,41 @@ const CreateListing = () => {
     };
 
     fetchUserPostCount();
+  }, []);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingTypes(true);
+      try {
+        const response = await adminApi.getCategoriesPostNews();
+        const data = response?.data?.data || response?.data || [];
+        const titleToEnum = (title = '') => {
+          const normalized = title.toLowerCase().trim();
+          if (normalized.includes('mountain') || normalized.includes('dia hinh')) return 'mountain';
+          if (normalized.includes('road') || normalized.includes('road')) return 'road';
+          if (normalized.includes('hybrid')) return 'hybrid';
+          if (normalized.includes('electric') || normalized.includes('dien')) return 'electric';
+          if (normalized.includes('folding') || normalized.includes('gap')) return 'folding';
+          if (normalized.includes('bmx')) return 'bmx';
+          if (normalized.includes('cruiser') || normalized.includes('dao pho')) return 'cruiser';
+          return '';
+        };
+        const options = data
+          .map((item) => ({
+            value: titleToEnum(item?.title || ''),
+            label: item?.title || 'Danh mục',
+          }))
+          .filter((opt) => opt.value);
+        setTypeOptions(options);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setTypeOptions([]);
+      } finally {
+        setLoadingTypes(false);
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   const calculateTotal = () => {
@@ -157,7 +196,7 @@ const CreateListing = () => {
       setLoading(true);
 
       // Get sellerId from localStorage (user info)
-      const userInfoStr = localStorage.getItem('userInfo');
+      const userInfoStr = localStorage.getItem('user') || localStorage.getItem('userInfo');
       const accessToken = localStorage.getItem('accessToken');
 
       console.log('🔍 Debug localStorage:', {
@@ -195,6 +234,10 @@ const CreateListing = () => {
       }
 
       // Prepare data for API
+      const currentDate = new Date();
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Hết hạn sau 1 năm
+
       const submitData = {
         sellerId,
         title: formData.title,
@@ -234,11 +277,14 @@ const CreateListing = () => {
         },
         inspection: {
           isInspected: inspectionType === 'offline',
-          label: inspectionType === 'offline' ? 'Đã kiểm định' : undefined,
+          inspectionDate: inspectionType === 'offline' ? currentDate.toISOString() : undefined,
+          expiryDate: inspectionType === 'offline' ? expiryDate.toISOString() : undefined,
+          label: inspectionType === 'offline' ? 'Verified' : undefined,
         },
         status: isDraft ? 'draft' : 'pending_review',
         pricing: {
           listingFee: isFirstPost ? 0 : POST_FEE,
+          commissionRate: 0.05, // 5% hoa hồng
           isPaid: false,
         },
       };
@@ -246,8 +292,16 @@ const CreateListing = () => {
       const response = await bicycleApi.createBicycle(submitData);
 
       if (response.data) {
-        toast.success(isDraft ? 'Lưu nháp thành công!' : 'Đăng tin thành công!');
-        navigate('/seller/my-listings');
+        if (isDraft) {
+          toast.success('Lưu nháp thành công!');
+          navigate('/seller/my-listings');
+        } else {
+          toast.success(
+            `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${isFirstPost ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT : ''}`
+          );
+          // Chuyển về trang chủ để xem bài đăng mới
+          navigate('/');
+        }
       }
     } catch (error) {
       console.error('Error creating bicycle listing:', error);
@@ -375,13 +429,14 @@ const CreateListing = () => {
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
+              <Select
                 label="Loại xe"
                 required
                 name="type"
                 value={formData.specifications.type}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Xe đạp địa hình, Xe đạp đường trường..."
+                placeholder={loadingTypes ? 'Đang tải danh mục...' : 'Chọn loại xe'}
+                options={typeOptions}
               />
 
               <Input
@@ -454,12 +509,19 @@ const CreateListing = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Input
+              <Select
                 label="Chất liệu khung"
                 name="frameMaterial"
                 value={formData.specifications.frameMaterial}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Carbon, Aluminum, Thép..."
+                placeholder="Chọn chất liệu"
+                options={[
+                  { value: 'aluminum', label: 'Aluminum' },
+                  { value: 'carbon', label: 'Carbon' },
+                  { value: 'steel', label: 'Steel' },
+                  { value: 'titanium', label: 'Titanium' },
+                  { value: 'alloy', label: 'Alloy' },
+                ]}
               />
 
               <Input
@@ -481,20 +543,32 @@ const CreateListing = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
+              <Select
                 label="Loại phanh"
                 name="brakeType"
                 value={formData.specifications.brakeType}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Phanh đĩa, Phanh dầu, Phanh cơ..."
+                placeholder="Chọn loại phanh"
+                options={[
+                  { value: 'disc', label: 'Phanh đĩa (Disc)' },
+                  { value: 'rim', label: 'Phanh vành (Rim)' },
+                  { value: 'hydraulic', label: 'Phanh dầu (Hydraulic)' },
+                  { value: 'mechanical', label: 'Phanh cơ (Mechanical)' },
+                ]}
               />
 
-              <Input
+              <Select
                 label="Giảm xóc"
                 name="suspension"
                 value={formData.specifications.suspension}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Giảm xóc trước, Giảm xóc toàn phần..."
+                placeholder="Chọn loại giảm xóc"
+                options={[
+                  { value: 'none', label: 'Không giảm xóc' },
+                  { value: 'front', label: 'Giảm xóc trước' },
+                  { value: 'full', label: 'Giảm xóc toàn phần' },
+                  { value: 'rear', label: 'Giảm xóc sau' },
+                ]}
               />
             </div>
 
@@ -717,8 +791,14 @@ const CreateListing = () => {
                     {loadingPostCount ? (
                       <span className="text-neutral-500">Đang tải...</span>
                     ) : isFirstPost ? (
-                      <span className="text-accent">
-                        Miễn phí ({userPostCount + 1}/{FREE_POST_LIMIT} bài)
+                      <span className="text-accent flex items-center gap-2">
+                        <span className="line-through text-neutral-400">
+                          {POST_FEE.toLocaleString()}₫
+                        </span>
+                        <span>Miễn phí 🎉</span>
+                        <span className="text-xs bg-accent/20 px-2 py-0.5 rounded">
+                          Bài {userPostCount + 1}/{FREE_POST_LIMIT}
+                        </span>
                       </span>
                     ) : (
                       <span className="text-neutral-900">{POST_FEE.toLocaleString()}₫</span>
@@ -764,7 +844,11 @@ const CreateListing = () => {
                 disabled={loading}
                 className="flex-1"
               >
-                {loading ? 'Đang xử lý...' : 'Thanh toán & Đăng tin'}
+                {loading
+                  ? 'Đang xử lý...'
+                  : isFirstPost
+                    ? '🎉 Đăng tin miễn phí'
+                    : 'Thanh toán & Đăng tin'}
               </Button>
             </div>
           </div>

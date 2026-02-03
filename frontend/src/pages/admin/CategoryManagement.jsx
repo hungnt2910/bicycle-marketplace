@@ -1,62 +1,178 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Badge } from '../../components/ui';
+import adminApi from '../../api/adminApi';
 
 const CategoryManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    icon: '',
+    status: 'active',
+  });
 
-  const [categories] = useState([
-    {
-      id: 1,
-      name: 'Xe đạp địa hình',
-      slug: 'xe-dap-dia-hinh',
-      description: 'Xe đạp chuyên dụng cho địa hình gồ ghề, đường núi',
-      icon: '🚵',
-      listingCount: 456,
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await adminApi.getCategoriesPostNews();
+        const data = response?.data?.data || response?.data || [];
+        const mapped = data.map((item) => ({
+          id: item?._id || item?.id,
+          name: item?.title || item?.name || '—',
+          slug: item?.slug || '',
+          description: item?.description || '',
+          icon: item?.icon || '🚲',
+          listingCount: item?.listingCount || 0,
+          status: item?.status || 'active',
+          createdDate: item?.createdAt
+            ? new Date(item.createdAt).toISOString().slice(0, 10)
+            : item?.createdDate || '—',
+        }));
+        setCategories(mapped);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        setError(err.response?.data?.message || 'Không thể tải danh mục');
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  const slugify = (value) =>
+    value
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      slug: '',
+      description: '',
+      icon: '',
       status: 'active',
-      createdDate: '2024-01-15',
-    },
-    {
-      id: 2,
-      name: 'Xe đạp đường trường',
-      slug: 'xe-dap-duong-truong',
-      description: 'Xe đạp chuyên dụng cho đường trường, đua xe',
-      icon: '🚴',
-      listingCount: 328,
-      status: 'active',
-      createdDate: '2024-01-15',
-    },
-    {
-      id: 3,
-      name: 'Xe đạp Hybrid',
-      slug: 'xe-dap-hybrid',
-      description: 'Xe đạp đa năng, kết hợp giữa địa hình và đường trường',
-      icon: '🚲',
-      listingCount: 234,
-      status: 'active',
-      createdDate: '2024-01-15',
-    },
-    {
-      id: 4,
-      name: 'Xe đạp BMX',
-      slug: 'xe-dap-bmx',
-      description: 'Xe đạp biểu diễn, freestyle',
-      icon: '🛴',
-      listingCount: 89,
-      status: 'active',
-      createdDate: '2024-02-10',
-    },
-    {
-      id: 5,
-      name: 'Xe đạp thể thao',
-      slug: 'xe-dap-the-thao',
-      description: 'Xe đạp thể thao chuyên nghiệp',
-      icon: '🏁',
-      listingCount: 145,
-      status: 'inactive',
-      createdDate: '2024-03-05',
-    },
-  ]);
+    });
+  };
+
+  const openAddModal = () => {
+    resetForm();
+    setEditingCategory(null);
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (category) => {
+    setEditingCategory(category);
+    setFormData({
+      name: category.name || '',
+      slug: category.slug || '',
+      description: category.description || '',
+      icon: category.icon || '',
+      status: category.status || 'active',
+    });
+    setShowAddModal(false);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'name' && !editingCategory) {
+        next.slug = slugify(value);
+      }
+      return next;
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.name.trim()) return;
+
+    const payload = {
+      title: formData.name.trim(),
+    };
+
+    try {
+      if (editingCategory) {
+        const response = await adminApi.updateCategoryPostNews(editingCategory.id, {
+          id: editingCategory.id,
+          ...payload,
+        });
+        const updated = response?.data?.data || response?.data || payload;
+        setCategories((prev) =>
+          prev.map((cat) =>
+            cat.id === editingCategory.id
+              ? {
+                  ...cat,
+                  name: updated?.title || updated?.name || payload.title,
+                }
+              : cat
+          )
+        );
+      } else {
+        const response = await adminApi.createCategoryPostNews(payload);
+        const created = response?.data?.data || response?.data || payload;
+        const newCategory = {
+          id: created?._id || created?.id || Date.now(),
+          name: created?.title || created?.name || payload.title,
+          slug: created?.slug || slugify(payload.title),
+          description: created?.description || '',
+          icon: created?.icon || '🚲',
+          listingCount: created?.listingCount || 0,
+          status: created?.status || 'active',
+          createdDate: created?.createdAt
+            ? new Date(created.createdAt).toISOString().slice(0, 10)
+            : new Date().toISOString().slice(0, 10),
+        };
+        setCategories((prev) => [newCategory, ...prev]);
+      }
+
+      setShowAddModal(false);
+      setEditingCategory(null);
+      resetForm();
+    } catch (err) {
+      console.error('Error saving category:', err);
+      setError(err.response?.data?.message || 'Không thể lưu danh mục');
+    }
+  };
+
+  const handleToggleStatus = async (category) => {
+    const nextStatus = category.status === 'active' ? 'inactive' : 'active';
+    try {
+      await adminApi.updateCategoryPostNews(category.id, { status: nextStatus });
+      setCategories((prev) =>
+        prev.map((cat) => (cat.id === category.id ? { ...cat, status: nextStatus } : cat))
+      );
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError(err.response?.data?.message || 'Không thể cập nhật trạng thái');
+    }
+  };
+
+  const handleDelete = async (category) => {
+    try {
+      await adminApi.deleteCategoryPostNews(category.id);
+      setCategories((prev) => prev.filter((cat) => cat.id !== category.id));
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      setError(err.response?.data?.message || 'Không thể xóa danh mục');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -68,13 +184,19 @@ const CategoryManagement = () => {
             <p className="text-gray-600">Quản lý các danh mục sản phẩm trên hệ thống</p>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={openAddModal}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
           >
             + Thêm danh mục
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -132,56 +254,81 @@ const CategoryManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {categories.map((category) => (
-                <tr key={category.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{category.icon}</span>
-                      <div>
-                        <div className="font-medium text-gray-900">{category.name}</div>
-                        <div className="text-sm text-gray-500">{category.description}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <code className="text-sm bg-gray-100 px-2 py-1 rounded">{category.slug}</code>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-lg font-bold text-gray-900">{category.listingCount}</span>
-                    <span className="text-sm text-gray-500"> tin</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant={category.status === 'active' ? 'success' : 'secondary'}>
-                      {category.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{category.createdDate}</div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setEditingCategory(category)}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      >
-                        Sửa
-                      </button>
-                      {category.status === 'active' ? (
-                        <button className="text-orange-600 hover:text-orange-800 text-sm font-medium">
-                          Tạm dừng
-                        </button>
-                      ) : (
-                        <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                          Kích hoạt
-                        </button>
-                      )}
-                      <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                        Xóa
-                      </button>
-                    </div>
+              {loading ? (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={6}>
+                    Đang tải danh mục...
                   </td>
                 </tr>
-              ))}
+              ) : categories.length === 0 ? (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={6}>
+                    Chưa có danh mục
+                  </td>
+                </tr>
+              ) : (
+                categories.map((category) => (
+                  <tr key={category.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{category.icon}</span>
+                        <div>
+                          <div className="font-medium text-gray-900">{category.name}</div>
+                          <div className="text-sm text-gray-500">{category.description}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <code className="text-sm bg-gray-100 px-2 py-1 rounded">{category.slug}</code>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-lg font-bold text-gray-900">
+                        {category.listingCount}
+                      </span>
+                      <span className="text-sm text-gray-500"> tin</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={category.status === 'active' ? 'success' : 'secondary'}>
+                        {category.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{category.createdDate}</div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEditModal(category)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          Sửa
+                        </button>
+                        {category.status === 'active' ? (
+                          <button
+                            onClick={() => handleToggleStatus(category)}
+                            className="text-orange-600 hover:text-orange-800 text-sm font-medium"
+                          >
+                            Tạm dừng
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleToggleStatus(category)}
+                            className="text-green-600 hover:text-green-800 text-sm font-medium"
+                          >
+                            Kích hoạt
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(category)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -199,6 +346,7 @@ const CategoryManagement = () => {
                 onClick={() => {
                   setShowAddModal(false);
                   setEditingCategory(null);
+                  resetForm();
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -213,14 +361,16 @@ const CategoryManagement = () => {
               </button>
             </div>
 
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tên danh mục *
                 </label>
                 <input
                   type="text"
-                  defaultValue={editingCategory?.name}
+                  name="name"
+                  value={formData.name}
+                  onChange={handleFormChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="Nhập tên danh mục"
                 />
@@ -230,7 +380,9 @@ const CategoryManagement = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Slug *</label>
                 <input
                   type="text"
-                  defaultValue={editingCategory?.slug}
+                  name="slug"
+                  value={formData.slug}
+                  onChange={handleFormChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="xe-dap-dia-hinh"
                 />
@@ -239,7 +391,9 @@ const CategoryManagement = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
                 <textarea
-                  defaultValue={editingCategory?.description}
+                  name="description"
+                  value={formData.description}
+                  onChange={handleFormChange}
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="Mô tả về danh mục"
@@ -250,7 +404,9 @@ const CategoryManagement = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Icon/Emoji</label>
                 <input
                   type="text"
-                  defaultValue={editingCategory?.icon}
+                  name="icon"
+                  value={formData.icon}
+                  onChange={handleFormChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="🚴"
                 />
@@ -259,7 +415,9 @@ const CategoryManagement = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
                 <select
-                  defaultValue={editingCategory?.status || 'active'}
+                  name="status"
+                  value={formData.status}
+                  onChange={handleFormChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 >
                   <option value="active">Hoạt động</option>
@@ -273,6 +431,7 @@ const CategoryManagement = () => {
                   onClick={() => {
                     setShowAddModal(false);
                     setEditingCategory(null);
+                    resetForm();
                   }}
                   className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 font-medium"
                 >
