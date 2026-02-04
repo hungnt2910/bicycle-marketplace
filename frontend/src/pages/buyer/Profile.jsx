@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import authApi from '../../api/authApi';
+import { Button } from '../../components/ui';
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -237,12 +238,15 @@ const Profile = () => {
 
         {/* Edit Button */}
         <div className="mt-8 flex gap-4 justify-center">
-          <button className="bg-primary-600 hover:bg-primary-700 text-black font-semibold py-3 px-8 rounded-lg transition">
+          <button className="bg-neutral-300 hover:bg-neutral-400 text-neutral-900 font-semibold py-3 px-8 rounded-lg transition">
             Chỉnh sửa thông tin
           </button>
-          <button className="bg-neutral-300 hover:bg-neutral-400 text-neutral-900 font-semibold py-3 px-8 rounded-lg transition">
+          <Button
+            variant="primary"
+            className="font-semibold py-3 px-8 rounded-lg transition rounded-xl"
+          >
             Đổi mật khẩu
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Badge, Rating, Button, Select, Pagination } from '../../components/ui';
+import { useCompare } from '../../contexts/CompareContext';
+import bicycleApi from '../../api/postNewsApi';
 
 const Marketplace = ({ onNavigate }) => {
   const [viewMode, setViewMode] = useState('grid'); // grid or list
+  const [bikes, setBikes] = useState([]);
+  const [loadingBikes, setLoadingBikes] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState({
     type: '',
     priceRange: '',
@@ -13,10 +19,25 @@ const Marketplace = ({ onNavigate }) => {
     frame: '',
   });
   const [sortBy, setSortBy] = useState('newest');
+  const [priceRange, setPriceRange] = useState([0, 100000000]);
+
+  const { compareItems, addToCompare, removeFromCompare, isInCompare, canAddMore } = useCompare();
 
   const handleProductClick = (bikeId) => {
     if (onNavigate) {
       onNavigate('product-detail', bikeId);
+    }
+  };
+
+  const handleCompareToggle = (e, bike) => {
+    e.stopPropagation();
+    if (isInCompare(bike.id)) {
+      removeFromCompare(bike.id);
+    } else {
+      const success = addToCompare(bike);
+      if (!success && !isInCompare(bike.id)) {
+        alert('Bạn chỉ có thể so sánh tối đa 2 sản phẩm!');
+      }
     }
   };
 
@@ -25,7 +46,10 @@ const Marketplace = ({ onNavigate }) => {
     { value: 'mountain', label: 'Xe đạp địa hình' },
     { value: 'road', label: 'Xe đạp đường trường' },
     { value: 'hybrid', label: 'Xe đạp Hybrid' },
+    { value: 'electric', label: 'Xe đạp điện' },
+    { value: 'folding', label: 'Xe đạp gấp' },
     { value: 'bmx', label: 'Xe đạp BMX' },
+    { value: 'cruiser', label: 'Xe đạp dạo phố' },
   ];
 
   const priceRanges = [
@@ -47,10 +71,11 @@ const Marketplace = ({ onNavigate }) => {
 
   const conditions = [
     { value: '', label: 'Tất cả tình trạng' },
+    { value: 'new', label: 'Mới 100%' },
     { value: 'like-new', label: 'Như mới' },
-    { value: 'excellent', label: 'Tuyệt vời' },
     { value: 'good', label: 'Tốt' },
     { value: 'fair', label: 'Khá' },
+    { value: 'poor', label: 'Cần sửa chữa' },
   ];
 
   const frameSizes = [
@@ -61,103 +86,90 @@ const Marketplace = ({ onNavigate }) => {
     { value: 'xl', label: 'Size XL' },
   ];
 
-  const bikes = [
-    {
-      id: 1,
-      name: 'Giant Talon 3 2024',
-      price: 12500000,
-      oldPrice: 15000000,
-      image: '/mountain_bike_hero_1768417732962.png',
-      condition: 'Like New',
-      verified: true,
-      rating: 4.8,
-      reviews: 24,
-      seller: 'Nguyễn Văn A',
-      location: 'Hà Nội',
-      views: 245,
-      type: 'mountain',
-      frame: 'm',
-    },
-    {
-      id: 2,
-      name: 'Trek Domane AL 2',
-      price: 18900000,
-      image: '/road_bike_hero_1768417748558.png',
-      condition: 'Excellent',
-      verified: true,
-      rating: 4.9,
-      reviews: 18,
-      seller: 'Trần Thị B',
-      location: 'TP.HCM',
-      views: 189,
-      type: 'road',
-      frame: 'm',
-    },
-    {
-      id: 3,
-      name: 'Specialized Sirrus X 3.0',
-      price: 16200000,
-      image: '/hybrid_bike_hero_1768417761473.png',
-      condition: 'Good',
-      verified: false,
-      rating: 4.6,
-      reviews: 12,
-      seller: 'Lê Văn C',
-      location: 'Đà Nẵng',
-      views: 156,
-      type: 'hybrid',
-      frame: 'l',
-    },
-    {
-      id: 4,
-      name: 'Giant TCR Advanced 2',
-      price: 25000000,
-      image: '/road_bike_hero_1768417748558.png',
-      condition: 'Like New',
-      verified: true,
-      rating: 4.9,
-      reviews: 31,
-      seller: 'Phạm Văn D',
-      location: 'Hà Nội',
-      views: 312,
-      type: 'road',
-      frame: 'l',
-    },
-    {
-      id: 5,
-      name: 'Trek Marlin 7',
-      price: 14500000,
-      image: '/mountain_bike_hero_1768417732962.png',
-      condition: 'Excellent',
-      verified: true,
-      rating: 4.7,
-      reviews: 22,
-      seller: 'Hoàng Thị E',
-      location: 'Cần Thơ',
-      views: 198,
-      type: 'mountain',
-      frame: 'm',
-    },
-    {
-      id: 6,
-      name: 'Cannondale Quick 4',
-      price: 11900000,
-      image: '/hybrid_bike_hero_1768417761473.png',
-      condition: 'Good',
-      verified: false,
-      rating: 4.5,
-      reviews: 15,
-      seller: 'Vũ Văn F',
-      location: 'Hải Phòng',
-      views: 134,
-      type: 'hybrid',
-      frame: 's',
-    },
-  ];
+  const conditionLabelMap = {
+    new: 'Mới 100%',
+    'like-new': 'Như mới',
+    good: 'Tốt',
+    fair: 'Khá',
+    poor: 'Cần sửa chữa',
+  };
+
+  const getSellerName = (bike) => {
+    const sellerFromId = bike?.sellerId;
+    const nameFromSellerId = sellerFromId
+      ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
+      : '';
+    const profile = bike?.seller?.profile || bike?.sellerProfile || bike?.profile;
+    const fromProfile = profile
+      ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+      : '';
+    return (
+      nameFromSellerId || fromProfile || bike?.seller?.fullName || bike?.sellerName || 'Người bán'
+    );
+  };
+
+  useEffect(() => {
+    const fetchBikes = async () => {
+      setLoadingBikes(true);
+      try {
+        const response = await bicycleApi.getAllBicycles();
+        const apiData = response?.data?.data || response?.data || [];
+        const mapped = apiData
+          .filter((bike) => bike?.status === 'active')
+          .map((bike) => {
+            const location = [bike?.location?.district, bike?.location?.city]
+              .filter(Boolean)
+              .join(', ');
+
+            return {
+              id: bike?._id || bike?.id,
+              name: bike?.title || 'Không có tiêu đề',
+              price: bike?.price || 0,
+              oldPrice: bike?.oldPrice,
+              image:
+                bike?.media?.mainImage ||
+                bike?.media?.images?.[0] ||
+                '/mountain_bike_hero_1768417732962.png',
+              condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
+              conditionValue: bike?.condition?.overall || '',
+              verified: !!bike?.inspection?.isInspected,
+              rating: bike?.rating || 0,
+              reviews: bike?.reviewsCount || 0,
+              seller: getSellerName(bike),
+              location: location || '—',
+              views: bike?.views || 0,
+              type: bike?.specifications?.type || '',
+              frame: (bike?.specifications?.frameSize || '').toLowerCase(),
+              brand: bike?.specifications?.brand || '',
+            };
+          });
+
+        setBikes(mapped);
+      } catch (error) {
+        console.error('Error fetching bikes:', error);
+        setBikes([]);
+      } finally {
+        setLoadingBikes(false);
+      }
+    };
+
+    fetchBikes();
+  }, []);
 
   // Filter bikes based on selected filters
   const getFilteredBikes = () => {
     let filtered = [...bikes];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (bike) =>
+          bike.name.toLowerCase().includes(query) ||
+          bike.seller.toLowerCase().includes(query) ||
+          bike.location.toLowerCase().includes(query)
+      );
+    }
 
     // Filter by type
     if (filters.type) {
@@ -186,22 +198,16 @@ const Marketplace = ({ onNavigate }) => {
       });
     }
 
-    // Filter by brand (checking if brand name is in bike name)
+    // Filter by brand
     if (filters.brand) {
       filtered = filtered.filter((bike) =>
-        bike.name.toLowerCase().includes(filters.brand.toLowerCase())
+        (bike.brand || '').toLowerCase().includes(filters.brand.toLowerCase())
       );
     }
 
     // Filter by condition
     if (filters.condition) {
-      const conditionMap = {
-        'like-new': 'Like New',
-        excellent: 'Excellent',
-        good: 'Good',
-        fair: 'Fair',
-      };
-      filtered = filtered.filter((bike) => bike.condition === conditionMap[filters.condition]);
+      filtered = filtered.filter((bike) => bike.conditionValue === filters.condition);
     }
 
     // Filter by frame size
@@ -254,152 +260,524 @@ const Marketplace = ({ onNavigate }) => {
   const currentBikes = displayedBikes.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
-  }, [filters, sortBy]);
+  }, [filters, sortBy, searchQuery]);
+
+  // Count active filters
+  const activeFiltersCount = Object.values(filters).filter((v) => v && v !== '').length;
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setFilters({
+      type: '',
+      priceRange: '',
+      brand: '',
+      condition: '',
+      verified: false,
+      frame: '',
+    });
+    setSearchQuery('');
+  };
 
   return (
-    <div className="section">
-      <div className="container-custom">
-        {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Marketplace</h2>
-          <p className="text-neutral-600">
-            Khám phá hàng ngàn xe đạp chất lượng từ người bán uy tín
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-neutral-100">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-themePrimary/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-themePrimary/15 rounded-full blur-3xl animate-pulse delay-700"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-themePrimary/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="container-custom py-10 relative z-10">
+        {/* Modern Hero Section */}
+        <div className="mb-12">
+          <div className="relative">
+            {/* Top accent line */}
+            <div className="absolute top-0 left-0 w-32 h-1 bg-themePrimary rounded-full"></div>
+
+            <div className="pt-6">
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-6">
+                <div className="flex-1">
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-4">
+                    <span className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 bg-clip-text text-transparent">
+                      Marketplace
+                    </span>
+                  </h1>
+
+                  <p className="text-xl text-neutral-600 max-w-2xl leading-relaxed">
+                    Khám phá những chiếc xe đạp cao cấp từ các nhà cung cấp đã được xác minh trên
+                    toàn quốc. Chất lượng được đảm bảo, trải nghiệm được nâng tầm.
+                  </p>
+                </div>
+
+                {/* Quick Actions */}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Advanced Search Section */}
+        <div className="mb-10">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-themePrimary rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+            <div className="relative bg-white rounded-2xl shadow-xl border border-neutral-200/50 overflow-hidden">
+              <div className="flex items-center p-2">
+                <div className="flex items-center justify-center w-12 h-12 text-themePrimary">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, seller, location..."
+                  className="flex-1 px-4 py-4 text-lg bg-transparent focus:outline-none text-neutral-800 placeholder-neutral-400"
+                />
+                {searchQuery ? (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  <Button className="px-6 py-3 mr-2 bg-themePrimary text-neutral-400 rounded-xl font-semibold hover:shadow-lg hover:shadow-themePrimary/50 transition-all duration-300">
+                    Search
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 sticky top-24 card-surface">
-              <h3 className="font-semibold text-lg mb-1">Bộ lọc</h3>
-              <p className="text-sm text-neutral-500 mb-4">
-                Lọc theo loại, giá, thương hiệu, tình trạng, khung và kiểm định.
-              </p>
-
-              <div className="space-y-4">
-                <Select
-                  label="Loại xe"
-                  options={bikeTypes}
-                  value={filters.type}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                />
-
-                <Select
-                  label="Mức giá"
-                  options={priceRanges}
-                  value={filters.priceRange}
-                  onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-                />
-
-                <Select
-                  label="Thương hiệu"
-                  options={brands}
-                  value={filters.brand}
-                  onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
-                />
-
-                <Select
-                  label="Tình trạng"
-                  options={conditions}
-                  value={filters.condition}
-                  onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
-                />
-
-                <Select
-                  label="Kích thước khung"
-                  options={frameSizes}
-                  value={filters.frame}
-                  onChange={(e) => setFilters({ ...filters, frame: e.target.value })}
-                />
-
-                <div className="flex items-center justify-between bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={filters.verified}
-                      onChange={(e) => setFilters({ ...filters, verified: e.target.checked })}
-                      className="w-4 h-4 text-primary-600 border-neutral-300 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm font-medium text-neutral-800">
-                      Chỉ xe đã kiểm định
-                    </span>
+          {/* Modern Filters Sidebar */}
+          <div className={`lg:col-span-1 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+            <div className="sticky top-24 space-y-4">
+              <div className="bg-white rounded-2xl shadow-lg border border-neutral-200/50 overflow-hidden">
+                <div className="bg-themePrimary px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <svg
+                        className="w-6 h-6 text-neutral-500 drop-shadow-sm"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                        />
+                      </svg>
+                      <h3 className="font-bold text-lg text-neutral-500 drop-shadow-sm">Bộ lọc</h3>
+                    </div>
+                    {activeFiltersCount > 0 && (
+                      <div className="w-8 h-8 bg-white/30 backdrop-blur rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-neutral-500 drop-shadow-sm">
+                          {activeFiltersCount}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs text-themePrimary">Escrow</span>
                 </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() =>
-                    setFilters({
-                      type: '',
-                      priceRange: '',
-                      brand: '',
-                      condition: '',
-                      verified: false,
-                      frame: '',
-                    })
-                  }
-                >
-                  Xóa bộ lọc
-                </Button>
+                <div className="p-6 space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                      Loại xe
+                    </label>
+                    <Select
+                      options={bikeTypes}
+                      value={filters.type}
+                      onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-neutral-100">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                      Khoảng giá
+                    </label>
+                    <Select
+                      options={priceRanges}
+                      value={filters.priceRange}
+                      onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-neutral-100">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                      Thương hiệu
+                    </label>
+                    <Select
+                      options={brands}
+                      value={filters.brand}
+                      onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-neutral-100">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                      Tình trạng
+                    </label>
+                    <Select
+                      options={conditions}
+                      value={filters.condition}
+                      onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-neutral-100">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                      Kích thước khung
+                    </label>
+                    <Select
+                      options={frameSizes}
+                      value={filters.frame}
+                      onChange={(e) => setFilters({ ...filters, frame: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-neutral-100">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={filters.verified}
+                        onChange={(e) => setFilters({ ...filters, verified: e.target.checked })}
+                        className="w-5 h-5 text-themePrimary border-neutral-300 rounded focus:ring-themePrimary"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-neutral-700 group-hover:text-themePrimary transition-colors">
+                          Đã kiểm định
+                        </div>
+                        <div className="text-xs text-neutral-500">Chỉ hiển thị xe đã kiểm định</div>
+                      </div>
+                      <svg
+                        className="w-5 h-5 text-themePrimary"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                        />
+                      </svg>
+                    </label>
+                  </div>
+
+                  <Button
+                    onClick={clearAllFilters}
+                    className="w-full px-4 py-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Đặt lại bộ lọc
+                  </Button>
+                </div>
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Products Grid */}
           <div className="lg:col-span-3">
-            {/* Toolbar */}
-            <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-neutral-600">
-                  Tìm thấy <strong>{displayedBikes.length}</strong> xe đạp
-                </span>
-                <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-500">
-                  <span className="px-2 py-1 rounded-full bg-themePrimary/10 text-themePrimary pill">
-                    Ký quỹ
-                  </span>
-                  <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 pill">
-                    Đã kiểm định
-                  </span>
+            {/* Advanced Toolbar */}
+            <div className="bg-white rounded-2xl shadow-lg border border-neutral-200/50 p-5 mb-6">
+              <div className="flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="lg:hidden px-5 py-2.5 bg-themePrimary text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-themePrimary/50 transition-all duration-300 flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                      />
+                    </svg>
+                    Filters
+                    {activeFiltersCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold">
+                        {activeFiltersCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <div>
+                    <div className="text-sm text-neutral-500 mb-0.5">Hiện kết quả</div>
+                    <div className="text-2xl font-bold text-neutral-900">
+                      {displayedBikes.length}
+                    </div>
+                  </div>
+
+                  {searchQuery && (
+                    <div className="px-4 py-2 bg-themePrimary/10 text-themePrimary rounded-xl text-sm font-medium">
+                      for "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="appearance-none pl-4 pr-12 py-3 bg-neutral-50 border-2 border-neutral-200 rounded-xl font-semibold text-neutral-700 hover:border-themePrimary focus:outline-none focus:border-themePrimary transition-all cursor-pointer"
+                    >
+                      <option value="newest">Mới nhất</option>
+                      <option value="price-low">Giá: Thấp đến Cao</option>
+                      <option value="price-high">Giá: Cao đến Thấp</option>
+                      <option value="rating">Đánh giá cao nhất</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg
+                        className="w-5 h-5 text-neutral-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-neutral-100 rounded-xl p-1.5">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2.5 rounded-lg transition-all duration-300 ${
+                        viewMode === 'grid'
+                          ? 'bg-white text-themePrimary shadow-sm'
+                          : 'text-neutral-500 hover:text-neutral-700'
+                      }`}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2.5 rounded-lg transition-all duration-300 ${
+                        viewMode === 'list'
+                          ? 'bg-white text-themePrimary shadow-sm'
+                          : 'text-neutral-500 hover:text-neutral-700'
+                      }`}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 6h16M4 12h16M4 18h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="text-sm border border-neutral-300 rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-themePrimary bg-white"
-                >
-                  <option value="newest">Mới nhất</option>
-                  <option value="price-low">Giá thấp đến cao</option>
-                  <option value="price-high">Giá cao đến thấp</option>
-                  <option value="rating">Đánh giá cao nhất</option>
-                </select>
-
-                <div className="flex gap-1 border border-neutral-300 rounded-full p-1 bg-white">
+              {/* Active Filters */}
+              {activeFiltersCount > 0 && (
+                <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-neutral-100">
+                  <span className="text-sm font-semibold text-neutral-600 self-center">
+                    Active:
+                  </span>
+                  {filters.type && (
+                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                      {bikeTypes.find((t) => t.value === filters.type)?.label}
+                      <button
+                        onClick={() => setFilters({ ...filters, type: '' })}
+                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {filters.priceRange && (
+                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                      {priceRanges.find((p) => p.value === filters.priceRange)?.label}
+                      <button
+                        onClick={() => setFilters({ ...filters, priceRange: '' })}
+                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {filters.brand && (
+                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                      {brands.find((b) => b.value === filters.brand)?.label}
+                      <button
+                        onClick={() => setFilters({ ...filters, brand: '' })}
+                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {filters.condition && (
+                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                      {conditions.find((c) => c.value === filters.condition)?.label}
+                      <button
+                        onClick={() => setFilters({ ...filters, condition: '' })}
+                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {filters.frame && (
+                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                      {frameSizes.find((f) => f.value === filters.frame)?.label}
+                      <button
+                        onClick={() => setFilters({ ...filters, frame: '' })}
+                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {filters.verified && (
+                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                      Verified Only
+                      <button
+                        onClick={() => setFilters({ ...filters, verified: false })}
+                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
                   <button
-                    onClick={() => setViewMode('grid')}
-                    className={`px-3 py-2 rounded-full text-sm font-medium ${viewMode === 'grid' ? 'bg-themePrimary text-white' : 'text-neutral-600 hover:bg-neutral-100'}`}
+                    onClick={clearAllFilters}
+                    className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium hover:bg-red-100 transition-colors"
                   >
-                    Lưới
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-2 rounded-full text-sm font-medium ${viewMode === 'list' ? 'bg-themePrimary text-white' : 'text-neutral-600 hover:bg-neutral-100'}`}
-                  >
-                    Danh sách
+                    Clear All
                   </button>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Products */}
             <div
               className={
-                viewMode === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-4'
+                viewMode === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-6'
               }
             >
               {currentBikes.length > 0 ? (
@@ -408,158 +786,525 @@ const Marketplace = ({ onNavigate }) => {
                     <Card
                       key={bike.id}
                       variant="product"
-                      className="overflow-hidden group cursor-pointer card-surface"
+                      className="overflow-hidden group cursor-pointer card-surface hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-themePrimary/30 rounded-2xl"
                       onClick={() => handleProductClick(bike.id)}
                     >
-                      <div className="relative aspect-product bg-neutral-100">
+                      <div className="relative aspect-product bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden">
                         <img
                           src={bike.image}
                           alt={bike.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
                         {bike.verified && (
-                          <Badge variant="verified" className="absolute top-3 right-3">
-                            ✓ Đã kiểm định
+                          <Badge
+                            variant="verified"
+                            className="absolute top-3 right-3 shadow-lg backdrop-blur-sm"
+                          >
+                            ✓ Kiểm định
                           </Badge>
                         )}
-                        <div className="absolute top-3 left-3 flex flex-col gap-2">
-                          <button className="px-3 py-1 bg-white/90 rounded-lg hover:bg-white transition-colors text-xs font-medium">
-                            Wishlist
+
+                        {bike.oldPrice && (
+                          <div className="absolute top-3 left-3">
+                            <span className="px-3 py-1.5 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg">
+                              -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            className="flex-1 px-3 py-2 bg-white/95 backdrop-blur-sm rounded-xl hover:bg-white transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-lg"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                              />
+                            </svg>
+                            Yêu thích
                           </button>
-                          <button className="px-3 py-1 bg-white/90 rounded-lg hover:bg-white transition-colors text-xs font-medium">
-                            So sánh
+                          <button
+                            onClick={(e) => handleCompareToggle(e, bike)}
+                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-xl transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-lg ${
+                              isInCompare(bike.id)
+                                ? 'bg-themePrimary text-white hover:bg-themePrimary/90'
+                                : 'bg-white/95 hover:bg-white'
+                            }`}
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                              />
+                            </svg>
+                            {isInCompare(bike.id) ? 'Đã chọn' : 'So sánh'}
                           </button>
                         </div>
                       </div>
-                      <div className="p-4">
-                        <h4 className="font-semibold text-lg mb-2 line-clamp-1">{bike.name}</h4>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Rating value={bike.rating} size="sm" readonly />
-                          <span className="text-sm text-neutral-600">({bike.reviews})</span>
+
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="font-bold text-lg mb-1 line-clamp-2 flex-1 group-hover:text-themePrimary transition-colors">
+                            {bike.name}
+                          </h4>
                         </div>
-                        <div className="flex items-baseline gap-2 mb-3">
-                          <span className="price text-xl">
+
+                        <div className="flex items-center gap-2 mb-4">
+                          <Rating value={bike.rating} size="sm" readonly />
+                          <span className="text-sm font-medium text-neutral-700">
+                            {bike.rating}
+                          </span>
+                          <span className="text-xs text-neutral-500">({bike.reviews})</span>
+                        </div>
+
+                        <div className="flex items-baseline gap-2 mb-4">
+                          <span className="price text-2xl font-bold text-themePrimary">
                             {bike.price.toLocaleString('vi-VN')} ₫
                           </span>
                           {bike.oldPrice && (
-                            <span className="price-old text-sm">
+                            <span className="price-old text-sm line-through">
                               {bike.oldPrice.toLocaleString('vi-VN')} ₫
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center justify-between mb-3">
-                          <Badge variant="success">{bike.condition}</Badge>
-                          <span className="text-xs text-neutral-500">{bike.views} lượt xem</span>
+
+                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-100">
+                          <Badge variant="success" className="px-3 py-1.5">
+                            {bike.condition}
+                          </Badge>
+                          <div className="flex items-center gap-1 text-xs text-neutral-500">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
+                            {bike.views}
+                          </div>
                         </div>
+
                         <div className="flex items-center gap-2 text-sm text-neutral-600 mb-4">
-                          {bike.location}
+                          <svg
+                            className="w-4 h-4 text-neutral-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          <span className="font-medium">{bike.location}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-3">
-                          <span className="px-2 py-1 rounded-full bg-neutral-100">
+
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="px-3 py-1.5 rounded-lg bg-neutral-100 text-xs font-medium">
                             Khung: {(bike.frame || '').toUpperCase() || '—'}
                           </span>
-                          <span className="px-2 py-1 rounded-full bg-neutral-100">Ký quỹ</span>
+                          <span className="px-3 py-1.5 rounded-lg bg-themePrimary/10 text-themePrimary text-xs font-medium">
+                            Ký quỹ
+                          </span>
                         </div>
-                        <Button variant="primary" className="w-full">
-                          Xem chi tiết
+
+                        <Button variant="primary" className="w-full py-3 font-semibold rounded-xl">
+                          Xem chi tiết →
                         </Button>
                       </div>
                     </Card>
                   ) : (
                     <Card
                       key={bike.id}
-                      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer card-surface"
+                      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer card-surface border-2 border-transparent hover:border-themePrimary/30 rounded-2xl"
                       onClick={() => handleProductClick(bike.id)}
                     >
-                      <div className="flex gap-4 p-4">
-                        <div className="relative w-48 h-36 bg-neutral-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="flex flex-col md:flex-row gap-5 p-5">
+                        <div className="relative w-full md:w-64 h-48 bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden flex-shrink-0 group">
                           <img
                             src={bike.image}
                             alt={bike.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                           {bike.verified && (
-                            <Badge variant="verified" className="absolute top-2 right-2 text-xs">
+                            <Badge
+                              variant="verified"
+                              className="absolute top-2 right-2 text-xs shadow-lg"
+                            >
                               ✓
                             </Badge>
                           )}
+                          {bike.oldPrice && (
+                            <div className="absolute top-2 left-2">
+                              <span className="px-2.5 py-1 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg">
+                                -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-semibold text-xl">{bike.name}</h4>
-                            <button className="px-3 py-1 hover:bg-neutral-100 rounded-lg transition-colors text-xs font-medium">
-                              Wishlist
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-3">
+                            <h4 className="font-bold text-2xl hover:text-themePrimary transition-colors">
+                              {bike.name}
+                            </h4>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              className="px-4 py-2 hover:bg-neutral-100 rounded-xl transition-colors text-sm font-medium flex items-center gap-2 border border-neutral-200"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                />
+                              </svg>
+                              Yêu thích
                             </button>
                           </div>
-                          <div className="flex items-center gap-3 mb-3">
-                            <Rating value={bike.rating} size="sm" readonly />
-                            <span className="text-sm text-neutral-600">
-                              ({bike.reviews} đánh giá)
-                            </span>
-                            <Badge variant="success">{bike.condition}</Badge>
+
+                          <div className="flex items-center gap-4 mb-4">
+                            <div className="flex items-center gap-2">
+                              <Rating value={bike.rating} size="sm" readonly />
+                              <span className="text-sm font-bold text-neutral-700">
+                                {bike.rating}
+                              </span>
+                              <span className="text-sm text-neutral-500">
+                                ({bike.reviews} đánh giá)
+                              </span>
+                            </div>
+                            <Badge variant="success" className="px-3 py-1.5">
+                              {bike.condition}
+                            </Badge>
                           </div>
-                          <div className="flex items-baseline gap-2 mb-3">
-                            <span className="price">{bike.price.toLocaleString('vi-VN')} ₫</span>
+
+                          <div className="flex items-baseline gap-3 mb-4">
+                            <span className="price text-3xl font-bold text-themePrimary">
+                              {bike.price.toLocaleString('vi-VN')} ₫
+                            </span>
                             {bike.oldPrice && (
-                              <span className="price-old">
+                              <span className="price-old text-lg line-through">
                                 {bike.oldPrice.toLocaleString('vi-VN')} ₫
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-neutral-600 mb-3">
-                            <span>Bởi {bike.seller}</span>
-                            <span>•</span>
-                            <span>{bike.location}</span>
-                            <span>•</span>
-                            <span>{bike.views} lượt xem</span>
+
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-100">
+                            <div className="flex items-center gap-2">
+                              <svg
+                                className="w-4 h-4 text-neutral-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
+                              </svg>
+                              <span className="font-medium">{bike.seller}</span>
+                            </div>
+                            <span className="text-neutral-300">•</span>
+                            <div className="flex items-center gap-2">
+                              <svg
+                                className="w-4 h-4 text-neutral-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                              </svg>
+                              <span>{bike.location}</span>
+                            </div>
+                            <span className="text-neutral-300">•</span>
+                            <div className="flex items-center gap-1">
+                              <svg
+                                className="w-4 h-4 text-neutral-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                              <span>{bike.views} lượt xem</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-neutral-500 mb-3">
-                            <span className="px-2 py-1 rounded-full bg-neutral-100">
+
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className="px-3 py-1.5 rounded-lg bg-neutral-100 text-xs font-medium">
                               Khung: {(bike.frame || '').toUpperCase() || '—'}
                             </span>
-                            <span className="px-2 py-1 rounded-full bg-neutral-100">Ký quỹ</span>
+                            <span className="px-3 py-1.5 rounded-lg bg-themePrimary/10 text-themePrimary text-xs font-medium">
+                              Ký quỹ
+                            </span>
                           </div>
-                          <Button variant="primary">Xem chi tiết</Button>
+
+                          <div className="flex gap-3">
+                            <Button variant="primary" className="flex-1 py-3 font-semibold">
+                              Xem chi tiết →
+                            </Button>
+                            <button
+                              onClick={(e) => handleCompareToggle(e, bike)}
+                              className={`px-6 py-3 border-2 rounded-xl transition-all font-medium ${
+                                isInCompare(bike.id)
+                                  ? 'border-themePrimary bg-themePrimary text-white hover:bg-themePrimary/90'
+                                  : 'border-neutral-200 hover:border-themePrimary hover:bg-themePrimary/5'
+                              }`}
+                            >
+                              {isInCompare(bike.id) ? 'Đã chọn' : 'So sánh'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </Card>
                   )
                 )
               ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-neutral-600 text-lg mb-4">Không tìm thấy xe đạp phù hợp</p>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setFilters({
-                        type: '',
-                        priceRange: '',
-                        brand: '',
-                        condition: '',
-                        verified: false,
-                        frame: '',
-                      })
-                    }
-                  >
-                    Xóa bộ lọc
-                  </Button>
+                <div className="col-span-full text-center py-20 bg-white rounded-2xl border-2 border-dashed border-neutral-200">
+                  <div className="max-w-md mx-auto">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-neutral-100 flex items-center justify-center">
+                      <svg
+                        className="w-10 h-10 text-neutral-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-neutral-800 mb-2">
+                      Không tìm thấy xe đạp
+                    </h3>
+                    <p className="text-neutral-600 mb-6">
+                      Không có xe đạp nào phù hợp với bộ lọc của bạn. Thử điều chỉnh bộ lọc hoặc xóa
+                      một số tiêu chí.
+                    </p>
+                    <Button variant="primary" onClick={clearAllFilters} className="px-8 py-3">
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      Đặt lại bộ lọc
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-8 flex justify-center">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
+              <div className="mt-8">
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Floating Compare Bar */}
+      {compareItems.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up max-w-4xl w-full px-4">
+          <div className="bg-white rounded-xl shadow-2xl border-2 border-themePrimary/30 overflow-hidden">
+            <div className="bg-gradient-to-r from-themePrimary to-accent px-4 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-sm">
+                      So sánh xe đạp ({compareItems.length}/2)
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => onNavigate && onNavigate('compare')}
+                    disabled={compareItems.length < 1}
+                    className="bg-white text-themePrimary hover:bg-neutral-50 font-bold px-4 py-1.5 text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {compareItems.length === 2 ? 'So sánh ngay' : 'Xem'}
+                  </Button>
+                  <button
+                    onClick={() => {
+                      compareItems.forEach((bike) => removeFromCompare(bike.id));
+                    }}
+                    className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+                    title="Xóa tất cả"
+                  >
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white px-4 py-3">
+              <div className="flex items-center gap-3">
+                {compareItems.map((bike) => (
+                  <div
+                    key={bike.id}
+                    className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg p-2 flex items-center gap-2 hover:border-themePrimary/50 transition-colors"
+                  >
+                    <img
+                      src={bike.image}
+                      alt={bike.name}
+                      className="w-10 h-10 object-cover rounded-md flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-neutral-800 font-semibold text-xs truncate">
+                        {bike.name}
+                      </h4>
+                      <p className="text-themePrimary text-xs font-bold">
+                        {bike.price.toLocaleString('vi-VN')} ₫
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => removeFromCompare(bike.id)}
+                      className="w-6 h-6 bg-neutral-200 hover:bg-red-100 rounded-md flex items-center justify-center transition-colors group"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5 text-neutral-600 group-hover:text-red-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+                {compareItems.length === 1 && (
+                  <div className="flex-1 bg-neutral-50 border-2 border-dashed border-neutral-300 rounded-lg p-2 flex items-center justify-center h-14">
+                    <p className="text-neutral-400 text-xs">Chọn xe thứ 2</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

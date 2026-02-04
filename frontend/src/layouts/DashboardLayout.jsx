@@ -234,6 +234,20 @@ const DashboardLayout = ({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
+        ),
+        label: 'Quản lý chuyên viên kiểm định',
+        path: 'inspectormanagement',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
             />
           </svg>
@@ -381,7 +395,16 @@ const DashboardLayout = ({
 
   const handleNavigateItem = (path) => {
     if (onNavigate) {
-      onNavigate(path);
+      // Construct full path based on role
+      const fullPath =
+        role === 'seller'
+          ? `/seller/${path}`
+          : role === 'inspector'
+            ? `/inspector/${path}`
+            : role === 'admin'
+              ? `/admin/${path}`
+              : `/${path}`;
+      onNavigate(fullPath);
     }
     setMobileMenuOpen(false);
   };
@@ -400,23 +423,7 @@ const DashboardLayout = ({
             sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'
           }`}
         >
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
-                  <path
-                    d="M5 18c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-                    fill="currentColor"
-                  />
-                  <path
-                    d="M16 8.5l-3-1-3 1L7.8 6.3c-.2-.2-.5-.3-.8-.3-.6 0-1 .4-1 1 0 .3.1.6.3.8L8.5 10l-.5 5h2l.5-5 2.5-1 2 2v4h2v-4.5c0-.4-.2-.8-.5-1l-2-2z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </div>
-              <h1 className="text-lg font-bold text-themePrimary">Bicycle-MP</h1>
-            </div>
-          )}
+          {sidebarOpen && <div className="flex items-center gap-2"></div>}
           {!sidebarOpen && (
             <div className="flex flex-col items-center gap-1.5 w-full">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
@@ -492,8 +499,8 @@ const DashboardLayout = ({
             {sidebarOpen ? (
               <div className="text-center">
                 <div className="w-12 h-12 mx-auto mb-3">{config.icon}</div>
-                <div className="text-sm font-bold">{roleNames[role]}</div>
-                <div className="text-xs opacity-90 mt-1 truncate px-2">
+                <div className="text-black font-bold">{roleNames[role]}</div>
+                <div className="text-black opacity-90 mt-1 truncate px-2 ">
                   {user?.fullName || 'User'}
                 </div>
               </div>

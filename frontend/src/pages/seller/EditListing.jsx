@@ -1,28 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import bicycleApi from '../../api/postNewsApi';
-import adminApi from '../../api/adminApi';
 import { toast } from 'react-toastify';
 import { Button, Card, Input, Select, Textarea } from '../../components/ui';
 
-const CreateListing = () => {
+const EditListing = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
   const [inspectionType, setInspectionType] = useState('none');
-  const [userPostCount, setUserPostCount] = useState(0);
-  const [loadingPostCount, setLoadingPostCount] = useState(true);
-  const [typeOptions, setTypeOptions] = useState([]);
-  const [loadingTypes, setLoadingTypes] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
-    // General Info
     title: '',
     description: '',
     price: '',
-
-    // Specifications
     specifications: {
       type: '',
       brand: '',
@@ -37,106 +31,95 @@ const CreateListing = () => {
       brakeType: '',
       suspension: '',
     },
-
-    // Condition
     condition: {
       overall: '',
       usageHistory: '',
       mileage: '',
       lastServiceDate: '',
     },
-
-    // Media
     media: {
       images: [],
       videos: [],
       mainImage: '',
     },
-
-    // Location
     location: {
       city: '',
       district: '',
       address: '',
     },
-
-    // Inspection
     inspection: {
       isInspected: false,
       label: '',
     },
-
     status: 'draft',
   });
 
   const POST_FEE = 15000;
   const INSPECTION_FEE_OFFLINE = 200000;
-  const FREE_POST_LIMIT = 2; // Miễn phí 2 bài đầu
-  const isFirstPost = userPostCount < FREE_POST_LIMIT;
-  const isFirstInspection = true; // TODO: Cần kiểm tra từ API
 
   useEffect(() => {
-    const fetchUserPostCount = async () => {
-      try {
-        const storedUser = localStorage.getItem('user') || localStorage.getItem('userInfo');
-        const userInfo = JSON.parse(storedUser || '{}');
-        const sellerId = userInfo._id || userInfo.id || userInfo.userId;
+    fetchBicycleData();
+  }, [id]);
 
-        if (sellerId) {
-          const response = await bicycleApi.getMyBicycles(sellerId);
-          const bicycles = response.data || [];
-          setUserPostCount(bicycles.length);
+  const fetchBicycleData = async () => {
+    try {
+      setFetchingData(true);
+      const response = await bicycleApi.getBicycleById(id);
+
+      if (response.data?.data) {
+        const bicycle = response.data.data;
+        setFormData({
+          title: bicycle.title || '',
+          description: bicycle.description || '',
+          price: bicycle.price || '',
+          specifications: {
+            type: bicycle.specifications?.type || '',
+            brand: bicycle.specifications?.brand || '',
+            model: bicycle.specifications?.model || '',
+            frameSize: bicycle.specifications?.frameSize || '',
+            frameMaterial: bicycle.specifications?.frameMaterial || '',
+            year: bicycle.specifications?.year || '',
+            color: bicycle.specifications?.color || '',
+            weight: bicycle.specifications?.weight || '',
+            wheelSize: bicycle.specifications?.wheelSize || '',
+            gears: bicycle.specifications?.gears || '',
+            brakeType: bicycle.specifications?.brakeType || '',
+            suspension: bicycle.specifications?.suspension || '',
+          },
+          condition: {
+            overall: bicycle.condition?.overall || '',
+            usageHistory: bicycle.condition?.usageHistory || '',
+            mileage: bicycle.condition?.mileage || '',
+            lastServiceDate: bicycle.condition?.lastServiceDate || '',
+          },
+          media: {
+            images: bicycle.media?.images || [],
+            videos: bicycle.media?.videos || [],
+            mainImage: bicycle.media?.mainImage || '',
+          },
+          location: {
+            city: bicycle.location?.city || '',
+            district: bicycle.location?.district || '',
+            address: bicycle.location?.address || '',
+          },
+          inspection: {
+            isInspected: bicycle.inspection?.isInspected || false,
+            label: bicycle.inspection?.label || '',
+          },
+          status: bicycle.status || 'draft',
+        });
+
+        if (bicycle.inspection?.isInspected) {
+          setInspectionType('offline');
         }
-      } catch (error) {
-        console.error('Error fetching user post count:', error);
-      } finally {
-        setLoadingPostCount(false);
       }
-    };
-
-    fetchUserPostCount();
-  }, []);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      setLoadingTypes(true);
-      try {
-        const response = await adminApi.getCategoriesPostNews();
-        const data = response?.data?.data || response?.data || [];
-        const titleToEnum = (title = '') => {
-          const normalized = title.toLowerCase().trim();
-          if (normalized.includes('mountain') || normalized.includes('dia hinh')) return 'mountain';
-          if (normalized.includes('road') || normalized.includes('road')) return 'road';
-          if (normalized.includes('hybrid')) return 'hybrid';
-          if (normalized.includes('electric') || normalized.includes('dien')) return 'electric';
-          if (normalized.includes('folding') || normalized.includes('gap')) return 'folding';
-          if (normalized.includes('bmx')) return 'bmx';
-          if (normalized.includes('cruiser') || normalized.includes('dao pho')) return 'cruiser';
-          return '';
-        };
-        const options = data
-          .map((item) => ({
-            value: titleToEnum(item?.title || ''),
-            label: item?.title || 'Danh mục',
-          }))
-          .filter((opt) => opt.value);
-        setTypeOptions(options);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        setTypeOptions([]);
-      } finally {
-        setLoadingTypes(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  const calculateTotal = () => {
-    let total = 0;
-    if (!isFirstPost) total += POST_FEE;
-    if (inspectionType === 'offline' && !isFirstInspection) total += INSPECTION_FEE_OFFLINE;
-    return total;
+    } catch (error) {
+      console.error('Error fetching bicycle:', error);
+      toast.error('Không thể tải thông tin tin đăng');
+      navigate('/seller/manage-listings');
+    } finally {
+      setFetchingData(false);
+    }
   };
 
   const handleInputChange = (e, section = null) => {
@@ -179,11 +162,6 @@ const CreateListing = () => {
       setActiveTab('general');
       return false;
     }
-    if (formData.media.images.length === 0) {
-      toast.error('Vui lòng upload ít nhất 1 hình ảnh');
-      setActiveTab('media');
-      return false;
-    }
     return true;
   };
 
@@ -195,51 +173,7 @@ const CreateListing = () => {
 
       setLoading(true);
 
-      // Get sellerId from localStorage (user info)
-      const userInfoStr = localStorage.getItem('user') || localStorage.getItem('userInfo');
-      const accessToken = localStorage.getItem('accessToken');
-
-      console.log('🔍 Debug localStorage:', {
-        hasUserInfo: !!userInfoStr,
-        hasAccessToken: !!accessToken,
-        userInfoStr,
-      });
-
-      if (!userInfoStr) {
-        toast.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại');
-        navigate('/login');
-        return;
-      }
-
-      const userInfo = JSON.parse(userInfoStr);
-      const sellerId = userInfo._id || userInfo.id || userInfo.userId;
-
-      console.log('🔍 Debug userInfo:', {
-        userInfo,
-        sellerId,
-        hasId: !!(userInfo._id || userInfo.id || userInfo.userId),
-      });
-
-      if (!sellerId) {
-        toast.error('Không tìm thấy ID người dùng. Vui lòng đăng nhập lại');
-        console.error('UserInfo structure:', userInfo);
-        navigate('/login');
-        return;
-      }
-
-      if (!accessToken) {
-        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
-        navigate('/login');
-        return;
-      }
-
-      // Prepare data for API
-      const currentDate = new Date();
-      const expiryDate = new Date();
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Hết hạn sau 1 năm
-
       const submitData = {
-        sellerId,
         title: formData.title,
         description: formData.description,
         price: Number(formData.price),
@@ -277,34 +211,19 @@ const CreateListing = () => {
         },
         inspection: {
           isInspected: inspectionType === 'offline',
-          inspectionDate: inspectionType === 'offline' ? currentDate.toISOString() : undefined,
-          expiryDate: inspectionType === 'offline' ? expiryDate.toISOString() : undefined,
-          label: inspectionType === 'offline' ? 'Verified' : undefined,
+          label: inspectionType === 'offline' ? 'Đã kiểm định' : undefined,
         },
         status: isDraft ? 'draft' : 'pending_review',
-        pricing: {
-          listingFee: isFirstPost ? 0 : POST_FEE,
-          commissionRate: 0.05, // 5% hoa hồng
-          isPaid: false,
-        },
       };
 
-      const response = await bicycleApi.createBicycle(submitData);
+      const response = await bicycleApi.updateBicycle(id, submitData);
 
       if (response.data) {
-        if (isDraft) {
-          toast.success('Lưu nháp thành công!');
-          navigate('/seller/my-listings');
-        } else {
-          toast.success(
-            `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${isFirstPost ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT : ''}`
-          );
-          // Chuyển về trang chủ để xem bài đăng mới
-          navigate('/');
-        }
+        toast.success('Cập nhật tin đăng thành công!');
+        navigate('/seller/manage-listings');
       }
     } catch (error) {
-      console.error('Error creating bicycle listing:', error);
+      console.error('Error updating bicycle:', error);
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setLoading(false);
@@ -386,14 +305,20 @@ const CreateListing = () => {
     { id: 'pricing', label: 'Giá & Xác nhận' },
   ];
 
+  if (fetchingData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-neutral-600">Đang tải dữ liệu...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-neutral-900">Đăng tin bán xe đạp</h2>
-        <p className="text-neutral-600 mt-1">
-          Điền đầy đủ thông tin để tin đăng của bạn được duyệt nhanh chóng
-        </p>
+        <h2 className="text-2xl font-bold text-neutral-900">Chỉnh sửa tin đăng</h2>
+        <p className="text-neutral-600 mt-1">Cập nhật thông tin tin đăng của bạn</p>
       </div>
 
       {/* Tabs */}
@@ -424,19 +349,15 @@ const CreateListing = () => {
               onChange={handleInputChange}
               placeholder="VD: Giant XTC SLR 29 - Xe đạp địa hình cao cấp"
             />
-            <p className="text-xs text-neutral-500 -mt-4">
-              Tên rõ ràng, đầy đủ giúp tăng cơ hội bán hàng
-            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
+              <Input
                 label="Loại xe"
                 required
                 name="type"
                 value={formData.specifications.type}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder={loadingTypes ? 'Đang tải danh mục...' : 'Chọn loại xe'}
-                options={typeOptions}
+                placeholder="VD: Xe đạp địa hình, Xe đạp đường trường..."
               />
 
               <Input
@@ -509,19 +430,12 @@ const CreateListing = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Select
+              <Input
                 label="Chất liệu khung"
                 name="frameMaterial"
                 value={formData.specifications.frameMaterial}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="Chọn chất liệu"
-                options={[
-                  { value: 'aluminum', label: 'Aluminum' },
-                  { value: 'carbon', label: 'Carbon' },
-                  { value: 'steel', label: 'Steel' },
-                  { value: 'titanium', label: 'Titanium' },
-                  { value: 'alloy', label: 'Alloy' },
-                ]}
+                placeholder="VD: Carbon, Aluminum, Thép..."
               />
 
               <Input
@@ -543,32 +457,20 @@ const CreateListing = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
+              <Input
                 label="Loại phanh"
                 name="brakeType"
                 value={formData.specifications.brakeType}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="Chọn loại phanh"
-                options={[
-                  { value: 'disc', label: 'Phanh đĩa (Disc)' },
-                  { value: 'rim', label: 'Phanh vành (Rim)' },
-                  { value: 'hydraulic', label: 'Phanh dầu (Hydraulic)' },
-                  { value: 'mechanical', label: 'Phanh cơ (Mechanical)' },
-                ]}
+                placeholder="VD: Phanh đĩa, Phanh dầu, Phanh cơ..."
               />
 
-              <Select
+              <Input
                 label="Giảm xóc"
                 name="suspension"
                 value={formData.specifications.suspension}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="Chọn loại giảm xóc"
-                options={[
-                  { value: 'none', label: 'Không giảm xóc' },
-                  { value: 'front', label: 'Giảm xóc trước' },
-                  { value: 'full', label: 'Giảm xóc toàn phần' },
-                  { value: 'rear', label: 'Giảm xóc sau' },
-                ]}
+                placeholder="VD: Giảm xóc trước, Giảm xóc toàn phần..."
               />
             </div>
 
@@ -611,7 +513,7 @@ const CreateListing = () => {
               </label>
 
               {/* Upload Area */}
-              <label className="block border-2 border-dashed border-neutral-300 rounded-xl p-8 text-center hover:border-themePrimary transition-colors cursor-pointer bg-neutral-50 hover:bg-themePrimary/5">
+              <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-primary-500 transition-colors cursor-pointer bg-neutral-50">
                 <input
                   type="file"
                   multiple
@@ -637,7 +539,7 @@ const CreateListing = () => {
                         className="w-full h-32 object-cover rounded-lg border-2 border-neutral-200"
                       />
                       {formData.media.mainImage === image && (
-                        <div className="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded">
+                        <div className="absolute top-2 left-2 bg-success-600 text-white text-xs px-2 py-1 rounded">
                           Ảnh chính
                         </div>
                       )}
@@ -663,17 +565,12 @@ const CreateListing = () => {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                Video giới thiệu (tùy chọn)
-              </label>
-              <input
-                type="url"
-                onChange={handleVideoInput}
-                placeholder="Link YouTube hoặc upload video"
-                className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-themePrimary/50 focus:border-themePrimary transition-all"
-              />
-            </div>
+            <Input
+              label="Video giới thiệu (tùy chọn)"
+              type="url"
+              onChange={handleVideoInput}
+              placeholder="Link YouTube hoặc upload video"
+            />
           </div>
         )}
 
@@ -717,121 +614,18 @@ const CreateListing = () => {
               />
             </div>
 
-            {/* Inspection Options */}
-            <div className="bg-gradient-to-br from-accent/5 to-themePrimary/5 rounded-xl p-6 border border-accent/20">
-              <h3 className="text-lg font-bold text-neutral-900 mb-1 flex items-center gap-2">
-                <span>✅</span>
-                Yêu cầu kiểm định (Tăng uy tín)
-              </h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                Xe được kiểm định sẽ có tỷ lệ bán cao hơn 73%
-              </p>
-
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 p-4 border-2 border-neutral-200 bg-white rounded-xl cursor-pointer hover:border-themePrimary hover:shadow-md transition-all">
-                  <input
-                    type="radio"
-                    name="inspection"
-                    value="none"
-                    checked={inspectionType === 'none'}
-                    onChange={() => setInspectionType('none')}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="font-bold text-neutral-900">Không kiểm định</div>
-                    <div className="text-xs text-neutral-500 mt-1">
-                      Người mua có thể e ngại về chất lượng xe
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-start gap-3 p-4 border-2 border-accent/30 bg-white rounded-xl cursor-pointer hover:border-accent hover:shadow-md transition-all">
-                  <input
-                    type="radio"
-                    name="inspection"
-                    value="offline"
-                    checked={inspectionType === 'offline'}
-                    onChange={() => setInspectionType('offline')}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="font-bold text-neutral-900 flex items-center gap-2 flex-wrap">
-                      <span>Kiểm định tận nơi (Offline)</span>
-                      {isFirstInspection && (
-                        <span className="bg-accent/20 text-accent text-xs px-2.5 py-0.5 rounded-full font-bold">
-                          MIỄN PHÍ LẦN ĐẦU
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-neutral-600 mt-1">
-                      Kiểm định viên đến nhà kiểm tra chi tiết. Phí thường: 200,000₫
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-accent font-medium">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span>Được ưu tiên hiển thị</span>
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Price Summary */}
-            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl p-6 border border-neutral-200">
-              <h3 className="text-lg font-bold text-neutral-900 mb-4">Tổng kết chi phí</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-neutral-200">
-                  <span className="text-sm text-neutral-600">Phí đăng bài</span>
-                  <span className="font-semibold">
-                    {loadingPostCount ? (
-                      <span className="text-neutral-500">Đang tải...</span>
-                    ) : isFirstPost ? (
-                      <span className="text-accent flex items-center gap-2">
-                        <span className="line-through text-neutral-400">
-                          {POST_FEE.toLocaleString()}₫
-                        </span>
-                        <span>Miễn phí 🎉</span>
-                        <span className="text-xs bg-accent/20 px-2 py-0.5 rounded">
-                          Bài {userPostCount + 1}/{FREE_POST_LIMIT}
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="text-neutral-900">{POST_FEE.toLocaleString()}₫</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-neutral-200">
-                  <span className="text-sm text-neutral-600">Phí kiểm định</span>
-                  <span className="font-semibold">
-                    {inspectionType === 'offline' && isFirstInspection ? (
-                      <span className="text-accent">Miễn phí</span>
-                    ) : inspectionType === 'offline' ? (
-                      <span className="text-neutral-900">
-                        {INSPECTION_FEE_OFFLINE.toLocaleString()}₫
-                      </span>
-                    ) : (
-                      <span className="text-neutral-600">0₫</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-3">
-                  <span className="text-lg font-bold text-neutral-900">Tổng cộng</span>
-                  <span className="text-2xl font-bold text-themePrimary">
-                    {calculateTotal().toLocaleString()} ₫
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant="ghost"
+                onClick={() => navigate('/seller/manage-listings')}
+                disabled={loading}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => handleSubmit(true)}
                 disabled={loading}
                 className="flex-1"
@@ -844,11 +638,7 @@ const CreateListing = () => {
                 disabled={loading}
                 className="flex-1"
               >
-                {loading
-                  ? 'Đang xử lý...'
-                  : isFirstPost
-                    ? '🎉 Đăng tin miễn phí'
-                    : 'Thanh toán & Đăng tin'}
+                {loading ? 'Đang xử lý...' : 'Cập nhật tin đăng'}
               </Button>
             </div>
           </div>
@@ -858,4 +648,4 @@ const CreateListing = () => {
   );
 };
 
-export default CreateListing;
+export default EditListing;

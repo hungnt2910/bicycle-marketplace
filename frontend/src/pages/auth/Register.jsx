@@ -125,7 +125,6 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
               <div className="grid grid-cols-2 gap-3">
                 <div
                   onClick={() => {
-                    console.log('Buyer clicked');
                     setFormData((prev) => ({ ...prev, role: 'buyer' }));
                   }}
                   style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -143,7 +142,6 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
                 </div>
                 <div
                   onClick={() => {
-                    console.log('Seller clicked');
                     setFormData((prev) => ({ ...prev, role: 'seller' }));
                   }}
                   style={{ cursor: 'pointer', userSelect: 'none' }}
