@@ -18,6 +18,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 export class BicyclesController {
   constructor(private readonly BicyclesService: BicyclesService) {}
 
+  @Public()
   @Post('create-bicycle')
   @ApiOperation({ summary: 'Create a new bicycle listing' })
   @ApiResponse({ status: 201, description: 'Bicycle successfully created' })
@@ -30,6 +31,7 @@ export class BicyclesController {
     };
   }
 
+  @Public()
   @Post('search-bicycles')
   @ApiOperation({ summary: 'Search bicycles by keyword' })
   @ApiResponse({ status: 200, description: 'Bicycles successfully retrieved' })
@@ -42,6 +44,7 @@ export class BicyclesController {
     };
   }
 
+  @Public()
   @Post('filter-bicycles')
   @ApiOperation({ summary: 'Filter bicycles based on criteria' })
   @ApiResponse({ status: 200, description: 'Bicycles successfully filtered' })
@@ -57,6 +60,7 @@ export class BicyclesController {
     };
   }
 
+  @Public()
   @Post('get-all-bicycles')
   @ApiOperation({ summary: 'Get all bicycle listings' })
   @ApiResponse({ status: 200, description: 'Bicycles successfully retrieved' })
@@ -69,6 +73,7 @@ export class BicyclesController {
     };
   }
 
+  @Public()
   @Post('get-bicycle-by-id')
   @ApiOperation({ summary: 'Get bicycle by ID' })
   @ApiResponse({ status: 200, description: 'Bicycle successfully retrieved' })
@@ -97,6 +102,7 @@ export class BicyclesController {
     };
   }
 
+  @Public()
   @Delete('delete-bicycle/:id')
   @ApiOperation({ summary: 'Delete a bicycle listing' })
   @ApiResponse({ status: 200, description: 'Bicycle successfully deleted' })
