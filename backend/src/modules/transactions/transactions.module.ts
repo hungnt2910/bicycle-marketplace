@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { TransactionsController } from './transactions.controller';
 import { EscrowService } from '../escrow/escrow.service';
@@ -19,9 +19,13 @@ import {
   WalletTransaction,
   WalletTransactionSchema,
 } from 'src/entities/wallet-transaction.entity';
+import { PaymentService } from '../payment/payment.service';
+import { ZaloPayService } from '../payment/zalopay/zalopay.service';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
   imports: [
+    forwardRef(() => PaymentModule),
     MongooseModule.forFeature([
       { name: Transaction.name, schema: TransactionSchema },
       { name: Bicycle.name, schema: BicycleSchema },
@@ -36,6 +40,8 @@ import {
     NotificationsService,
     ConfigService,
     WalletService,
+    PaymentService,
+    ZaloPayService
   ],
   controllers: [TransactionsController],
 })

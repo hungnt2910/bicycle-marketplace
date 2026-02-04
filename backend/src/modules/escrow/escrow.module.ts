@@ -18,6 +18,8 @@ import {
   WalletTransaction,
   WalletTransactionSchema,
 } from 'src/entities/wallet-transaction.entity';
+import { PaymentService } from '../payment/payment.service';
+import { ZaloPayService } from '../payment/zalopay/zalopay.service';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import {
     TransactionsService,
     NotificationsService,
     WalletService,
+    PaymentService,
+    ZaloPayService
   ],
   controllers: [EscrowController],
 })
