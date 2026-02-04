@@ -3,6 +3,8 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -22,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { WalletTransactionType } from 'src/entities/wallet-transaction.entity';
+import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
 export class TransactionsService {
@@ -33,6 +36,8 @@ export class TransactionsService {
     private walletService: WalletService,
     private notificationsService: NotificationsService,
     private configService: ConfigService,
+    @Inject(forwardRef(() => PaymentService))
+    private readonly paymentService: PaymentService,
   ) {}
 
   /**
@@ -41,7 +46,7 @@ export class TransactionsService {
   async createTransaction(
     buyerId: string,
     createDto: CreateTransactionDto,
-  ): Promise<Transaction> {
+  ): Promise<any> {
     const { bicycleId, amount, type, paymentMethod } = createDto;
 
     // 1. Verify bicycle exists and is available
@@ -127,24 +132,6 @@ export class TransactionsService {
     bicycle.status = BicycleStatus.RESERVED;
     await bicycle.save();
 
-    await this.walletService.debit(
-      buyerId,
-      amount,
-      WalletTransactionType.PURCHASE,
-      `Payment for bicycle: ${bicycle.title}`,
-      {
-        transactionId: transaction._id.toString(),
-        bicycleId: bicycle._id.toString(),
-      },
-    );
-
-    // Hold in escrow
-    await this.walletService.holdInEscrow(
-      buyerId,
-      amount,
-      transaction._id.toString(),
-    );
-
     // 7. Send notifications
     // await this.notificationsService.create({
     //   userId: bicycle.sellerId,
@@ -157,7 +144,12 @@ export class TransactionsService {
     //   },
     // });
 
-    return transaction;
+    return this.paymentService.createZaloPayPayment(
+      transaction._id.toString(),
+      buyerId,
+    );
+
+    // return transaction;
   }
 
   /**
