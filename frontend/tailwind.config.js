@@ -1,0 +1,71 @@
+module.exports = {
+  content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        themePrimary: '#1849A9',
+        themePrimaryLighter: '#bae1f7',
+        themeSecondary: '#1849A9',
+        themeGreenLight: '#3EA875',
+        themeWhiteLow: '#66737F',
+        themeWhiteLight: '#F7F8F9',
+        themeWhiteLighter: '#5D6D7E',
+        themeGrayBorder: '#EBEDEF',
+        themeGray: '#AEB6BF',
+        themeGrayLight: '#D6DBDF',
+        themeGrayDarker: '#06648156',
+        themeBlack: '#283746',
+        themeBlackDarker: '#1A2B3A',
+        themeBlackLighter: '#E7E9EE',
+        themeBlackAlt: '#001324',
+        themeRedLight: '#FF4040',
+        themeYellowLight: '#FF9900',
+        themeGrayWhite: '#85929E',
+        themeWhiteAlt: '#9CA3AF',
+        footerBorder: '#ffffff33',
+      },
+      boxShadow: {
+        boxShadow: '0px 3px 6px rgba(0, 119, 111, 0.08)',
+        sectionShadow: '0px 6px 24px rgba(6, 129, 121, 0.08)',
+        card: '0px 20px 32px -8px rgba(6, 129, 121, 0.16)',
+        owlCard: '0px 6px 12px -4px rgba(6, 129, 121, 0.1)',
+        searchShadow: '0px 12px 32px -6px rgba(0, 119, 111, 0.2)',
+        filterShadow: '0px 2px 6px rgba(6, 129, 121, 0.08)',
+        frontShadow: ' 0px 24px 24px -12px rgba(6, 129, 121, 0.12)',
+        sponsorShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        sponsorHoverShadow: '0 10px 25px rgba(0, 0, 0, 0.12)',
+        vipShadow: '0px 0px 24px 0px #AA00FF80;',
+      },
+      keyframes: {
+        pulse: {
+          '0%': { boxShadow: '0 0 0 0 rgba(20, 120, 176, 0.4)' },
+          '70%': { boxShadow: '0 0 0 6px rgba(20, 120, 176, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(20, 120, 176, 0)' },
+        },
+        fadeIn: {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInLeft: {
+          from: { opacity: '0', transform: 'translateX(-10px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideDown: {
+          from: { opacity: '0', transform: 'translateY(-10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        fadeIn: 'fadeIn 0.5s ease-in-out',
+        slideInLeft: 'slideInLeft 0.3s ease-in-out',
+        slideDown: 'slideDown 0.3s ease-in-out',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        outfit: ['Outfit', 'sans-serif'],
+      },
+    },
+  },
+  plugins: [],
+};
