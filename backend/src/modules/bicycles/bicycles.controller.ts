@@ -10,9 +10,16 @@ import {
 } from '@nestjs/common';
 import { CreateBicyclesDto } from './dto/create-bicycles.dto';
 import { Bicycle } from 'src/entities';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiProperty,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { UpdateBicycleDto } from './dto/update-bicyce.dto';
 import { Public } from 'src/common/decorators/public.decorator';
+import { AddToFavouritesDto } from './dto/add-favourite.dto';
+import { Types } from 'mongoose';
 
 @Controller('bicycles')
 export class BicyclesController {
@@ -111,6 +118,23 @@ export class BicyclesController {
     return {
       message: 'Bicycle deleted successfully',
       data: result,
+    };
+  }
+
+  @Public()
+  @Post('add-to-favourites')
+  @ApiOperation({ summary: 'Add bicycle to user favourites' })
+  @ApiResponse({ status: 200, description: 'Bicycle added to favourites' })
+  @ApiResponse({
+    status: 409,
+    description: 'Failed to add bicycle to favourites',
+  })
+  @ApiBody({ type: AddToFavouritesDto })
+  async addToFavourites(@Body() body: AddToFavouritesDto) {
+    const { userId, bicycleId } = body;
+    await this.BicyclesService.addToFavourites(userId, bicycleId);
+    return {
+      message: 'Bicycle added to favourites successfully',
     };
   }
 }

@@ -49,6 +49,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { EscrowModule } from './modules/escrow/escrow.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -122,6 +123,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 
     PaymentModule,
 
+    CloudinaryModule,
     // Your feature modules will go here
     // UsersModule,
     // BicyclesModule,

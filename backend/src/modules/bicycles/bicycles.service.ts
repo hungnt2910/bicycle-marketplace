@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Bicycle, BicycleDocument } from 'src/entities';
+import { Bicycle, BicycleDocument, User } from 'src/entities';
 import { CreateBicyclesDto } from './dto/create-bicycles.dto';
 import { FilterBicycleDto } from './dto/filler-bicycle.dto';
 import { UpdateBicycleDto } from './dto/update-bicyce.dto';
@@ -10,6 +10,7 @@ import { UpdateBicycleDto } from './dto/update-bicyce.dto';
 export class BicyclesService {
   constructor(
     @InjectModel(Bicycle.name) private bicycleModel: Model<BicycleDocument>,
+    @InjectModel('User') private userModel: Model<any>,
   ) {}
 
   async createBicycle(bicycle: CreateBicyclesDto): Promise<Bicycle> {
@@ -95,5 +96,17 @@ export class BicyclesService {
         ],
       })
       .exec();
+  }
+
+  //thêm vào danh sách yêu thích của người dùng
+  async addToFavourites(userId: string, bicycleId: string): Promise<void> {
+    const bicycle = await this.bicycleModel.findById(bicycleId).exec();
+    if (!bicycle) {
+      throw new Error('Bicycle not found');
+    }
+    // Logic to add bicycle to user's favourites
+    await this.userModel.findByIdAndUpdate(userId, {
+      $addToSet: { favourites: { itemId: bicycle._id } },
+    });
   }
 }
