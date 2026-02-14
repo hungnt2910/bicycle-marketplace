@@ -99,14 +99,58 @@ export class BicyclesService {
   }
 
   //thêm vào danh sách yêu thích của người dùng
+  // chưa check xem đã có trong danh sách yêu thích chưa, nếu có rồi thì không thêm nữa
   async addToFavourites(userId: string, bicycleId: string): Promise<void> {
     const bicycle = await this.bicycleModel.findById(bicycleId).exec();
     if (!bicycle) {
       throw new Error('Bicycle not found');
     }
-    // Logic to add bicycle to user's favourites
+
     await this.userModel.findByIdAndUpdate(userId, {
       $addToSet: { favourites: { itemId: bicycle._id } },
+    });
+    // cộng favouriteCount của bicycle lên 1
+    console.log('toi day roi');
+    await this.bicycleModel.findByIdAndUpdate(bicycle._id, {
+      $inc: { favoriteCount: 1 },
+      new: true,
+    });
+  }
+
+  //xoá 1 khỏi danh sách yêu thích
+  async removeOneFromFavourites(
+    userId: string,
+    bicycleId: string,
+  ): Promise<void> {
+    const bicycle = await this.bicycleModel.findById(bicycleId).exec();
+    if (!bicycle) {
+      throw new Error('Bicycle not found');
+    }
+    await this.userModel.findByIdAndUpdate(userId, {
+      $pull: { favourites: { itemId: bicycle._id } },
+    });
+    // trừ favouriteCount của bicycle đi 1
+    await this.bicycleModel.findByIdAndUpdate(bicycle._id, {
+      $inc: { favoriteCount: -1 },
+    });
+  }
+
+  //lấy danh sách yêu thích của người dùng
+  async getFavouritesByUserId(userId: string): Promise<Bicycle[]> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const favouriteBicycleIds = user.favourites.map((fav) => fav.itemId);
+    return await this.bicycleModel
+      .find({ _id: { $in: favouriteBicycleIds } })
+      .exec();
+  }
+
+  //xoá hết danh sách yêu thích của người dùng
+  async clearFavouritesByUserId(userId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, {
+      $set: { favourites: [] },
     });
   }
 }
