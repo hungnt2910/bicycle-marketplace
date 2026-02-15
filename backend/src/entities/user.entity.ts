@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-
+import { Bicycle } from './bicycle.entity';
 export type UserDocument = User & Document;
 
 export enum UserRole {
@@ -14,6 +14,11 @@ export enum UserStatus {
   ACTIVE = 'active',
   SUSPENDED = 'suspended',
   BANNED = 'banned',
+}
+
+class FavouriteItem {
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Bicycle' })
+  itemId: Types.ObjectId;
 }
 
 class Reputation {
@@ -46,7 +51,7 @@ export class User {
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
 
-   @Prop()
+  @Prop()
   firstName?: string;
 
   @Prop()
@@ -69,6 +74,9 @@ export class User {
 
   @Prop({ default: UserStatus.ACTIVE, enum: UserStatus })
   status: UserStatus;
+
+  @Prop({ type: [FavouriteItem], default: [] })
+  favourites?: FavouriteItem[];
 
   @Prop({ default: false })
   verifiedPhone?: boolean;

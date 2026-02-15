@@ -105,15 +105,37 @@ class Condition {
   lastServiceDate?: Date;
 }
 
-class Media {
-  @Prop({ type: [String] })
-  images?: string[];
-
-  @Prop({ type: [String] })
-  videos?: string[];
+class MediaItem {
+  @Prop()
+  url: string;
 
   @Prop()
-  mainImage?: string;
+  publicId: string;
+}
+
+class VideoItem {
+  @Prop()
+  url: string;
+
+  @Prop()
+  publicId: string;
+
+  @Prop()
+  duration?: number;
+
+  @Prop()
+  thumbnail?: string;
+}
+
+class Media {
+  @Prop({ type: [MediaItem] })
+  images?: MediaItem[];
+
+  @Prop({ type: [VideoItem] })
+  videos?: VideoItem[];
+
+  @Prop()
+  mainImage?: MediaItem;
 }
 
 class Inspection {
