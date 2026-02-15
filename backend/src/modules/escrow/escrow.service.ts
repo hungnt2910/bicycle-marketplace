@@ -51,7 +51,7 @@ export class EscrowService {
   async releaseFunds(transaction: TransactionDocument): Promise<void> {
     // Check if fees exist and have commissionAmount
     const commissionAmount = transaction.fees?.commissionAmount || 0;
-    const sellerAmount = transaction.amount - commissionAmount;
+    const sellerAmount = transaction.amount;
 
     this.logger.log(
       `Releasing ${sellerAmount} VND to seller ${transaction.sellerId}`,

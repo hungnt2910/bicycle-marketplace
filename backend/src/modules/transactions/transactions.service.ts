@@ -340,13 +340,13 @@ export class TransactionsService {
     );
 
     // Credit platform wallet (commission)
-    await this.walletService.credit(
-      'PLATFORM_USER_ID',
-      commissionAmount,
-      WalletTransactionType.COMMISSION,
-      `Commission from transaction ${transactionId}`,
-      { transactionId },
-    );
+    // await this.walletService.credit(
+    //   'PLATFORM_USER_ID',
+    //   commissionAmount,
+    //   WalletTransactionType.COMMISSION,
+    //   `Commission from transaction ${transactionId}`,
+    //   { transactionId },
+    // );
 
     // Notify seller
     // await this.notificationsService.create({
