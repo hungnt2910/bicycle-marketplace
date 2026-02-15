@@ -10,9 +10,16 @@ import {
 } from '@nestjs/common';
 import { CreateBicyclesDto } from './dto/create-bicycles.dto';
 import { Bicycle } from 'src/entities';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiProperty,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { UpdateBicycleDto } from './dto/update-bicyce.dto';
 import { Public } from 'src/common/decorators/public.decorator';
+import { AddToFavouritesDto } from './dto/add-favourite.dto';
+import { Types } from 'mongoose';
 
 @Controller('bicycles')
 export class BicyclesController {
@@ -111,6 +118,71 @@ export class BicyclesController {
     return {
       message: 'Bicycle deleted successfully',
       data: result,
+    };
+  }
+
+  @Public()
+  @Post('add-to-favourites')
+  @ApiOperation({ summary: 'Add bicycle to user favourites' })
+  @ApiResponse({ status: 200, description: 'Bicycle added to favourites' })
+  @ApiResponse({
+    status: 409,
+    description: 'Failed to add bicycle to favourites',
+  })
+  @ApiBody({ type: AddToFavouritesDto })
+  async addToFavourites(@Body() body: AddToFavouritesDto) {
+    const { userId, bicycleId } = body;
+    await this.BicyclesService.addToFavourites(userId, bicycleId);
+    return {
+      message: 'Bicycle added to favourites successfully',
+    };
+  }
+
+  @Public()
+  @Post('get-favourite-bicycles')
+  @ApiOperation({ summary: 'Get user favourite bicycles' })
+  @ApiResponse({ status: 200, description: 'Favourite bicycles retrieved' })
+  @ApiBody({ schema: { properties: { userId: { type: 'string' } } } })
+  async getFavouriteBicycles(@Body('userId') userId: string) {
+    const result = await this.BicyclesService.getFavouritesByUserId(userId);
+    if (result.length === 0) {
+      return {
+        message: 'No favourite bicycles found for this user',
+        data: [],
+      };
+    }
+    return {
+      message: 'Favourite bicycles retrieved successfully',
+      data: result,
+    };
+  }
+
+  @Public()
+  @Delete('removeOne-from-favourites')
+  @ApiOperation({ summary: 'Remove bicycle from user favourites' })
+  @ApiBody({
+    schema: {
+      properties: { userId: { type: 'string' }, bicycleId: { type: 'string' } },
+    },
+  })
+  async removeOneFromFavourites(
+    @Body('userId') userId: string,
+    @Body('bicycleId') bicycleId: string,
+  ) {
+    await this.BicyclesService.removeOneFromFavourites(userId, bicycleId);
+    return {
+      message: 'Bicycle removed from favourites successfully',
+    };
+  }
+
+  @Public()
+  @Delete('removeAll-from-favourites')
+  @ApiOperation({ summary: 'Remove all bicycles from user favourites' })
+  @ApiBody({ schema: { properties: { userId: { type: 'string' } } } })
+  async removeAllFromFavourites(@Body('userId') userId: string) {
+    await this.BicyclesService.clearFavouritesByUserId(userId);
+    return {
+      message: 'All bicycles removed from favourites successfully',
     };
   }
 }
