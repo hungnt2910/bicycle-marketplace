@@ -150,6 +150,17 @@ export class PaymentService {
         },
       );
 
+      await this.walletService.debit(
+        transaction.buyerId.toString(),
+        transaction.amount,
+        WalletTransactionType.PURCHASE,
+        `Payment for bicycle: ${transaction.bicycleId}`,
+        {
+          transactionId: transaction._id.toString(),
+          bicycleId: transaction.bicycleId.toString(),
+        },
+      );
+
       // Hold in escrow
       await this.walletService.holdInEscrow(
         transaction.buyerId.toString(),
