@@ -12,6 +12,7 @@ import {
   Transaction,
   TransactionDocument,
   TransactionStatus,
+  TransactionType,
 } from '../../entities/transaction.entity';
 import {
   Bicycle,
@@ -56,23 +57,25 @@ export class TransactionsService {
       throw new BadRequestException('Bicycle not found');
     }
 
-    if (bicycle.status !== 'active') {
+    if (bicycle.status !== 'active' && type !== TransactionType.FEE) {
       throw new BadRequestException('Bicycle is not available for sale');
     }
 
     // 2. CRITICAL: Check if bicycle has valid inspection
-    if (!bicycle.inspection?.isInspected) {
-      throw new BadRequestException(
-        'This bicycle must be inspected before purchase. Please request inspection from seller.',
-      );
-    }
-
-    // Check if inspection is still valid
-    const now = new Date();
-    if (bicycle.inspection.expiryDate && bicycle.inspection.expiryDate < now) {
-      throw new BadRequestException(
-        'Inspection report has expired. A new inspection is required.',
-      );
+    if (bicycle.inspection?.isInspected && type !== TransactionType.FEE) {
+      // Check if inspection is still valid
+      const now = new Date();
+      if (
+        bicycle.inspection.expiryDate &&
+        bicycle.inspection.expiryDate < now
+      ) {
+        throw new BadRequestException(
+          'Inspection report has expired. A new inspection is required.',
+        );
+      }
+      // throw new BadRequestException(
+      //   'This bicycle must be inspected before purchase. Please request inspection from seller.',
+      // );
     }
 
     // 3. Check if bicycle is already reserved
@@ -118,19 +121,21 @@ export class TransactionsService {
       payment: {
         method: paymentMethod,
       },
-      fees: {
-        commissionRate,
-        commissionAmount,
-        platformFee: 0,
-      },
+      // fees: {
+      //   commissionRate,
+      //   commissionAmount,
+      //   platformFee: 0,
+      // },
       buyerConfirmation: {
         confirmed: false,
       },
     });
 
     // 6. Reserve bicycle
-    bicycle.status = BicycleStatus.RESERVED;
-    await bicycle.save();
+    if (type !== TransactionType.FEE) {
+      bicycle.status = BicycleStatus.RESERVED;
+      await bicycle.save();
+    }
 
     // 7. Send notifications
     // await this.notificationsService.create({
