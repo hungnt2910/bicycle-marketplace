@@ -32,7 +32,7 @@ export class TransactionsController {
    * Create a new transaction (Buyer places order)
    */
   @Post()
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.BUYER, UserRole.SELLER)
   @ApiOperation({ summary: 'Create a new transaction (place order)' })
   @ApiResponse({ status: 201, description: 'Transaction created successfully' })
   @ApiResponse({ status: 400, description: 'Bicycle not available or not inspected' })
