@@ -6,6 +6,11 @@ export type TransactionDocument = Transaction & Document;
 export enum TransactionType {
   DEPOSIT = 'deposit',
   FULL_PAYMENT = 'full_payment',
+  FEE = 'fee',
+  REFUND = 'refund',
+  DISPUTE_REFUND = 'dispute_refund',
+  COMMISSION = 'commission',
+  PENALTY = 'penalty',
 }
 
 export enum PaymentMethod {
@@ -109,7 +114,7 @@ export class Transaction {
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   buyerId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User' })
   sellerId: Types.ObjectId;
 
   @Prop({ required: true, type: Types.ObjectId, ref: 'Bicycle' })
