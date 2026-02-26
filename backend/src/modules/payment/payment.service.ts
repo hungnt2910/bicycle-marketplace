@@ -11,6 +11,7 @@ import {
   Transaction,
   TransactionDocument,
   TransactionStatus,
+  TransactionType,
 } from '../../entities/transaction.entity';
 import { ZaloPayService } from './zalopay/zalopay.service';
 import { TransactionsService } from '../transactions/transactions.service';
@@ -139,6 +140,28 @@ export class PaymentService {
 
       transaction.status = TransactionStatus.PAYMENT_RECEIVED;
 
+      if (transaction.type === TransactionType.FEE) {
+        transaction.status = TransactionStatus.COMPLETED;
+
+        await transaction.save();
+
+        this.logger.log(
+          `ZaloPay fee transaction ${transactionId} marked as completed`,
+        );
+      } else {
+        // Hold in escrow
+        await this.walletService.holdInEscrow(
+          transaction.buyerId.toString(),
+          transaction.amount,
+          transaction._id.toString(),
+        );
+
+        // Confirm payment
+        await this.transactionsService.confirmPayment(transactionId, {
+          transactionId: callbackData.zp_trans_id || callbackData.app_trans_id,
+        });
+      }
+
       await this.walletService.credit(
         transaction.buyerId.toString(),
         transaction.amount,
@@ -160,18 +183,6 @@ export class PaymentService {
           bicycleId: transaction.bicycleId.toString(),
         },
       );
-
-      // Hold in escrow
-      await this.walletService.holdInEscrow(
-        transaction.buyerId.toString(),
-        transaction.amount,
-        transaction._id.toString(),
-      );
-
-      // Confirm payment
-      await this.transactionsService.confirmPayment(transactionId, {
-        transactionId: callbackData.zp_trans_id || callbackData.app_trans_id,
-      });
 
       this.logger.log(
         `ZaloPay payment confirmed for transaction ${transactionId}`,
