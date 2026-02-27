@@ -22,6 +22,9 @@ import Marketplace from './pages/buyer/Marketplace';
 import ProductDetail from './pages/buyer/ProductDetail';
 import Profile from './pages/buyer/Profile';
 import Compare from './pages/buyer/Compare';
+import Favourites from './pages/buyer/Favourites';
+import ZaloPayReturn from './pages/payment/ZaloPayReturn';
+import TransactionDetail from './pages/buyer/TransactionDetail';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -60,6 +63,9 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
       return '/marketplace';
     case 'compare':
       return '/compare';
+    case 'favorites':
+    case 'favourites':
+      return '/favorites';
     case 'product-detail':
       return productId ? `/product/${productId}` : '/product';
     case 'login':
@@ -199,6 +205,7 @@ const AppRoutes = () => {
         path="/marketplace"
         element={buyerShell('marketplace', <Marketplace onNavigate={handleNavigate} />)}
       />
+      <Route path="/favorites" element={buyerShell('favorites', <Favourites />)} />
       <Route
         path="/compare"
         element={buyerShell('compare', <Compare onNavigate={handleNavigate} />)}
@@ -207,6 +214,8 @@ const AppRoutes = () => {
         path="/product/:id"
         element={buyerShell('product-detail', <ProductDetailRoute onNavigate={handleNavigate} />)}
       />
+      <Route path="/payment/zalopay-return" element={<ZaloPayReturn />} />
+      <Route path="/payment/checking" element={<ZaloPayReturn />} />
 
       {/* Buyer protected */}
       <Route
@@ -214,6 +223,14 @@ const AppRoutes = () => {
         element={
           <PrivateRoute allowedRoles={['buyer']}>
             {buyerShell('dashboard', <BuyerDashboard onNavigate={handleNavigate} />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/transactions/:id"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('dashboard', <TransactionDetail />)}
           </PrivateRoute>
         }
       />

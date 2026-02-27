@@ -1,19 +1,27 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ClientSession } from 'mongoose';
-import { Wallet, WalletDocument, WalletStatus } from '../../entities/wallet.entity';
-import { 
-  WalletTransaction, 
+import {
+  Wallet,
+  WalletDocument,
+  WalletStatus,
+} from '../../entities/wallet.entity';
+import {
+  WalletTransaction,
   WalletTransactionDocument,
   WalletTransactionType,
-  WalletTransactionStatus 
+  WalletTransactionStatus,
 } from '../../entities/wallet-transaction.entity';
 
 @Injectable()
 export class WalletService {
   constructor(
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
-    @InjectModel(WalletTransaction.name) 
+    @InjectModel(WalletTransaction.name)
     private walletTransactionModel: Model<WalletTransactionDocument>,
   ) {}
 
@@ -23,7 +31,7 @@ export class WalletService {
    */
   async createWallet(userId: string): Promise<WalletDocument> {
     const existingWallet = await this.walletModel.findOne({ userId });
-    
+
     if (existingWallet) {
       return existingWallet;
     }
@@ -98,19 +106,24 @@ export class WalletService {
     await wallet.save({ session }); // ✅ .save() works now!
 
     // Create transaction record
-    const walletTransaction = await this.walletTransactionModel.create([{
-      walletId: wallet._id,
-      userId,
-      type,
-      amount,
-      balanceBefore,
-      balanceAfter,
-      status: WalletTransactionStatus.COMPLETED,
-      description,
-      transactionId: metadata?.transactionId,
-      bicycleId: metadata?.bicycleId,
-      disputeId: metadata?.disputeId,
-    }], { session });
+    const walletTransaction = await this.walletTransactionModel.create(
+      [
+        {
+          walletId: wallet._id,
+          userId,
+          type,
+          amount,
+          balanceBefore,
+          balanceAfter,
+          status: WalletTransactionStatus.COMPLETED,
+          description,
+          transactionId: metadata?.transactionId,
+          bicycleId: metadata?.bicycleId,
+          disputeId: metadata?.disputeId,
+        },
+      ],
+      { session },
+    );
 
     return walletTransaction[0];
   }
@@ -143,7 +156,7 @@ export class WalletService {
 
     if (wallet.balance < amount) {
       throw new BadRequestException(
-        `Insufficient balance. Available: ${wallet.balance} VND, Required: ${amount} VND`
+        `Insufficient balance. Available: ${wallet.balance} VND, Required: ${amount} VND`,
       );
     }
 
@@ -163,19 +176,24 @@ export class WalletService {
     await wallet.save({ session }); // ✅ Works!
 
     // Create transaction record
-    const walletTransaction = await this.walletTransactionModel.create([{
-      walletId: wallet._id,
-      userId,
-      type,
-      amount: -amount,
-      balanceBefore,
-      balanceAfter,
-      status: WalletTransactionStatus.COMPLETED,
-      description,
-      transactionId: metadata?.transactionId,
-      bicycleId: metadata?.bicycleId,
-      disputeId: metadata?.disputeId,
-    }], { session });
+    const walletTransaction = await this.walletTransactionModel.create(
+      [
+        {
+          walletId: wallet._id,
+          userId,
+          type,
+          amount: -amount,
+          balanceBefore,
+          balanceAfter,
+          status: WalletTransactionStatus.COMPLETED,
+          description,
+          transactionId: metadata?.transactionId,
+          bicycleId: metadata?.bicycleId,
+          disputeId: metadata?.disputeId,
+        },
+      ],
+      { session },
+    );
 
     return walletTransaction[0];
   }
@@ -190,8 +208,8 @@ export class WalletService {
     type: WalletTransactionType,
     description: string,
     metadata?: any,
-  ): Promise<{ 
-    from: WalletTransactionDocument; 
+  ): Promise<{
+    from: WalletTransactionDocument;
     to: WalletTransactionDocument;
   }> {
     const session = await this.walletModel.db.startSession();
@@ -408,7 +426,7 @@ export class WalletService {
 
     if (availableBalance < amount) {
       throw new BadRequestException(
-        `Insufficient available balance. Available: ${availableBalance} VND`
+        `Insufficient available balance. Available: ${availableBalance} VND`,
       );
     }
 
@@ -445,5 +463,32 @@ export class WalletService {
     } finally {
       session.endSession();
     }
+  }
+
+  /**
+   * Charge seller a listing fee when posting a bicycle
+   */
+  async chargeListingFee(
+    sellerId: string,
+    bicycleId: string,
+    listingFee: number = 20000, // Default 10,000 VND
+  ): Promise<WalletTransactionDocument> {
+    const wallet = await this.getWallet(sellerId);
+
+    const availableBalance = wallet.balance - wallet.pendingBalance;
+
+    if (availableBalance < listingFee) {
+      throw new BadRequestException(
+        `Insufficient balance to post bicycle. Required: ${listingFee} VND, Available: ${availableBalance} VND. Please top up your wallet.`,
+      );
+    }
+
+    return await this.debit(
+      sellerId,
+      listingFee,
+      WalletTransactionType.LISTING_FEE, // add this enum value (see below)
+      `Listing fee for bicycle ${bicycleId}`,
+      { bicycleId },
+    );
   }
 }
