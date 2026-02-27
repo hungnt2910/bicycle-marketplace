@@ -12,6 +12,7 @@ const ListingModeration = () => {
 
   const normalizeStatus = (status) => {
     if (status === 'active') return 'approved';
+    if (status === 'reserved') return 'approved';
     if (status === 'rejected') return 'rejected';
     if (status === 'draft') return 'draft';
     if (status === 'pending_review') return 'pending';
