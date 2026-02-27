@@ -292,13 +292,31 @@ const CreateListing = () => {
       const response = await bicycleApi.createBicycle(submitData);
 
       if (response.data) {
+        const newBicycleId = response.data.data?._id || response.data.data?.id;
+        
+        // Nếu chọn kiểm định offline, gọi API tạo yêu cầu kiểm định
+        if (inspectionType === 'offline' && newBicycleId) {
+          try {
+            await bicycleApi.requestInspection({
+              bicycleId: newBicycleId,
+              inspectionType: 'onsite', // Backend dùng 'onsite' thay vì 'offline'
+            });
+            console.log('✅ Đã gửi yêu cầu kiểm định cho bicycle:', newBicycleId);
+          } catch (inspectionError) {
+            console.error('❌ Lỗi khi gửi yêu cầu kiểm định:', inspectionError);
+            toast.warning('Đăng tin thành công nhưng không thể gửi yêu cầu kiểm định. Vui lòng liên hệ hỗ trợ.');
+          }
+        }
+
         if (isDraft) {
           toast.success('Lưu nháp thành công!');
           navigate('/seller/my-listings');
         } else {
-          toast.success(
-            `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${isFirstPost ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT : ''}`
-          );
+          const successMessage = inspectionType === 'offline' 
+            ? `Đăng tin thành công! Yêu cầu kiểm định đã được gửi. ${isFirstPost ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT : ''}`
+            : `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${isFirstPost ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT : ''}`;
+          
+          toast.success(successMessage);
           // Chuyển về trang chủ để xem bài đăng mới
           navigate('/');
         }
