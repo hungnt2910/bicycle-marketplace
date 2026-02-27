@@ -11,6 +11,7 @@ export enum TransactionType {
   DISPUTE_REFUND = 'dispute_refund',
   COMMISSION = 'commission',
   PENALTY = 'penalty',
+  INSPECTION_FEE = 'inspection_fee',
 }
 
 export enum PaymentMethod {
