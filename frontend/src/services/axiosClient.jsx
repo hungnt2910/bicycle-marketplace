@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Prefer env override; fallback to local dev
+const apiUrl = // import.meta.env.VITE_API_URL ||
+(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: apiUrl,
   headers: { 'Content-Type': 'application/json' },
 });
 
