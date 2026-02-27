@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Badge, Rating, Button, Select, Pagination } from '../../components/ui';
 import { useCompare } from '../../contexts/CompareContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
 import bicycleApi from '../../api/postNewsApi';
+import favouriteApi from '../../api/favouriteApi';
 
 const Marketplace = ({ onNavigate }) => {
+  const { isAuthenticated, user } = useAuth();
   const [viewMode, setViewMode] = useState('grid'); // grid or list
   const [bikes, setBikes] = useState([]);
   const [loadingBikes, setLoadingBikes] = useState(false);
+  const [favouriteIds, setFavouriteIds] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(true);
@@ -22,6 +27,8 @@ const Marketplace = ({ onNavigate }) => {
   const [priceRange, setPriceRange] = useState([0, 100000000]);
 
   const { compareItems, addToCompare, removeFromCompare, isInCompare, canAddMore } = useCompare();
+  const currentUserId =
+    user?._id || user?.id || user?.userId || user?.user?.id || user?.user?.userId;
 
   const handleProductClick = (bikeId) => {
     if (onNavigate) {
@@ -38,6 +45,32 @@ const Marketplace = ({ onNavigate }) => {
       if (!success && !isInCompare(bike.id)) {
         alert('Bạn chỉ có thể so sánh tối đa 2 sản phẩm!');
       }
+    }
+  };
+
+  const isFavourite = (id) => favouriteIds.includes(id);
+
+  const handleFavouriteToggle = async (e, bike) => {
+    e.stopPropagation();
+    if (!isAuthenticated || !currentUserId) {
+      toast.info('Vui lòng đăng nhập để lưu tin yêu thích');
+      onNavigate && onNavigate('login');
+      return;
+    }
+
+    try {
+      if (isFavourite(bike.id)) {
+        await favouriteApi.removeOneFromFavourites({ userId: currentUserId, bicycleId: bike.id });
+        setFavouriteIds((prev) => prev.filter((x) => x !== bike.id));
+        toast.success('Đã bỏ khỏi yêu thích');
+      } else {
+        await favouriteApi.addToFavourites({ userId: currentUserId, bicycleId: bike.id });
+        setFavouriteIds((prev) => [...prev, bike.id]);
+        toast.success('Đã thêm vào yêu thích');
+      }
+    } catch (err) {
+      console.error('Toggle favourite error:', err);
+      toast.error('Không thể cập nhật yêu thích, thử lại sau');
     }
   };
 
@@ -115,7 +148,7 @@ const Marketplace = ({ onNavigate }) => {
         const response = await bicycleApi.getAllBicycles();
         const apiData = response?.data?.data || response?.data || [];
         const mapped = apiData
-          .filter((bike) => bike?.status === 'active')
+          .filter((bike) => ['active', 'reserved'].includes(bike?.status))
           .map((bike) => {
             const location = [bike?.location?.district, bike?.location?.city]
               .filter(Boolean)
@@ -133,6 +166,8 @@ const Marketplace = ({ onNavigate }) => {
               condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
               conditionValue: bike?.condition?.overall || '',
               verified: !!bike?.inspection?.isInspected,
+              status: bike?.status,
+              isReserved: bike?.status === 'reserved',
               rating: bike?.rating || 0,
               reviews: bike?.reviewsCount || 0,
               seller: getSellerName(bike),
@@ -155,6 +190,22 @@ const Marketplace = ({ onNavigate }) => {
 
     fetchBikes();
   }, []);
+
+  useEffect(() => {
+    const fetchFavourites = async () => {
+      if (!currentUserId) return;
+      try {
+        const res = await favouriteApi.getFavouriteBicycles(currentUserId);
+        const data = res?.data?.data || res?.data || [];
+        const ids = data.map((item) => item?._id || item?.id).filter(Boolean);
+        setFavouriteIds(ids);
+      } catch (err) {
+        console.error('Fetch favourites error:', err);
+      }
+    };
+
+    fetchFavourites();
+  }, [currentUserId]);
 
   // Filter bikes based on selected filters
   const getFilteredBikes = () => {
@@ -806,8 +857,19 @@ const Marketplace = ({ onNavigate }) => {
                           </Badge>
                         )}
 
+                        {bike.isReserved && (
+                          <Badge
+                            variant="warning"
+                            className="absolute top-3 left-3 shadow-lg backdrop-blur-sm"
+                          >
+                            Đã đặt cọc
+                          </Badge>
+                        )}
+
                         {bike.oldPrice && (
-                          <div className="absolute top-3 left-3">
+                          <div
+                            className={`absolute ${bike.isReserved ? 'top-12' : 'top-3'} left-3`}
+                          >
                             <span className="px-3 py-1.5 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg">
                               -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
                             </span>
@@ -816,14 +878,16 @@ const Marketplace = ({ onNavigate }) => {
 
                         <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                            className="flex-1 px-3 py-2 bg-white/95 backdrop-blur-sm rounded-xl hover:bg-white transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-lg"
+                            onClick={(e) => handleFavouriteToggle(e, bike)}
+                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-xl transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-lg ${
+                              isFavourite(bike.id)
+                                ? 'bg-rose-500 text-white hover:bg-rose-600'
+                                : 'bg-white/95 hover:bg-white'
+                            }`}
                           >
                             <svg
                               className="w-4 h-4"
-                              fill="none"
+                              fill={isFavourite(bike.id) ? 'currentColor' : 'none'}
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
@@ -834,7 +898,7 @@ const Marketplace = ({ onNavigate }) => {
                                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                               />
                             </svg>
-                            Yêu thích
+                            {isFavourite(bike.id) ? 'Đã thích' : 'Yêu thích'}
                           </button>
                           <button
                             onClick={(e) => handleCompareToggle(e, bike)}
@@ -974,8 +1038,18 @@ const Marketplace = ({ onNavigate }) => {
                               ✓
                             </Badge>
                           )}
+                          {bike.isReserved && (
+                            <Badge
+                              variant="warning"
+                              className="absolute top-2 left-2 text-xs shadow-lg"
+                            >
+                              Đã đặt cọc
+                            </Badge>
+                          )}
                           {bike.oldPrice && (
-                            <div className="absolute top-2 left-2">
+                            <div
+                              className={`absolute ${bike.isReserved ? 'top-10' : 'top-2'} left-2`}
+                            >
                               <span className="px-2.5 py-1 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg">
                                 -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
                               </span>

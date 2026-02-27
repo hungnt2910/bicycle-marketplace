@@ -78,25 +78,33 @@ const ManageListings = () => {
   const statusOptions = [
     { value: 'all', label: 'Tất cả trạng thái' },
     { value: 'active', label: 'Đang bán' },
-    { value: 'pending', label: 'Chờ duyệt' },
+    { value: 'reserved', label: 'Đã đặt cọc' },
+    { value: 'pending_review', label: 'Chờ duyệt' },
+    { value: 'hidden', label: 'Đã ẩn' },
+    { value: 'rejected', label: 'Bị từ chối' },
     { value: 'sold', label: 'Đã bán' },
-    { value: 'expired', label: 'Hết hạn' },
   ];
 
   const getStatusBadge = (status) => {
     const variants = {
       active: 'success',
-      pending: 'warning',
+      reserved: 'info',
+      pending_review: 'warning',
+      hidden: 'default',
+      rejected: 'danger',
       sold: 'default',
-      expired: 'danger',
+      draft: 'default',
     };
     const labels = {
       active: 'Đang bán',
-      pending: 'Chờ duyệt',
+      reserved: 'Đã đặt cọc',
+      pending_review: 'Chờ duyệt',
+      hidden: 'Đã ẩn',
+      rejected: 'Bị từ chối',
       sold: 'Đã bán',
-      expired: 'Hết hạn',
+      draft: 'Nháp',
     };
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+    return <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>;
   };
 
   const filteredListings = listings.filter((l) => {
@@ -145,15 +153,15 @@ const ManageListings = () => {
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Chờ duyệt</div>
-          <div className="text-2xl font-bold text-warning-600">
-            {listings.filter((l) => l.status === 'pending').length}
+          <div className="text-sm text-neutral-600 mb-1">Đã đặt cọc</div>
+          <div className="text-2xl font-bold text-info-600">
+            {listings.filter((l) => l.status === 'reserved').length}
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Đã bán</div>
-          <div className="text-2xl font-bold text-neutral-600">
-            {listings.filter((l) => l.status === 'sold').length}
+          <div className="text-sm text-neutral-600 mb-1">Chờ duyệt</div>
+          <div className="text-2xl font-bold text-warning-600">
+            {listings.filter((l) => l.status === 'pending_review').length}
           </div>
         </Card>
       </div>

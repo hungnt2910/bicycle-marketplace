@@ -1,16 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Badge, Rating, Button, ImageGallery, Avatar, Modal } from '../../components/ui';
 import bicycleApi from '../../api/postNewsApi';
 import authApi from '../../api/authApi';
+import favouriteApi from '../../api/favouriteApi';
+import paymentApi from '../../api/paymentApi';
+import transactionApi from '../../api/transactionApi';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
 
 const ProductDetail = ({ productId }) => {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState(50);
+  const { isAuthenticated, user } = useAuth();
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [similarBikes, setSimilarBikes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [paymentUrl, setPaymentUrl] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const MAX_PAYMENT_AMOUNT = 1000000000; // 1 tỷ VND - giới hạn an toàn cho ZaloPay
 
   const typeLabelMap = {
     mountain: 'Xe đạp địa hình',
@@ -30,141 +42,284 @@ const ProductDetail = ({ productId }) => {
     poor: 'Cần sửa chữa',
   };
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (!productId) return;
-      setLoading(true);
-      setError('');
+  const currentUserId =
+    user?._id || user?.id || user?.userId || user?.user?.id || user?.user?.userId;
 
+  const productStatus = (product?.status || '').toLowerCase();
+  const isReserved =
+    product?.isReserved ||
+    ['reserved', 'pending_payment', 'payment_received', 'held_in_escrow'].includes(productStatus);
+  const isSold = product?.isSold || ['sold', 'inactive', 'deactivated'].includes(productStatus);
+  const isUnavailable = isReserved || isSold;
+
+  const pollPaymentStatus = async (txId) => {
+    const MAX_ATTEMPTS = 6;
+    const DELAY_MS = 3000;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       try {
-        const response = await bicycleApi.getBicycleById(productId);
-        const bike = response?.data?.data || response?.data;
-
-        if (!bike) {
-          setError('Không tìm thấy sản phẩm');
-          setProduct(null);
-          return;
-        }
-
-        const location = [bike?.location?.district, bike?.location?.city]
-          .filter(Boolean)
-          .join(', ');
-
-        const images = bike?.media?.images?.length
-          ? bike.media.images
-          : bike?.media?.mainImage
-            ? [bike.media.mainImage]
-            : [];
-
-        const profileResponse = await authApi.profile().catch(() => null);
-        const profile = profileResponse?.data?.data || null;
-        const profileFullName = profile
-          ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
-          : '';
-
-        const sellerProfile = bike?.seller?.profile || bike?.sellerProfile || bike?.profile;
-        const sellerProfileName = sellerProfile
-          ? `${sellerProfile.firstName || ''} ${sellerProfile.lastName || ''}`.trim()
-          : '';
-        const sellerFromId = bike?.sellerId;
-        const sellerIdName = sellerFromId
-          ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
-          : '';
-
-        const mappedProduct = {
-          id: bike?._id || bike?.id,
-          name: bike?.title || 'Không có tiêu đề',
-          price: bike?.price || 0,
-          oldPrice: bike?.oldPrice,
-          images,
-          description: bike?.description || 'Chưa có mô tả',
-          verified: !!bike?.inspection?.isInspected,
-          rating: bike?.rating || 0,
-          reviews: bike?.reviewsCount || 0,
-          condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
-          location: location || '—',
-          views: bike?.views || 0,
-          seller: {
-            name:
-              sellerIdName ||
-              sellerProfileName ||
-              bike?.seller?.fullName ||
-              bike?.sellerName ||
-              profileFullName ||
-              'Người bán',
-            avatar: sellerFromId?.avatar || bike?.seller?.avatar || null,
-            rating: bike?.seller?.rating || 0,
-            responseTime: bike?.seller?.responseTime || '—',
-            successRate: bike?.seller?.successRate ? `${bike.seller.successRate}%` : '—',
-            totalSales: bike?.seller?.totalSales || 0,
-            phone:
-              sellerFromId?.phone ||
-              bike?.seller?.phone ||
-              bike?.seller?.phoneNumber ||
-              bike?.sellerPhone ||
-              profile?.phone ||
-              '—',
-            email:
-              sellerFromId?.email ||
-              bike?.seller?.email ||
-              bike?.sellerEmail ||
-              profile?.email ||
-              '—',
-          },
-          specs: {
-            'Loại xe': typeLabelMap[bike?.specifications?.type] || '—',
-            'Thương hiệu': bike?.specifications?.brand || '—',
-            'Năm sản xuất': bike?.specifications?.year || '—',
-            'Kích thước khung': bike?.specifications?.frameSize || '—',
-            'Chất liệu khung': bike?.specifications?.frameMaterial || '—',
-            'Hệ thống treo': bike?.specifications?.suspension || '—',
-            Phanh: bike?.specifications?.brakeType || '—',
-            'Bộ truyền động': bike?.specifications?.gears || '—',
-            'Bánh xe': bike?.specifications?.wheelSize || '—',
-            'Trọng lượng': bike?.specifications?.weight || '—',
-          },
-          inspectionReport: bike?.inspection?.isInspected
-            ? {
-                score: bike?.inspection?.score || 0,
-                date: bike?.inspection?.inspectionDate
-                  ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
-                  : '—',
-                inspector: bike?.inspection?.inspectorName || '—',
-                notes: bike?.inspection?.label || 'Đã kiểm định',
-              }
-            : null,
-          rawType: bike?.specifications?.type || '',
-        };
-
-        setProduct(mappedProduct);
-
-        const allResponse = await bicycleApi.getAllBicycles();
-        const allData = allResponse?.data?.data || allResponse?.data || [];
-        const related = allData
-          .filter((item) => item?.status === 'active')
-          .filter((item) => (item?._id || item?.id) !== mappedProduct.id)
-          .filter((item) => item?.specifications?.type === mappedProduct.rawType)
-          .slice(0, 4)
-          .map((item) => ({
-            id: item?._id || item?.id,
-            name: item?.title || 'Không có tiêu đề',
-            price: item?.price || 0,
-            image: item?.media?.mainImage || item?.media?.images?.[0] || '',
-          }));
-
-        setSimilarBikes(related);
-        setReviews(bike?.reviews || []);
+        const res = await paymentApi.getPaymentStatus(txId);
+        const rawStatus =
+          res?.data?.data?.status || res?.data?.status || res?.data?.data?.paymentStatus;
+        const status = (rawStatus || '').toLowerCase();
+        if (['paid', 'success', 'completed', 'payment_received', 'held_in_escrow'].includes(status))
+          return 'paid';
+        if (['failed', 'cancelled', 'canceled', 'payment_failed'].includes(status)) return 'failed';
       } catch (err) {
-        console.error('Error fetching product detail:', err);
-        setError('Không thể tải dữ liệu sản phẩm');
+        console.error('Poll payment status error:', err);
+      }
+    }
+    return 'pending';
+  };
+
+  const handleBuyNow = async (isDeposit = false) => {
+    try {
+      if (!product) return;
+      if (!isAuthenticated) {
+        toast.info('Vui lòng đăng nhập để mua hàng');
+        return;
+      }
+      const bikeId = product.id;
+      const rawAmount = isDeposit
+        ? Number(((product.price || 0) * depositAmount) / 100)
+        : Number(product.price || 0);
+      if (!bikeId || !rawAmount) {
+        toast.error('Thiếu thông tin sản phẩm để thanh toán');
+        return;
+      }
+
+      if (rawAmount > MAX_PAYMENT_AMOUNT) {
+        toast.error('Số tiền vượt giới hạn thanh toán cho phép');
+        return;
+      }
+
+      const amount = Math.round(rawAmount); // ZaloPay cần số nguyên VND
+
+      setPaying(true);
+      setPaymentStatus('');
+      setPaymentUrl('');
+      setTransactionId('');
+
+      const transactionPayload = {
+        bicycleId: bikeId,
+        amount,
+        type: isDeposit ? 'deposit' : 'full_payment',
+        paymentMethod: 'e_wallet',
+      };
+
+      const txRes = await transactionApi.create(transactionPayload);
+      const txData = txRes?.data?.data || txRes?.data;
+
+      // BE trả về trực tiếp order_url/app_trans_id từ ZaloPay; transactionId có thể không nằm trong body
+      const txId = txData?.transactionId || txData?._id || txData?.id || txData?.app_trans_id;
+      const directPayUrl = txData?.order_url || txData?.orderUrl;
+      setTransactionId(txId || '');
+      if (txId) localStorage.setItem('pendingTransactionId', txId);
+
+      if (directPayUrl) {
+        setPaymentUrl(directPayUrl);
+        window.open(directPayUrl, '_blank', 'noopener');
+      } else {
+        // Fallback: tự tạo order nếu BE không trả order_url
+        const zaloRes = await paymentApi.createZaloPayOrder(txId);
+        const zaloData = zaloRes?.data?.data || zaloRes?.data;
+        const payUrl = zaloData?.orderUrl || zaloData?.payUrl || zaloData?.deeplink;
+        if (!payUrl) throw new Error('Không lấy được link thanh toán');
+        setPaymentUrl(payUrl);
+        window.open(payUrl, '_blank', 'noopener');
+      }
+
+      if (txId) {
+        const status = await pollPaymentStatus(txId);
+        setPaymentStatus(status);
+        if (status === 'paid') {
+          toast.success('Thanh toán thành công');
+          fetchProduct(); // cập nhật trạng thái xe (reserved/sold)
+        } else if (status === 'failed') {
+          toast.error('Thanh toán thất bại hoặc bị hủy');
+        } else {
+          toast.info('Thanh toán đang chờ xác nhận');
+        }
+      } else {
+        toast.info('Đã mở trang thanh toán. Vui lòng kiểm tra trạng thái sau ít phút.');
+      }
+    } catch (err) {
+      console.error('Buy now error:', err);
+      toast.error(err.response?.data?.message || err.message || 'Không thể tạo giao dịch');
+    } finally {
+      setPaying(false);
+      if (isDeposit) setShowDepositModal(false);
+    }
+  };
+
+  const handleFavouriteToggle = async () => {
+    if (!productId) return;
+    if (!isAuthenticated || !currentUserId) {
+      toast.info('Vui lòng đăng nhập để lưu tin yêu thích');
+      return;
+    }
+
+    try {
+      if (isFavourite) {
+        await favouriteApi.removeOneFromFavourites({ userId: currentUserId, bicycleId: productId });
+        setIsFavourite(false);
+        toast.success('Đã bỏ khỏi yêu thích');
+      } else {
+        await favouriteApi.addToFavourites({ userId: currentUserId, bicycleId: productId });
+        setIsFavourite(true);
+        toast.success('Đã thêm vào yêu thích');
+      }
+    } catch (err) {
+      console.error('Toggle favourite error:', err);
+      toast.error('Không thể cập nhật yêu thích, thử lại sau');
+    }
+  };
+
+  const fetchProduct = useCallback(async () => {
+    if (!productId) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await bicycleApi.getBicycleById(productId);
+      const bike = response?.data?.data || response?.data;
+
+      if (!bike) {
+        setError('Không tìm thấy sản phẩm');
         setProduct(null);
-      } finally {
-        setLoading(false);
+        return;
+      }
+
+      const location = [bike?.location?.district, bike?.location?.city].filter(Boolean).join(', ');
+
+      const images = bike?.media?.images?.length
+        ? bike.media.images
+        : bike?.media?.mainImage
+          ? [bike.media.mainImage]
+          : [];
+
+      const sellerProfile = bike?.seller?.profile || bike?.sellerProfile || bike?.profile;
+      const sellerProfileName = sellerProfile
+        ? `${sellerProfile.firstName || ''} ${sellerProfile.lastName || ''}`.trim()
+        : '';
+      const sellerFromId = bike?.sellerId;
+      const sellerIdName = sellerFromId
+        ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
+        : '';
+
+      const statusRaw = (bike?.status || '').toLowerCase();
+      const mappedProduct = {
+        id: bike?._id || bike?.id,
+        name: bike?.title || 'Không có tiêu đề',
+        price: bike?.price || 0,
+        oldPrice: bike?.oldPrice,
+        images,
+        description: bike?.description || 'Chưa có mô tả',
+        verified: !!bike?.inspection?.isInspected,
+        rating: bike?.rating || 0,
+        reviews: bike?.reviewsCount || 0,
+        condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
+        location: location || '—',
+        views: bike?.views || 0,
+        status: bike?.status || 'unknown',
+        isReserved: ['reserved', 'pending_payment', 'payment_received', 'held_in_escrow'].includes(
+          statusRaw
+        ),
+        isSold: ['sold', 'inactive', 'deactivated'].includes(statusRaw),
+        seller: {
+          name:
+            sellerIdName ||
+            sellerProfileName ||
+            bike?.seller?.fullName ||
+            bike?.sellerName ||
+            'Người bán',
+          avatar: sellerFromId?.avatar || bike?.seller?.avatar || null,
+          rating: bike?.seller?.rating || 0,
+          responseTime: bike?.seller?.responseTime || '—',
+          successRate: bike?.seller?.successRate ? `${bike.seller.successRate}%` : '—',
+          totalSales: bike?.seller?.totalSales || 0,
+          phone:
+            sellerFromId?.phone ||
+            bike?.seller?.phone ||
+            bike?.seller?.phoneNumber ||
+            bike?.sellerPhone ||
+            '—',
+          email: sellerFromId?.email || bike?.seller?.email || bike?.sellerEmail || '—',
+        },
+        specs: {
+          'Loại xe': typeLabelMap[bike?.specifications?.type] || '—',
+          'Thương hiệu': bike?.specifications?.brand || '—',
+          'Năm sản xuất': bike?.specifications?.year || '—',
+          'Kích thước khung': bike?.specifications?.frameSize || '—',
+          'Chất liệu khung': bike?.specifications?.frameMaterial || '—',
+          'Hệ thống treo': bike?.specifications?.suspension || '—',
+          Phanh: bike?.specifications?.brakeType || '—',
+          'Bộ truyền động': bike?.specifications?.gears || '—',
+          'Bánh xe': bike?.specifications?.wheelSize || '—',
+          'Trọng lượng': bike?.specifications?.weight || '—',
+        },
+        inspectionReport: bike?.inspection?.isInspected
+          ? {
+              score: bike?.inspection?.score || 0,
+              date: bike?.inspection?.inspectionDate
+                ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
+                : '—',
+              inspector: bike?.inspection?.inspectorName || '—',
+              notes: bike?.inspection?.label || 'Đã kiểm định',
+            }
+          : null,
+        rawType: bike?.specifications?.type || '',
+      };
+
+      setProduct(mappedProduct);
+
+      const allResponse = await bicycleApi.getAllBicycles();
+      const allData = allResponse?.data?.data || allResponse?.data || [];
+      const related = allData
+        .filter((item) => ['active', 'reserved'].includes(item?.status))
+        .filter((item) => (item?._id || item?.id) !== mappedProduct.id)
+        .filter((item) => item?.specifications?.type === mappedProduct.rawType)
+        .slice(0, 4)
+        .map((item) => ({
+          id: item?._id || item?.id,
+          name: item?.title || 'Không có tiêu đề',
+          price: item?.price || 0,
+          image: item?.media?.mainImage || item?.media?.images?.[0] || '',
+        }));
+
+      setSimilarBikes(related);
+      setReviews(bike?.reviews || []);
+    } catch (err) {
+      console.error('Error fetching product detail:', err);
+      setError('Không thể tải dữ liệu sản phẩm');
+      setProduct(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [fetchProduct]);
+
+  useEffect(() => {
+    const checkFavourite = async () => {
+      if (!isAuthenticated || !currentUserId || !productId) {
+        setIsFavourite(false);
+        return;
+      }
+      try {
+        const res = await favouriteApi.getFavouriteBicycles(currentUserId);
+        const data = res?.data?.data || res?.data || [];
+        const ids = data.map((item) => item?._id || item?.id).filter(Boolean);
+        setIsFavourite(ids.includes(productId));
+      } catch (err) {
+        console.error('Check favourite error:', err);
       }
     };
 
-    fetchProduct();
-  }, [productId]);
+    checkFavourite();
+  }, [isAuthenticated, currentUserId, productId]);
 
   if (loading) {
     return (
@@ -549,19 +704,47 @@ const ProductDetail = ({ productId }) => {
 
                 {/* Action Buttons */}
                 <div className="px-6 pb-6 space-y-3">
+                  {isReserved && (
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold">
+                      Xe đang được đặt cọc. Vui lòng quay lại sau hoặc chọn xe khác.
+                    </div>
+                  )}
+                  {isSold && (
+                    <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold">
+                      Xe đã bán/không còn giao dịch.
+                    </div>
+                  )}
+                  <button
+                    onClick={handleBuyNow}
+                    disabled={paying || isUnavailable}
+                    className="w-full px-6 py-4 bg-themePrimary text-white font-bold rounded-xl hover:bg-themePrimary/90 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-themePrimary/25 hover:shadow-xl hover:shadow-themePrimary/30"
+                  >
+                    {paying ? 'Đang xử lý...' : 'Mua ngay'}
+                  </button>
+
                   <button
                     onClick={() => setShowDepositModal(true)}
-                    className="w-full px-6 py-4 bg-themePrimary text-white font-bold rounded-xl hover:bg-themePrimary/90 transition-all duration-200 shadow-lg shadow-themePrimary/25 hover:shadow-xl hover:shadow-themePrimary/30"
+                    disabled={isUnavailable}
+                    className="w-full px-6 py-4 bg-white border-2 border-emerald-200 text-emerald-700 font-semibold rounded-xl hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200"
                   >
-                    Đặt cọc ngay
+                    Đặt cọc
                   </button>
 
                   <button className="w-full px-6 py-4 bg-white border-2 border-themePrimary text-themePrimary font-bold rounded-xl hover:bg-themePrimary/5 transition-all duration-200">
                     Chat với người bán
                   </button>
 
-                  <Button variant="primary" className="w-full py-3 font-semibold rounded-xl">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <Button
+                    variant="primary"
+                    className="w-full py-3 font-semibold rounded-xl"
+                    onClick={handleFavouriteToggle}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill={isFavourite ? 'currentColor' : 'none'}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -569,8 +752,27 @@ const ProductDetail = ({ productId }) => {
                         d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                       />
                     </svg>
-                    Thêm vào yêu thích
+                    {isFavourite ? 'Đã yêu thích' : 'Thêm vào yêu thích'}
                   </Button>
+
+                  {(transactionId || paymentStatus || paymentUrl) && (
+                    <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200 text-sm text-neutral-700 space-y-1">
+                      {transactionId && (
+                        <div>
+                          Mã giao dịch: <span className="font-semibold">{transactionId}</span>
+                        </div>
+                      )}
+                      {paymentStatus && (
+                        <div>
+                          Trạng thái thanh toán:{' '}
+                          <span className="font-semibold">{paymentStatus}</span>
+                        </div>
+                      )}
+                      {paymentUrl && (
+                        <div className="break-all text-themePrimary">{paymentUrl}</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -872,8 +1074,12 @@ const ProductDetail = ({ productId }) => {
             >
               Hủy
             </button>
-            <button className="flex-1 px-6 py-3 bg-themePrimary text-white font-bold rounded-xl hover:bg-themePrimary/90 transition-all shadow-lg shadow-themePrimary/25">
-              Xác nhận đặt cọc
+            <button
+              onClick={() => handleBuyNow(true)}
+              disabled={paying}
+              className="flex-1 px-6 py-3 bg-themePrimary text-white font-bold rounded-xl hover:bg-themePrimary/90 transition-all shadow-lg shadow-themePrimary/25 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {paying ? 'Đang xử lý...' : 'Xác nhận đặt cọc'}
             </button>
           </div>
         }

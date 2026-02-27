@@ -32,6 +32,7 @@ const Header = ({
       return [
         { label: 'Trang chủ', page: 'landing' },
         { label: 'Marketplace', page: 'marketplace' },
+        { label: 'Yêu thích', page: 'favorites' },
         { label: 'Dashboard', page: 'dashboard' },
         { label: 'Tài khoản', page: 'profile' },
       ];
@@ -150,7 +151,7 @@ const Header = ({
               {role === 'buyer' && isAuthenticated && (
                 <button
                   className="relative p-1.5 lg:p-2 hover:bg-neutral-50 rounded-xl transition-colors group hidden md:flex"
-                  onClick={() => handleNavigate('wishlist')}
+                  onClick={() => handleNavigate('favorites')}
                 >
                   <svg
                     className="w-4 h-4 lg:w-5 lg:h-5 text-neutral-600 group-hover:text-rose-500 transition-colors"

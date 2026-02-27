@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import bicycleApi from '../../api/postNewsApi';
 import adminApi from '../../api/adminApi';
+import paymentApi from '../../api/paymentApi';
+import transactionApi from '../../api/transactionApi';
+import cloudinaryApi from '../../api/cloudinaryApi';
 import { toast } from 'react-toastify';
 import { Button, Card, Input, Select, Textarea } from '../../components/ui';
 
@@ -9,6 +12,7 @@ const CreateListing = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [inspectionType, setInspectionType] = useState('none');
   const [userPostCount, setUserPostCount] = useState(0);
   const [loadingPostCount, setLoadingPostCount] = useState(true);
@@ -132,6 +136,29 @@ const CreateListing = () => {
     fetchCategories();
   }, []);
 
+  const pollPaymentStatus = async (transactionId) => {
+    const MAX_ATTEMPTS = 6;
+    const DELAY_MS = 3000;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+
+      try {
+        const res = await paymentApi.getPaymentStatus(transactionId);
+        const statusRaw =
+          res?.data?.data?.status || res?.data?.status || res?.data?.data?.paymentStatus;
+        const status = (statusRaw || '').toLowerCase();
+
+        if (['paid', 'success', 'completed'].includes(status)) return 'paid';
+        if (['failed', 'cancelled', 'canceled'].includes(status)) return 'failed';
+      } catch (err) {
+        console.error('Poll payment status error:', err);
+      }
+    }
+
+    return 'pending';
+  };
+
   const calculateTotal = () => {
     let total = 0;
     if (!isFirstPost) total += POST_FEE;
@@ -238,6 +265,11 @@ const CreateListing = () => {
       const expiryDate = new Date();
       expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Hết hạn sau 1 năm
 
+      const listingFee = isFirstPost ? 0 : POST_FEE;
+      const inspectionFee = Math.max(calculateTotal() - listingFee, 0);
+      const totalFee = listingFee + inspectionFee;
+      const requiresPayment = !isDraft && totalFee > 0;
+
       const submitData = {
         sellerId,
         title: formData.title,
@@ -283,25 +315,87 @@ const CreateListing = () => {
         },
         status: isDraft ? 'draft' : 'pending_review',
         pricing: {
-          listingFee: isFirstPost ? 0 : POST_FEE,
+          listingFee,
           commissionRate: 0.05, // 5% hoa hồng
-          isPaid: false,
+          isPaid: !requiresPayment,
         },
       };
 
       const response = await bicycleApi.createBicycle(submitData);
+      const createdListing = response?.data?.data || response?.data;
+      const bicycleId =
+        createdListing?._id ||
+        createdListing?.id ||
+        createdListing?.bicycleId ||
+        createdListing?.data?._id ||
+        createdListing?.data?.id;
 
-      if (response.data) {
-        if (isDraft) {
-          toast.success('Lưu nháp thành công!');
-          navigate('/seller/my-listings');
-        } else {
-          toast.success(
-            `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${isFirstPost ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT : ''}`
-          );
-          // Chuyển về trang chủ để xem bài đăng mới
-          navigate('/');
-        }
+      if (!createdListing) {
+        throw new Error('Không thể tạo bài đăng, vui lòng thử lại.');
+      }
+
+      if (isDraft) {
+        toast.success('Lưu nháp thành công!');
+        navigate('/seller/my-listings');
+        return;
+      }
+
+      if (!requiresPayment) {
+        toast.success(
+          `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${isFirstPost ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT : ''}`
+        );
+        navigate('/');
+        return;
+      }
+
+      if (!bicycleId) {
+        throw new Error('Không tìm thấy mã bài đăng để tạo giao dịch thanh toán.');
+      }
+
+      toast.info('Bài đăng cần thanh toán phí. Đang tạo giao dịch...', { autoClose: 2000 });
+
+      const transactionPayload = {
+        bicycleId,
+        amount: totalFee,
+        type: 'full_payment',
+        paymentMethod: 'e_wallet',
+      };
+
+      const transactionRes = await transactionApi.create(transactionPayload);
+      const transactionData = transactionRes?.data?.data || transactionRes?.data;
+      const transactionId =
+        transactionData?.transactionId || transactionData?._id || transactionData?.id;
+
+      if (!transactionId) {
+        throw new Error('Không lấy được transactionId từ API.');
+      }
+
+      localStorage.setItem('pendingTransactionId', transactionId);
+
+      const zaloOrderRes = await paymentApi.createZaloPayOrder(transactionId);
+      const zaloOrder = zaloOrderRes?.data?.data || zaloOrderRes?.data;
+      const paymentUrl = zaloOrder?.orderUrl || zaloOrder?.payUrl || zaloOrder?.deeplink;
+
+      if (!paymentUrl) {
+        throw new Error('Không lấy được link thanh toán ZaloPay.');
+      }
+
+      toast.info('Mở ZaloPay để hoàn tất thanh toán phí đăng bài...', { autoClose: 2500 });
+      window.open(paymentUrl, '_blank', 'noopener');
+
+      const paymentStatus = await pollPaymentStatus(transactionId);
+
+      if (paymentStatus === 'paid') {
+        toast.success(
+          'Thanh toán thành công! Tin đăng sẽ được kích hoạt sau khi hệ thống xác nhận.'
+        );
+        navigate('/seller/my-listings');
+      } else if (paymentStatus === 'failed') {
+        toast.error('Thanh toán thất bại hoặc bị hủy. Bạn có thể thử lại từ trang Quản lý tin.');
+      } else {
+        toast.info(
+          'Thanh toán đang chờ xác nhận. Bạn có thể kiểm tra lại trạng thái trong trang Quản lý tin.'
+        );
       }
     } catch (error) {
       console.error('Error creating bicycle listing:', error);
@@ -311,32 +405,59 @@ const CreateListing = () => {
     }
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
     if (files.length + formData.media.images.length > 10) {
       toast.error('Tối đa 10 hình ảnh');
       return;
     }
 
-    files.forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`File ${file.name} quá lớn (tối đa 5MB)`);
-        return;
-      }
+    setUploadingImages(true);
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          media: {
-            ...prev.media,
-            images: [...prev.media.images, reader.result],
-            mainImage: prev.media.mainImage || reader.result,
-          },
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
+    try {
+      const uploadPromises = files.map(async (file) => {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`File ${file.name} quá lớn (tối đa 5MB)`);
+          return null;
+        }
+
+        const formDataFile = new FormData();
+        formDataFile.append('file', file);
+
+        const res = await cloudinaryApi.uploadImage(formDataFile);
+        const data = res?.data?.data || res?.data;
+        const url = data?.url || data?.secure_url || data?.imageUrl;
+        if (!url) {
+          toast.error(`Không lấy được URL cho ảnh ${file.name}`);
+          return null;
+        }
+        return url;
+      });
+
+      const uploaded = (await Promise.all(uploadPromises)).filter(Boolean);
+
+      if (uploaded.length > 0) {
+        setFormData((prev) => {
+          const newImages = [...prev.media.images, ...uploaded];
+          return {
+            ...prev,
+            media: {
+              ...prev.media,
+              images: newImages,
+              mainImage: prev.media.mainImage || newImages[0],
+            },
+          };
+        });
+        toast.success(`Tải lên ${uploaded.length} ảnh thành công`);
+      }
+    } catch (err) {
+      console.error('Upload image error:', err);
+      toast.error('Tải ảnh thất bại, vui lòng thử lại');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   const removeImage = (index) => {
@@ -623,7 +744,11 @@ const CreateListing = () => {
                 <p className="text-sm font-semibold text-neutral-900 mb-1">
                   Kéo thả hoặc click để upload ảnh
                 </p>
-                <p className="text-xs text-neutral-500">Tối đa 10 ảnh, mỗi ảnh không quá 5MB</p>
+                <p className="text-xs text-neutral-500">
+                  {uploadingImages
+                    ? 'Đang tải ảnh lên Cloudinary...'
+                    : 'Tối đa 10 ảnh, mỗi ảnh không quá 5MB'}
+                </p>
               </label>
 
               {/* Preview Images */}
