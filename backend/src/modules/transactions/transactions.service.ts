@@ -132,10 +132,7 @@ export class TransactionsService {
     });
 
     // 6. Reserve bicycle
-    if (type !== TransactionType.FEE) {
-      bicycle.status = BicycleStatus.RESERVED;
-      await bicycle.save();
-    }
+    
 
     // 7. Send notifications
     // await this.notificationsService.create({
