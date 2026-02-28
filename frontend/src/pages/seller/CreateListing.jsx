@@ -13,7 +13,6 @@ const CreateListing = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [inspectionType, setInspectionType] = useState('none');
   const [userPostCount, setUserPostCount] = useState(0);
   const [loadingPostCount, setLoadingPostCount] = useState(true);
   const [typeOptions, setTypeOptions] = useState([]);
@@ -64,20 +63,12 @@ const CreateListing = () => {
       address: '',
     },
 
-    // Inspection
-    inspection: {
-      isInspected: false,
-      label: '',
-    },
-
     status: 'draft',
   });
 
   const POST_FEE = 15000;
-  const INSPECTION_FEE_OFFLINE = 200000;
   const FREE_POST_LIMIT = 2; // Miễn phí 2 bài đầu
   const isFirstPost = userPostCount < FREE_POST_LIMIT;
-  const isFirstInspection = true; // TODO: Cần kiểm tra từ API
 
   useEffect(() => {
     const fetchUserPostCount = async () => {
@@ -162,7 +153,6 @@ const CreateListing = () => {
   const calculateTotal = () => {
     let total = 0;
     if (!isFirstPost) total += POST_FEE;
-    if (inspectionType === 'offline' && !isFirstInspection) total += INSPECTION_FEE_OFFLINE;
     return total;
   };
 
@@ -261,13 +251,8 @@ const CreateListing = () => {
       }
 
       // Prepare data for API
-      const currentDate = new Date();
-      const expiryDate = new Date();
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Hết hạn sau 1 năm
-
       const listingFee = isFirstPost ? 0 : POST_FEE;
-      const inspectionFee = Math.max(calculateTotal() - listingFee, 0);
-      const totalFee = listingFee + inspectionFee;
+      const totalFee = listingFee;
       const requiresPayment = !isDraft && totalFee > 0;
 
       const submitData = {
@@ -307,12 +292,6 @@ const CreateListing = () => {
           district: formData.location.district || undefined,
           address: formData.location.address || undefined,
         },
-        inspection: {
-          isInspected: inspectionType === 'offline',
-          inspectionDate: inspectionType === 'offline' ? currentDate.toISOString() : undefined,
-          expiryDate: inspectionType === 'offline' ? expiryDate.toISOString() : undefined,
-          label: inspectionType === 'offline' ? 'Verified' : undefined,
-        },
         status: isDraft ? 'draft' : 'pending_review',
         pricing: {
           listingFee,
@@ -342,42 +321,16 @@ if (isDraft) {
   return;
 }
 
-// 🔹 Nếu chọn kiểm định offline thì gửi request
-if (inspectionType === 'offline' && newBicycleId) {
-  try {
-    await bicycleApi.requestInspection({
-      bicycleId: newBicycleId,
-      inspectionType: 'onsite',
-    });
-    console.log('✅ Đã gửi yêu cầu kiểm định cho bicycle:', newBicycleId);
-  } catch (inspectionError) {
-    console.error('❌ Lỗi khi gửi yêu cầu kiểm định:', inspectionError);
-    toast.warning(
-      'Đăng tin thành công nhưng không thể gửi yêu cầu kiểm định. Vui lòng liên hệ hỗ trợ.'
-    );
-  }
-}
-
 // 🔹 Nếu không cần thanh toán
 if (!requiresPayment) {
-  const successMessage =
-    inspectionType === 'offline'
-      ? `Đăng tin thành công! Yêu cầu kiểm định đã được gửi. ${
-          isFirstPost
-            ? '🎉 Miễn phí bài đăng thứ ' +
-              (userPostCount + 1) +
-              '/' +
-              FREE_POST_LIMIT
-            : ''
-        }`
-      : `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${
-          isFirstPost
-            ? '🎉 Miễn phí bài đăng thứ ' +
-              (userPostCount + 1) +
-              '/' +
-              FREE_POST_LIMIT
-            : ''
-        }`;
+  const successMessage = `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${
+    isFirstPost
+      ? '🎉 Miễn phí bài đăng thứ ' +
+        (userPostCount + 1) +
+        '/' +
+        FREE_POST_LIMIT
+      : ''
+  }`;
 
         toast.success(successMessage);
         navigate('/');
@@ -396,54 +349,60 @@ if (!requiresPayment) {
       const transactionPayload = {
         bicycleId: newBicycleId,
         amount: totalFee,
-        type: 'full_payment',
+        type: 'fee',
         paymentMethod: 'e_wallet',
       };
 
       const transactionRes = await transactionApi.create(transactionPayload);
       const transactionData = transactionRes?.data?.data || transactionRes?.data;
-      const transactionId =
-        transactionData?.transactionId ||
-        transactionData?._id ||
-        transactionData?.id;
-
-      if (!transactionId) {
-        throw new Error('Không lấy được transactionId từ API.');
-      }
-
-      localStorage.setItem('pendingTransactionId', transactionId);
-
-      const zaloOrderRes = await paymentApi.createZaloPayOrder(transactionId);
-      const zaloOrder = zaloOrderRes?.data?.data || zaloOrderRes?.data;
-      const paymentUrl =
-        zaloOrder?.orderUrl || zaloOrder?.payUrl || zaloOrder?.deeplink;
+      
+      // Lấy order_url và app_trans_id từ response
+      const paymentUrl = transactionData?.order_url;
+      const appTransId = transactionData?.app_trans_id;
 
       if (!paymentUrl) {
-        throw new Error('Không lấy được link thanh toán ZaloPay.');
+        throw new Error('Không lấy được link thanh toán từ server.');
       }
 
-      toast.info('Mở ZaloPay để hoàn tất thanh toán phí đăng bài...', {
-        autoClose: 2500,
+      if (!appTransId) {
+        throw new Error('Không lấy được mã giao dịch từ server.');
+      }
+
+      // Gọi getMyTransactions để tìm transaction vừa tạo theo app_trans_id
+      let transactionId = null;
+      try {
+        const myTransactionsRes = await transactionApi.getMyTransactions();
+        const transactions = myTransactionsRes?.data?.data || myTransactionsRes?.data || [];
+        
+        // Tìm transaction có payment.transactionId khớp với app_trans_id
+        const foundTransaction = transactions.find(
+          tx => tx.payment?.transactionId === appTransId
+        );
+        
+        if (foundTransaction) {
+          transactionId = foundTransaction._id;
+          console.log('✅ Found transaction ID:', transactionId);
+        } else {
+          console.warn('⚠️ Transaction not found in list, using app_trans_id');
+          transactionId = appTransId; // Fallback to app_trans_id
+        }
+      } catch (error) {
+        console.warn('⚠️ Error getting transactions, using app_trans_id:', error);
+        transactionId = appTransId; // Fallback to app_trans_id
+      }
+
+      // Lưu transaction ID để kiểm tra sau
+      localStorage.setItem('pendingTransactionId', transactionId);
+      localStorage.setItem('pendingBicycleId', newBicycleId);
+
+      // Chuyển hướng sang trang thanh toán ZaloPay
+      toast.success('Đang chuyển đến trang thanh toán...', {
+        autoClose: 1500,
       });
 
-      window.open(paymentUrl, '_blank', 'noopener');
-
-      const paymentStatus = await pollPaymentStatus(transactionId);
-
-      if (paymentStatus === 'paid') {
-        toast.success(
-          'Thanh toán thành công! Tin đăng sẽ được kích hoạt sau khi hệ thống xác nhận.'
-        );
-        navigate('/seller/my-listings');
-      } else if (paymentStatus === 'failed') {
-        toast.error(
-          'Thanh toán thất bại hoặc bị hủy. Bạn có thể thử lại từ trang Quản lý tin.'
-        );
-      } else {
-        toast.info(
-          'Thanh toán đang chờ xác nhận. Bạn có thể kiểm tra lại trạng thái trong trang Quản lý tin.'
-        );
-      }
+      setTimeout(() => {
+        window.location.href = paymentUrl;
+      }, 1500);
     } catch (error) {
       console.error('Error creating bicycle listing:', error);
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
@@ -889,70 +848,6 @@ if (!requiresPayment) {
               />
             </div>
 
-            {/* Inspection Options */}
-            <div className="bg-gradient-to-br from-accent/5 to-themePrimary/5 rounded-xl p-6 border border-accent/20">
-              <h3 className="text-lg font-bold text-neutral-900 mb-1 flex items-center gap-2">
-                <span>✅</span>
-                Yêu cầu kiểm định (Tăng uy tín)
-              </h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                Xe được kiểm định sẽ có tỷ lệ bán cao hơn 73%
-              </p>
-
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 p-4 border-2 border-neutral-200 bg-white rounded-xl cursor-pointer hover:border-themePrimary hover:shadow-md transition-all">
-                  <input
-                    type="radio"
-                    name="inspection"
-                    value="none"
-                    checked={inspectionType === 'none'}
-                    onChange={() => setInspectionType('none')}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="font-bold text-neutral-900">Không kiểm định</div>
-                    <div className="text-xs text-neutral-500 mt-1">
-                      Người mua có thể e ngại về chất lượng xe
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-start gap-3 p-4 border-2 border-accent/30 bg-white rounded-xl cursor-pointer hover:border-accent hover:shadow-md transition-all">
-                  <input
-                    type="radio"
-                    name="inspection"
-                    value="offline"
-                    checked={inspectionType === 'offline'}
-                    onChange={() => setInspectionType('offline')}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="font-bold text-neutral-900 flex items-center gap-2 flex-wrap">
-                      <span>Kiểm định tận nơi (Offline)</span>
-                      {isFirstInspection && (
-                        <span className="bg-accent/20 text-accent text-xs px-2.5 py-0.5 rounded-full font-bold">
-                          MIỄN PHÍ LẦN ĐẦU
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-neutral-600 mt-1">
-                      Kiểm định viên đến nhà kiểm tra chi tiết. Phí thường: 200,000₫
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-accent font-medium">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span>Được ưu tiên hiển thị</span>
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
             {/* Price Summary */}
             <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl p-6 border border-neutral-200">
               <h3 className="text-lg font-bold text-neutral-900 mb-4">Tổng kết chi phí</h3>
@@ -974,20 +869,6 @@ if (!requiresPayment) {
                       </span>
                     ) : (
                       <span className="text-neutral-900">{POST_FEE.toLocaleString()}₫</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-neutral-200">
-                  <span className="text-sm text-neutral-600">Phí kiểm định</span>
-                  <span className="font-semibold">
-                    {inspectionType === 'offline' && isFirstInspection ? (
-                      <span className="text-accent">Miễn phí</span>
-                    ) : inspectionType === 'offline' ? (
-                      <span className="text-neutral-900">
-                        {INSPECTION_FEE_OFFLINE.toLocaleString()}₫
-                      </span>
-                    ) : (
-                      <span className="text-neutral-600">0₫</span>
                     )}
                   </span>
                 </div>
