@@ -142,6 +142,12 @@ export class PaymentService {
       }
 
       // 6. Reserve bicycle
+      
+
+      transaction.status = TransactionStatus.PAYMENT_RECEIVED;
+
+      await transaction.save();
+
       if (transaction.type !== TransactionType.FEE && transaction.type !== TransactionType.INSPECTION_FEE) {
         const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
         if (!bicycle) {
@@ -151,8 +157,6 @@ export class PaymentService {
         await bicycle.save();
       }
 
-      transaction.status = TransactionStatus.PAYMENT_RECEIVED;
-
       if (transaction.type === TransactionType.FEE || transaction.type === TransactionType.INSPECTION_FEE) {
         transaction.status = TransactionStatus.COMPLETED;
 
@@ -161,7 +165,7 @@ export class PaymentService {
         this.logger.log(
           `ZaloPay fee transaction ${transactionId} marked as completed`,
         );
-      } else {
+      } else if(transaction.type === TransactionType.DEPOSIT) {
         // Hold in escrow
         await this.walletService.holdInEscrow(
           transaction.buyerId.toString(),
