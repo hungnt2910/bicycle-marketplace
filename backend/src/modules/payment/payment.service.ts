@@ -49,7 +49,7 @@ export class PaymentService {
       throw new BadRequestException('Transaction not found');
     }
 
-    if (transaction.status !== TransactionStatus.PENDING_PAYMENT) {
+    if (transaction.status !== TransactionStatus.PENDING_PAYMENT && transaction.status !== TransactionStatus.DEPOSIT_PAID) {
       throw new BadRequestException('Transaction is not pending payment');
     }
 
