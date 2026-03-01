@@ -165,7 +165,7 @@ export class PaymentService {
         this.logger.log(
           `ZaloPay fee transaction ${transactionId} marked as completed`,
         );
-      } else if (transaction.type === TransactionType.DEPOSIT) {
+      } else if (transaction.type === TransactionType.DEPOSIT && transaction.status === TransactionStatus.PENDING_PAYMENT) {
         // Hold in escrow
         this.transactionsService.confirmDepositPayment(transactionId, {
           transactionId: transactionId,
