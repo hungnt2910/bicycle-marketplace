@@ -22,6 +22,7 @@ import {
 import { PaymentService } from '../payment/payment.service';
 import { ZaloPayService } from '../payment/zalopay/zalopay.service';
 import { PaymentModule } from '../payment/payment.module';
+import { TransactionsScheduler } from './transactions.scheduler';
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { PaymentModule } from '../payment/payment.module';
     ConfigService,
     WalletService,
     PaymentService,
-    ZaloPayService
+    ZaloPayService,
+    TransactionsScheduler
   ],
   controllers: [TransactionsController],
 })

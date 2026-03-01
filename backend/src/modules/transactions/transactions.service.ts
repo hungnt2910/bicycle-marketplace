@@ -26,6 +26,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { WalletTransactionType } from 'src/entities/wallet-transaction.entity';
 import { PaymentService } from '../payment/payment.service';
+import { CreateDepositDto } from './dto/create-deposit.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -922,4 +923,239 @@ export class TransactionsService {
       averageHoldTimeDays,
     };
   }
+
+  /**
+ * DEPOSIT STEP 1: Buyer pays deposit to reserve bicycle
+ * - Calculates deposit amount (default 20% of bike price)
+ * - Creates a DEPOSIT transaction
+ * - Sets a 3-day deadline for full payment
+ * - Reserves the bicycle
+ */
+async createDepositTransaction(
+  buyerId: string,
+  dto: CreateDepositDto,
+): Promise<any> {
+  const { bicycleId, depositRate = 0.2, paymentMethod } = dto;
+
+  // 1. Verify bicycle
+  const bicycle = await this.bicycleModel.findById(bicycleId);
+  if (!bicycle) throw new BadRequestException('Bicycle not found');
+  if (bicycle.status !== 'active') {
+    throw new BadRequestException('Bicycle is not available');
+  }
+
+  // 2. Check no existing active transaction
+  const existing = await this.transactionModel.findOne({
+    bicycleId,
+    status: { $in: ['deposit_paid', 'payment_received', 'held_in_escrow', 'awaiting_delivery', 'delivered'] },
+  });
+  if (existing) {
+    throw new BadRequestException('Bicycle is already reserved or sold');
+  }
+
+  // 3. Calculate amounts
+  const bicyclePrice = bicycle.price; // or however price is stored
+  const depositAmount = Math.round(bicyclePrice * depositRate);
+  const remainingAmount = bicyclePrice - depositAmount;
+
+  // 4. Set 3-day deadline
+  const paymentDeadline = new Date();
+  paymentDeadline.setDate(paymentDeadline.getDate() + 3);
+
+  // 5. Create transaction
+  const transaction = await this.transactionModel.create({
+    buyerId,
+    sellerId: bicycle.sellerId,
+    bicycleId,
+    type: TransactionType.DEPOSIT,
+    amount: bicyclePrice,         // total price of bike
+    status: TransactionStatus.PENDING_PAYMENT,
+    deposit: {
+      amount: depositAmount,
+      rate: depositRate,
+      paymentDeadline,
+      forfeited: false,
+      remainingAmount,
+    },
+    payment: {
+      method: paymentMethod,
+    },
+    escrow: {
+      heldAmount: depositAmount,  // only deposit in escrow initially
+      autoReleaseDeadline: paymentDeadline,
+    },
+    buyerConfirmation: { confirmed: false },
+  });
+
+  // 7. Initiate payment for deposit amount only
+  return this.paymentService.createZaloPayPayment(
+    transaction._id.toString(),
+    buyerId,
+    depositAmount, // pass the deposit amount, not full price
+  );
+}
+
+/**
+ * DEPOSIT STEP 2: Confirm deposit payment received
+ */
+async confirmDepositPayment(
+  transactionId: string,
+  paymentData: { transactionId: string },
+): Promise<Transaction> {
+  const transaction: any = await this.transactionModel.findById(transactionId);
+  if (!transaction) throw new BadRequestException('Transaction not found');
+  if (transaction.status !== TransactionStatus.PENDING_PAYMENT) {
+    throw new BadRequestException('Invalid transaction status');
+  }
+
+  transaction.status = TransactionStatus.DEPOSIT_PAID;
+  transaction.deposit.paidAt = new Date();
+  transaction.payment.transactionId = paymentData.transactionId;
+  transaction.payment.paidAt = new Date();
+
+  await transaction.save();
+
+  // Hold deposit in buyer's escrow
+  await this.walletService.holdInEscrow(
+    transaction.buyerId.toString(),
+    transaction.deposit.amount,
+    transactionId,
+  );
+
+  // Notify buyer of 3-day deadline
+  // await this.notificationsService.create({ ... });
+
+  return transaction;
+}
+
+/**
+ * DEPOSIT STEP 3: Buyer pays remaining balance within 3 days
+ */
+async payRemainingBalance(
+  transactionId: string,
+  buyerId: string,
+): Promise<any> {
+  const transaction = await this.transactionModel.findById(transactionId);
+  if (!transaction) throw new BadRequestException('Transaction not found');
+
+  if (transaction.buyerId.toString() !== buyerId) {
+    throw new ForbiddenException('Only the buyer can pay remaining balance');
+  }
+
+  if (transaction.status !== TransactionStatus.DEPOSIT_PAID) {
+    throw new BadRequestException('Transaction must be in deposit_paid status');
+  }
+
+  // Check deadline hasn't passed
+  const now = new Date();
+  if (transaction.deposit?.paymentDeadline && transaction.deposit.paymentDeadline < now) {
+    // Trigger forfeiture if not already done
+    await this.forfeitDeposit(transactionId);
+    throw new BadRequestException(
+      'Payment deadline has passed. Your deposit has been forfeited.',
+    );
+  }
+
+  // Initiate payment for remaining amount
+  return this.paymentService.createZaloPayPayment(
+    transactionId,
+    buyerId,
+    transaction.deposit!.remainingAmount,
+  );
+}
+
+/**
+ * DEPOSIT STEP 4: Confirm full payment - moves to standard escrow flow
+ */
+async confirmFullPayment(
+  transactionId: string,
+  paymentData: { transactionId: string },
+): Promise<Transaction> {
+  const transaction: any = await this.transactionModel.findById(transactionId);
+  if (!transaction) throw new BadRequestException('Transaction not found');
+  if (transaction.status !== TransactionStatus.DEPOSIT_PAID) {
+    throw new BadRequestException('Invalid transaction status');
+  }
+
+  // Update to full escrow (deposit + remaining)
+  transaction.status = TransactionStatus.HELD_IN_ESCROW;
+  transaction.escrow.heldAmount = transaction.amount; // now full amount in escrow
+  transaction.payment.fullPaymentTransactionId = paymentData.transactionId;
+  transaction.payment.fullPaidAt = new Date();
+
+  await transaction.save();
+
+  // Notify seller to ship
+  // await this.notificationsService.create({ ... });
+
+  return transaction;
+}
+
+/**
+ * FORFEIT: Buyer didn't pay full amount within 3 days
+ * - Deposit goes to seller
+ * - Bicycle released back to market
+ */
+async forfeitDeposit(transactionId: string): Promise<Transaction> {
+  const transaction: any = await this.transactionModel.findById(transactionId);
+  if (!transaction) throw new BadRequestException('Transaction not found');
+
+  if (transaction.status !== TransactionStatus.DEPOSIT_PAID) {
+    throw new BadRequestException('Only deposit_paid transactions can be forfeited');
+  }
+
+  // Check deadline actually passed
+  const now = new Date();
+  if (transaction.deposit?.paymentDeadline && transaction.deposit.paymentDeadline > now) {
+    throw new BadRequestException('Payment deadline has not passed yet');
+  }
+
+  // Mark deposit as forfeited
+  transaction.status = TransactionStatus.DEPOSIT_FORFEITED;
+  transaction.deposit.forfeited = true;
+  transaction.deposit.forfeitedAt = new Date();
+
+  await transaction.save();
+
+  // Release deposit TO SELLER (not buyer)
+  await this.walletService.releaseFromEscrow(
+    transaction.sellerId.toString(),
+    transaction.deposit.amount,
+    transactionId,
+    // mark as forfeited deposit income
+  );
+
+  // Release bicycle back to market
+  await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
+    status: BicycleStatus.ACTIVE,
+  });
+
+  // Notify both parties
+  // await this.notificationsService.create({ userId: buyerId, ... 'Deposit Forfeited' });
+  // await this.notificationsService.create({ userId: sellerId, ... 'Deposit Received' });
+
+  return transaction;
+}
+
+/**
+ * SCHEDULER: Auto-forfeit expired deposits (run every hour via cron)
+ */
+async autoForfeitExpiredDeposits(): Promise<void> {
+  const now = new Date();
+
+  const expiredDeposits = await this.transactionModel.find({
+    status: TransactionStatus.DEPOSIT_PAID,
+    'deposit.paymentDeadline': { $lt: now },
+    'deposit.forfeited': false,
+  });
+
+  for (const transaction of expiredDeposits) {
+    try {
+      await this.forfeitDeposit(transaction._id.toString());
+      console.log(`Auto-forfeited deposit for transaction ${transaction._id}`);
+    } catch (err) {
+      console.error(`Failed to forfeit transaction ${transaction._id}:`, err);
+    }
+  }
+}
 }
