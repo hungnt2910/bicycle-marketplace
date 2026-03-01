@@ -31,6 +31,8 @@ export enum TransactionStatus {
   REFUNDED = 'refunded',
   DISPUTED = 'disputed',
   CANCELLED = 'cancelled',
+  DEPOSIT_PAID = 'deposit_paid',
+  DEPOSIT_FORFEITED = 'deposit_forfeited',
 }
 
 class Escrow {
@@ -108,6 +110,29 @@ class BuyerConfirmation {
   notes?: string;
 }
 
+class DepositInfo {
+  @Prop()
+  amount?: number;
+
+  @Prop()
+  rate?: number;
+
+  @Prop()
+  paidAt?: Date;
+
+  @Prop()
+  paymentDeadline?: Date;
+
+  @Prop({ default: false })
+  forfeited?: boolean;
+
+  @Prop()
+  forfeitedAt?: Date;
+
+  @Prop()
+  remainingAmount?: number;
+}
+
 @Schema({ timestamps: true })
 export class Transaction {
   readonly _id: Types.ObjectId;
@@ -156,6 +181,9 @@ export class Transaction {
 
   @Prop()
   completedAt?: Date;
+
+  @Prop({ type: DepositInfo })
+  deposit?: DepositInfo;
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);

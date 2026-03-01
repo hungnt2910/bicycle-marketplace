@@ -40,6 +40,7 @@ export class PaymentService {
   async createZaloPayPayment(
     transactionId: string,
     userEmail: string,
+    depositAmount?: number,
   ): Promise<{ order_url: string; app_trans_id: string }> {
     // Get transaction
     const transaction = await this.transactionModel.findById(transactionId);
@@ -64,7 +65,7 @@ export class PaymentService {
 
     // Create ZaloPay order
     const zaloPayResponse = await this.zaloPayService.createPaymentOrder(
-      transaction.amount,
+      depositAmount || transaction.amount,
       userEmail,
       transactionId,
       items,
@@ -141,14 +142,10 @@ export class PaymentService {
         };
       }
 
-      // 6. Reserve bicycle
-      
-
-      transaction.status = TransactionStatus.PAYMENT_RECEIVED;
-
-      await transaction.save();
-
-      if (transaction.type !== TransactionType.FEE && transaction.type !== TransactionType.INSPECTION_FEE) {
+      if (
+        transaction.type !== TransactionType.FEE &&
+        transaction.type !== TransactionType.INSPECTION_FEE
+      ) {
         const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
         if (!bicycle) {
           throw new Error('Bicycle not found');
@@ -157,7 +154,10 @@ export class PaymentService {
         await bicycle.save();
       }
 
-      if (transaction.type === TransactionType.FEE || transaction.type === TransactionType.INSPECTION_FEE) {
+      if (
+        transaction.type === TransactionType.FEE ||
+        transaction.type === TransactionType.INSPECTION_FEE
+      ) {
         transaction.status = TransactionStatus.COMPLETED;
 
         await transaction.save();
@@ -165,18 +165,18 @@ export class PaymentService {
         this.logger.log(
           `ZaloPay fee transaction ${transactionId} marked as completed`,
         );
-      } else if(transaction.type === TransactionType.DEPOSIT) {
+      } else if (transaction.type === TransactionType.DEPOSIT) {
         // Hold in escrow
-        await this.walletService.holdInEscrow(
-          transaction.buyerId.toString(),
-          transaction.amount,
-          transaction._id.toString(),
-        );
-
-        // Confirm payment
-        await this.transactionsService.confirmPayment(transactionId, {
-          transactionId: callbackData.zp_trans_id || callbackData.app_trans_id,
+        this.transactionsService.confirmDepositPayment(transactionId, {
+          transactionId: transactionId,
         });
+      } else if (transaction.status === TransactionStatus.DEPOSIT_PAID) {
+        this.transactionsService.confirmFullPayment(transactionId, {
+          transactionId: transactionId,
+        });
+      } else if (transaction.type === TransactionType.FULL_PAYMENT) {
+        transaction.status = TransactionStatus.PAYMENT_RECEIVED;
+        await transaction.save();
       }
 
       await this.walletService.credit(
