@@ -47,6 +47,8 @@ import DisputeResolution from './pages/admin/DisputeResolution';
 import CategoryManagement from './pages/admin/CategoryManagement';
 import TransactionManagement from './pages/admin/TransactionManagement';
 import SystemReports from './pages/admin/SystemReports';
+import SystemSettings from './pages/admin/SystemSettings';
+import UserManagement from './pages/admin/UserManagement';
 
 // Route Guard
 import PrivateRoute from './routes/PrivateRoute';
@@ -428,6 +430,7 @@ const AppRoutes = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <DashboardLayout
               role="admin"
+              currentPage="dashboard"
               onNavigate={handleNavigate}
               user={user}
               onLogout={handleLogout}
@@ -444,6 +447,7 @@ const AppRoutes = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <DashboardLayout
               role="admin"
+              currentPage="inspectormanagement"
               onNavigate={handleNavigate}
               user={user}
               onLogout={handleLogout}
@@ -460,6 +464,7 @@ const AppRoutes = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <DashboardLayout
               role="admin"
+              currentPage="moderation"
               onNavigate={handleNavigate}
               user={user}
               onLogout={handleLogout}
@@ -476,6 +481,7 @@ const AppRoutes = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <DashboardLayout
               role="admin"
+              currentPage="disputes"
               onNavigate={handleNavigate}
               user={user}
               onLogout={handleLogout}
@@ -492,6 +498,7 @@ const AppRoutes = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <DashboardLayout
               role="admin"
+              currentPage="categories"
               onNavigate={handleNavigate}
               user={user}
               onLogout={handleLogout}
@@ -508,6 +515,7 @@ const AppRoutes = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <DashboardLayout
               role="admin"
+              currentPage="transactions"
               onNavigate={handleNavigate}
               user={user}
               onLogout={handleLogout}
@@ -524,12 +532,47 @@ const AppRoutes = () => {
           <PrivateRoute allowedRoles={['admin']}>
             <DashboardLayout
               role="admin"
+              currentPage="reports"
               onNavigate={handleNavigate}
               user={user}
               onLogout={handleLogout}
               isAuthenticated={isAuthenticated}
             >
               <SystemReports />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              currentPage="settings"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <SystemSettings />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              currentPage="users"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <UserManagement />
             </DashboardLayout>
           </PrivateRoute>
         }
