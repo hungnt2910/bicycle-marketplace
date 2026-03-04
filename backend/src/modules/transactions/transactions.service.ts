@@ -252,9 +252,9 @@ export class TransactionsService {
       throw new BadRequestException('Transaction not found');
     }
 
-    if (transaction.status !== TransactionStatus.AWAITING_DELIVERY) {
-      throw new BadRequestException('Invalid transaction status');
-    }
+    // if (transaction.status !== TransactionStatus.AWAITING_DELIVERY) {
+    //   throw new BadRequestException('Invalid transaction status');
+    // }
 
     transaction.shipping.deliveredAt = new Date();
     transaction.status = TransactionStatus.DELIVERED;

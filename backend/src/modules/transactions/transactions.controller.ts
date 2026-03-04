@@ -65,39 +65,39 @@ export class TransactionsController {
    * POST /transactions/:id/confirm-payment
    * Confirm payment received (called by payment gateway webhook)
    */
-  @Post(':id/confirm-payment')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Confirm payment received and move to escrow' })
-  @ApiResponse({ status: 200, description: 'Payment confirmed, held in escrow' })
-  async confirmPayment(
-    @Param('id') transactionId: string,
-    @Body() paymentData: { transactionId: string },
-  ) {
-    const data = await this.transactionsService.confirmPayment(transactionId, paymentData);
-    return { message: 'Payment confirmed. Funds are held in escrow.', data };
-  }
+  // @Post(':id/confirm-payment')
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Confirm payment received and move to escrow' })
+  // @ApiResponse({ status: 200, description: 'Payment confirmed, held in escrow' })
+  // async confirmPayment(
+  //   @Param('id') transactionId: string,
+  //   @Body() paymentData: { transactionId: string },
+  // ) {
+  //   const data = await this.transactionsService.confirmPayment(transactionId, paymentData);
+  //   return { message: 'Payment confirmed. Funds are held in escrow.', data };
+  // }
 
   /**
    * PATCH /transactions/:id/shipping
    * Seller updates shipping information
    */
-  @Patch(':id/shipping')
-  @Roles(UserRole.SELLER)
-  @ApiOperation({ summary: 'Update shipping information (seller only)' })
-  @ApiResponse({ status: 200, description: 'Shipping information updated' })
-  @ApiResponse({ status: 403, description: 'Not authorized' })
-  async updateShipping(
-    @Param('id') id: string,
-    @GetUser() user: User,
-    @Body() updateShippingDto: UpdateShippingDto,
-  ) {
-    const data = await this.transactionsService.updateShipping(
-      id,
-      user._id.toString(),
-      updateShippingDto,
-    );
-    return { message: 'Shipping information updated successfully', data };
-  }
+  // @Patch(':id/shipping')
+  // @Roles(UserRole.SELLER)
+  // @ApiOperation({ summary: 'Update shipping information (seller only)' })
+  // @ApiResponse({ status: 200, description: 'Shipping information updated' })
+  // @ApiResponse({ status: 403, description: 'Not authorized' })
+  // async updateShipping(
+  //   @Param('id') id: string,
+  //   @GetUser() user: User,
+  //   @Body() updateShippingDto: UpdateShippingDto,
+  // ) {
+  //   const data = await this.transactionsService.updateShipping(
+  //     id,
+  //     user._id.toString(),
+  //     updateShippingDto,
+  //   );
+  //   return { message: 'Shipping information updated successfully', data };
+  // }
 
   /**
    * PATCH /transactions/:id/delivered
@@ -139,22 +139,22 @@ export class TransactionsController {
    * PATCH /transactions/:id/cancel
    * Cancel a transaction (buyer, seller, or admin)
    */
-  @Patch(':id/cancel')
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Cancel transaction' })
-  @ApiResponse({ status: 200, description: 'Transaction cancelled' })
-  async cancelTransaction(
-    @Param('id') id: string,
-    @GetUser() user: User,
-    @Body('reason') reason?: string,
-  ) {
-    const data = await this.transactionsService.cancelTransaction(
-      id,
-      user._id.toString(),
-      reason,
-    );
-    return { message: 'Transaction cancelled successfully', data };
-  }
+  // @Patch(':id/cancel')
+  // @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.ADMIN)
+  // @ApiOperation({ summary: 'Cancel transaction' })
+  // @ApiResponse({ status: 200, description: 'Transaction cancelled' })
+  // async cancelTransaction(
+  //   @Param('id') id: string,
+  //   @GetUser() user: User,
+  //   @Body('reason') reason?: string,
+  // ) {
+  //   const data = await this.transactionsService.cancelTransaction(
+  //     id,
+  //     user._id.toString(),
+  //     reason,
+  //   );
+  //   return { message: 'Transaction cancelled successfully', data };
+  // }
 
   // ─────────────────────────────────────────────
   // DEPOSIT FLOW
@@ -183,23 +183,23 @@ export class TransactionsController {
    * POST /transactions/:id/confirm-deposit-payment
    * Confirm deposit payment received from payment gateway
    */
-  @Post(':id/confirm-deposit-payment')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Confirm deposit payment received' })
-  @ApiResponse({ status: 200, description: 'Deposit confirmed, 3-day countdown started' })
-  async confirmDepositPayment(
-    @Param('id') transactionId: string,
-    @Body() paymentData: { transactionId: string },
-  ) {
-    const data = await this.transactionsService.confirmDepositPayment(
-      transactionId,
-      paymentData,
-    );
-    return {
-      message: 'Deposit confirmed. You have 3 days to complete the full payment.',
-      data,
-    };
-  }
+  // @Post(':id/confirm-deposit-payment')
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Confirm deposit payment received' })
+  // @ApiResponse({ status: 200, description: 'Deposit confirmed, 3-day countdown started' })
+  // async confirmDepositPayment(
+  //   @Param('id') transactionId: string,
+  //   @Body() paymentData: { transactionId: string },
+  // ) {
+  //   const data = await this.transactionsService.confirmDepositPayment(
+  //     transactionId,
+  //     paymentData,
+  //   );
+  //   return {
+  //     message: 'Deposit confirmed. You have 3 days to complete the full payment.',
+  //     data,
+  //   };
+  // }
 
   /**
    * POST /transactions/:id/pay-balance
@@ -226,23 +226,23 @@ export class TransactionsController {
    * POST /transactions/:id/confirm-full-payment
    * Confirm full payment received — moves transaction into escrow
    */
-  @Post(':id/confirm-full-payment')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Confirm full payment received and move to escrow' })
-  @ApiResponse({ status: 200, description: 'Full payment confirmed, held in escrow' })
-  async confirmFullPayment(
-    @Param('id') transactionId: string,
-    @Body() paymentData: { transactionId: string },
-  ) {
-    const data = await this.transactionsService.confirmFullPayment(
-      transactionId,
-      paymentData,
-    );
-    return {
-      message: 'Full payment confirmed. Funds are held in escrow. Seller will ship shortly.',
-      data,
-    };
-  }
+  // @Post(':id/confirm-full-payment')
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({ summary: 'Confirm full payment received and move to escrow' })
+  // @ApiResponse({ status: 200, description: 'Full payment confirmed, held in escrow' })
+  // async confirmFullPayment(
+  //   @Param('id') transactionId: string,
+  //   @Body() paymentData: { transactionId: string },
+  // ) {
+  //   const data = await this.transactionsService.confirmFullPayment(
+  //     transactionId,
+  //     paymentData,
+  //   );
+  //   return {
+  //     message: 'Full payment confirmed. Funds are held in escrow. Seller will ship shortly.',
+  //     data,
+  //   };
+  // }
 
   // ─────────────────────────────────────────────
   // QUERIES
