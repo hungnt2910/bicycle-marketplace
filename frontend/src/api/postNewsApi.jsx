@@ -37,6 +37,9 @@ const bicycleApi = {
       }
       return res.data;
     }),
+
+  // Inspection - Yêu cầu kiểm định
+  requestInspection: (data) => axiosClient.post('/api/v1/inspections/request', data),
 };
 
 export default bicycleApi;

@@ -22,7 +22,7 @@ const CategoryManagement = () => {
       setLoading(true);
       setError('');
       try {
-        const response = await adminApi.getCategoriesPostNews();
+        const response = await adminApi.getFieldCategories();
         const data = response?.data?.data || response?.data || [];
         const mapped = data.map((item) => ({
           id: item?._id || item?.id,
@@ -109,10 +109,7 @@ const CategoryManagement = () => {
 
     try {
       if (editingCategory) {
-        const response = await adminApi.updateCategoryPostNews(editingCategory.id, {
-          id: editingCategory.id,
-          ...payload,
-        });
+        const response = await adminApi.updateFieldCategory(editingCategory.id, payload.title);
         const updated = response?.data?.data || response?.data || payload;
         setCategories((prev) =>
           prev.map((cat) =>
@@ -125,7 +122,7 @@ const CategoryManagement = () => {
           )
         );
       } else {
-        const response = await adminApi.createCategoryPostNews(payload);
+        const response = await adminApi.createFieldCategory(payload.title);
         const created = response?.data?.data || response?.data || payload;
         const newCategory = {
           id: created?._id || created?.id || Date.now(),
@@ -154,7 +151,7 @@ const CategoryManagement = () => {
   const handleToggleStatus = async (category) => {
     const nextStatus = category.status === 'active' ? 'inactive' : 'active';
     try {
-      await adminApi.updateCategoryPostNews(category.id, { status: nextStatus });
+      await adminApi.updateFieldCategory(category.id, category.name);
       setCategories((prev) =>
         prev.map((cat) => (cat.id === category.id ? { ...cat, status: nextStatus } : cat))
       );
@@ -166,7 +163,7 @@ const CategoryManagement = () => {
 
   const handleDelete = async (category) => {
     try {
-      await adminApi.deleteCategoryPostNews(category.id);
+      await adminApi.deleteFieldCategory(category.id);
       setCategories((prev) => prev.filter((cat) => cat.id !== category.id));
     } catch (err) {
       console.error('Error deleting category:', err);
