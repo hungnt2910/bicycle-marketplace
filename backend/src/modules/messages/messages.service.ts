@@ -37,22 +37,85 @@ export class MessagesService {
     return convo;
   }
 
-  async sendMessage(data: any) {
+  async getConversations(userId: string) {
+    return this.convoModel
+      .find({ participants: userId })
+      .populate('participants', 'name avatar')
+      .sort({ updatedAt: -1 });
+  }
+
+  async getMessages(conversationId: string, page = 1, limit = 50) {
+    return this.messageModel
+      .find({ conversationId })
+      .populate('senderId', 'name avatar')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+  }
+
+  async markAsRead(conversationId: string, userId: string) {
+    await this.messageModel.updateMany(
+      {
+        conversationId,
+        senderId: { $ne: userId },
+        isRead: false,
+      },
+      { isRead: true, readAt: new Date() },
+    );
+
+    // Reset unread count
+    await this.convoModel.findByIdAndUpdate(conversationId, {
+      [`unreadCount.${userId}`]: 0,
+    });
+  }
+
+  async sendMessage(
+    conversationId: string,
+    senderId: string,
+    text: string,
+    attachments?: any[],
+  ) {
+    // Kiểm tra conversation có tồn tại và user có quyền
+    const conversation = await this.convoModel.findById(conversationId);
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    if (!conversation.participants.includes(senderId as any)) {
+      throw new Error('You are not a participant of this conversation');
+    }
+
+    // Tạo message
     const msg = await this.messageModel.create({
-      conversationId: data.conversationId,
-      senderId: data.senderId,
-      content: data.message,
+      conversationId,
+      senderId,
+      content: {
+        text,
+        attachments: attachments || [],
+      },
       isRead: false,
     });
 
-    await this.convoModel.findByIdAndUpdate(data.conversationId, {
+    // Cập nhật lastMessage và tăng unreadCount
+    const otherUserId = conversation.participants
+      .find((p) => p.toString() !== senderId)
+      ?.toString();
+
+    await this.convoModel.findByIdAndUpdate(conversationId, {
       lastMessage: {
-        text: data.message,
-        senderId: data.senderId,
+        text,
+        senderId,
         timestamp: new Date(),
       },
+      $inc: {
+        [`unreadCount.${otherUserId}`]: 1,
+      },
+      updatedAt: new Date(),
     });
 
-    return msg;
+    // Populate để trả về đầy đủ thông tin
+    return this.messageModel
+      .findById(msg._id)
+      .populate('senderId', 'email firstName lastName');
   }
 }
