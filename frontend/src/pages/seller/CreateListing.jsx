@@ -517,8 +517,8 @@ if (!requiresPayment) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-neutral-900">Đăng tin bán xe đạp</h2>
-        <p className="text-neutral-600 mt-1">
+        <h2 className="text-2xl font-bold text-primary-900">Đăng tin bán xe đạp</h2>
+        <p className="text-warmgray-600 mt-1">
           Điền đầy đủ thông tin để tin đăng của bạn được duyệt nhanh chóng
         </p>
       </div>
@@ -551,7 +551,7 @@ if (!requiresPayment) {
               onChange={handleInputChange}
               placeholder="VD: Giant XTC SLR 29 - Xe đạp địa hình cao cấp"
             />
-            <p className="text-xs text-neutral-500 -mt-4">
+            <p className="text-xs text-warmgray-500 -mt-4">
               Tên rõ ràng, đầy đủ giúp tăng cơ hội bán hàng
             </p>
 
@@ -733,12 +733,12 @@ if (!requiresPayment) {
         {activeTab === 'media' && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                Hình ảnh sản phẩm <span className="text-rose-500">*</span>
+              <label className="block text-sm font-semibold text-primary-900 mb-2">
+                Hình ảnh sản phẩm <span className="text-danger">*</span>
               </label>
 
               {/* Upload Area */}
-              <label className="block border-2 border-dashed border-neutral-300 rounded-xl p-8 text-center hover:border-themePrimary transition-colors cursor-pointer bg-neutral-50 hover:bg-themePrimary/5">
+              <label className="block border-2 border-dashed border-warmgray-300 rounded-[16px] p-8 text-center hover:border-primary-800 transition-colors cursor-pointer bg-neutral-offwhite hover:bg-primary-800/5">
                 <input
                   type="file"
                   multiple
@@ -747,10 +747,10 @@ if (!requiresPayment) {
                   className="hidden"
                 />
                 <div className="text-5xl mb-3">📷</div>
-                <p className="text-sm font-semibold text-neutral-900 mb-1">
+                <p className="text-sm font-semibold text-primary-900 mb-1">
                   Kéo thả hoặc click để upload ảnh
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-warmgray-500">
                   {uploadingImages
                     ? 'Đang tải ảnh lên Cloudinary...'
                     : 'Tối đa 10 ảnh, mỗi ảnh không quá 5MB'}
@@ -765,25 +765,25 @@ if (!requiresPayment) {
                       <img
                         src={image}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border-2 border-neutral-200"
+                        className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200"
                       />
                       {formData.media.mainImage === image && (
-                        <div className="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded">
+                        <div className="absolute top-2 left-2 bg-gold text-white text-xs px-2 py-1 rounded">
                           Ảnh chính
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                      <div className="absolute inset-0 bg-primary-900/45 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-[16px] flex items-center justify-center gap-2">
                         <button
                           type="button"
                           onClick={() => setMainImage(image)}
-                          className="px-3 py-1 bg-white text-xs rounded hover:bg-neutral-100"
+                          className="px-3 py-1 bg-white text-xs rounded hover:bg-warmgray-100"
                         >
                           Đặt ảnh chính
                         </button>
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
-                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                          className="px-3 py-1 bg-danger/50 text-white text-xs rounded hover:bg-danger"
                         >
                           Xóa
                         </button>
@@ -795,14 +795,14 @@ if (!requiresPayment) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-neutral-900 mb-2">
+              <label className="block text-sm font-semibold text-primary-900 mb-2">
                 Video giới thiệu (tùy chọn)
               </label>
               <input
                 type="url"
                 onChange={handleVideoInput}
                 placeholder="Link YouTube hoặc upload video"
-                className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-themePrimary/50 focus:border-themePrimary transition-all"
+                className="w-full px-4 py-3 border border-warmgray-200 rounded-[16px] focus:outline-none focus:ring-2 focus:ring-primary-600/50 focus:border-primary-800 transition-all"
               />
             </div>
           </div>
@@ -822,7 +822,7 @@ if (!requiresPayment) {
 
             {/* Location */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-neutral-900">Địa chỉ</h3>
+              <h3 className="text-lg font-bold text-primary-900">Địa chỉ</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Tỉnh/Thành phố"
@@ -849,32 +849,32 @@ if (!requiresPayment) {
             </div>
 
             {/* Price Summary */}
-            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl p-6 border border-neutral-200">
-              <h3 className="text-lg font-bold text-neutral-900 mb-4">Tổng kết chi phí</h3>
+            <div className="bg-gradient-to-br from-neutral-offwhite to-warmgray-100 rounded-[16px] p-6 border border-warmgray-200">
+              <h3 className="text-lg font-bold text-primary-900 mb-4">Tổng kết chi phí</h3>
               <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-neutral-200">
-                  <span className="text-sm text-neutral-600">Phí đăng bài</span>
+                <div className="flex justify-between items-center py-2 border-b border-warmgray-200">
+                  <span className="text-sm text-warmgray-600">Phí đăng bài</span>
                   <span className="font-semibold">
                     {loadingPostCount ? (
-                      <span className="text-neutral-500">Đang tải...</span>
+                      <span className="text-warmgray-500">Đang tải...</span>
                     ) : isFirstPost ? (
-                      <span className="text-accent flex items-center gap-2">
-                        <span className="line-through text-neutral-400">
+                      <span className="text-gold flex items-center gap-2">
+                        <span className="line-through text-warmgray-400">
                           {POST_FEE.toLocaleString()}₫
                         </span>
                         <span>Miễn phí 🎉</span>
-                        <span className="text-xs bg-accent/20 px-2 py-0.5 rounded">
+                        <span className="text-xs bg-gold/20 px-2 py-0.5 rounded">
                           Bài {userPostCount + 1}/{FREE_POST_LIMIT}
                         </span>
                       </span>
                     ) : (
-                      <span className="text-neutral-900">{POST_FEE.toLocaleString()}₫</span>
+                      <span className="text-primary-900">{POST_FEE.toLocaleString()}₫</span>
                     )}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-3">
-                  <span className="text-lg font-bold text-neutral-900">Tổng cộng</span>
-                  <span className="text-2xl font-bold text-themePrimary">
+                  <span className="text-lg font-bold text-primary-900">Tổng cộng</span>
+                  <span className="text-2xl font-bold text-primary-800">
                     {calculateTotal().toLocaleString()} ₫
                   </span>
                 </div>

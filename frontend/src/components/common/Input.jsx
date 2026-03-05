@@ -16,9 +16,9 @@ export default function Input({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-warmgray-700 mb-2">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
       <input
@@ -27,10 +27,10 @@ export default function Input({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className={`w-full px-4 py-2 border rounded-lg outline-none transition focus:ring-2 focus:ring-themePrimary focus:border-transparent ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'} ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${className}`}
+        className={`w-full px-4 py-3 border-[1.5px] rounded-[16px] outline-none transition-all duration-300 focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 ${error ? 'border-danger focus:ring-danger/20' : 'border-warmgray-300'} ${disabled ? 'bg-warmgray-100 cursor-not-allowed' : 'bg-white'} ${className}`}
         {...props}
       />
-      {error && errorMessage && <p className="text-red-500 text-sm mt-1">{errorMessage}</p>}
+      {error && errorMessage && <p className="text-danger text-sm mt-1.5">{errorMessage}</p>}
     </div>
   );
 }

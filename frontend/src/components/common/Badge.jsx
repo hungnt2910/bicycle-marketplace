@@ -2,16 +2,16 @@ import React from 'react';
 
 export default function Badge({ variant = 'primary', size = 'md', children, className = '' }) {
   const variantClasses = {
-    primary: 'bg-blue-100 text-blue-800',
-    secondary: 'bg-orange-100 text-orange-800',
-    success: 'bg-green-100 text-green-800',
-    danger: 'bg-red-100 text-red-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    info: 'bg-cyan-100 text-cyan-800',
-    gray: 'bg-gray-100 text-gray-800',
-    verified: 'bg-green-500 text-white',
-    pending: 'bg-yellow-500 text-white',
-    sold: 'bg-gray-600 text-white',
+    primary: 'bg-primary-800/10 text-primary-800',
+    secondary: 'bg-gold/15 text-primary-900',
+    success: 'bg-success/10 text-success',
+    danger: 'bg-danger/10 text-danger',
+    warning: 'bg-warning/10 text-warning',
+    info: 'bg-info/10 text-info',
+    gray: 'bg-warmgray-100 text-warmgray-800',
+    verified: 'bg-primary-600 text-white',
+    pending: 'bg-gold text-primary-900',
+    sold: 'bg-warmgray-600 text-white',
   };
 
   const sizeClasses = {

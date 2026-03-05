@@ -70,11 +70,11 @@ export default function Pagination({
       <div>
         {showItemsPerPage && (
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-600">Items per page:</label>
+            <label className="text-sm font-medium text-warmgray-600">Items per page:</label>
             <select
               value={itemsPerPage}
               onChange={(e) => onItemsPerPageChange?.(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-themePrimary"
+              className="px-3 py-2 border-[1.5px] border-warmgray-300 rounded-[12px] text-sm focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600"
             >
               {itemsPerPageOptions.map((option) => (
                 <option key={option} value={option}>
@@ -90,7 +90,7 @@ export default function Pagination({
         <button
           onClick={handlePrevious}
           disabled={currentPage === 1}
-          className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="p-2 border-[1.5px] border-warmgray-300 rounded-[12px] hover:bg-warmgray-50 hover:border-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           <ChevronLeft size={20} />
         </button>
@@ -101,12 +101,12 @@ export default function Pagination({
               key={index}
               onClick={() => handlePageClick(page)}
               disabled={page === '...'}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+              className={`px-3 py-2 rounded-[12px] text-sm font-medium transition-all ${
                 page === currentPage
-                  ? 'bg-themePrimary text-white'
+                  ? 'bg-primary-800 text-white shadow-soft'
                   : page === '...'
                     ? 'cursor-default'
-                    : 'border border-gray-300 hover:bg-gray-50'
+                    : 'border-[1.5px] border-warmgray-300 hover:bg-warmgray-50 hover:border-primary-600'
               }`}
             >
               {page}
@@ -117,14 +117,14 @@ export default function Pagination({
         <button
           onClick={handleNext}
           disabled={currentPage === totalPages}
-          className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="p-2 border-[1.5px] border-warmgray-300 rounded-[12px] hover:bg-warmgray-50 hover:border-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           <ChevronRight size={20} />
         </button>
       </div>
 
       {totalItems > 0 && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-warmgray-600">
           Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} to{' '}
           {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} items
         </div>

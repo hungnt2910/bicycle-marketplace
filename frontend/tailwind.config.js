@@ -1,69 +1,130 @@
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        themePrimary: '#1849A9',
-        themePrimaryLighter: '#bae1f7',
-        themeSecondary: '#1849A9',
-        themeGreenLight: '#3EA875',
-        themeWhiteLow: '#66737F',
-        themeWhiteLight: '#F7F8F9',
-        themeWhiteLighter: '#5D6D7E',
-        themeGrayBorder: '#EBEDEF',
-        themeGray: '#AEB6BF',
-        themeGrayLight: '#D6DBDF',
-        themeGrayDarker: '#06648156',
-        themeBlack: '#283746',
-        themeBlackDarker: '#1A2B3A',
-        themeBlackLighter: '#E7E9EE',
-        themeBlackAlt: '#001324',
-        themeRedLight: '#FF4040',
-        themeYellowLight: '#FF9900',
-        themeGrayWhite: '#85929E',
-        themeWhiteAlt: '#9CA3AF',
-        footerBorder: '#ffffff33',
-      },
-      boxShadow: {
-        boxShadow: '0px 3px 6px rgba(0, 119, 111, 0.08)',
-        sectionShadow: '0px 6px 24px rgba(6, 129, 121, 0.08)',
-        card: '0px 20px 32px -8px rgba(6, 129, 121, 0.16)',
-        owlCard: '0px 6px 12px -4px rgba(6, 129, 121, 0.1)',
-        searchShadow: '0px 12px 32px -6px rgba(0, 119, 111, 0.2)',
-        filterShadow: '0px 2px 6px rgba(6, 129, 121, 0.08)',
-        frontShadow: ' 0px 24px 24px -12px rgba(6, 129, 121, 0.12)',
-        sponsorShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        sponsorHoverShadow: '0 10px 25px rgba(0, 0, 0, 0.12)',
-        vipShadow: '0px 0px 24px 0px #AA00FF80;',
-      },
-      keyframes: {
-        pulse: {
-          '0%': { boxShadow: '0 0 0 0 rgba(20, 120, 176, 0.4)' },
-          '70%': { boxShadow: '0 0 0 6px rgba(20, 120, 176, 0)' },
-          '100%': { boxShadow: '0 0 0 0 rgba(20, 120, 176, 0)' },
+        /* ===============================
+           🎨 LUXURY PRIMARY PALETTE
+        =============================== */
+        primary: {
+          900: '#052E2B', // Dark Forest
+          800: '#064E3B', // Deep Emerald
+          700: '#065F46',
+          600: '#047857',
+          500: '#059669',
         },
-        fadeIn: {
-          from: { opacity: '0', transform: 'translateY(10px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
+
+        gold: {
+          DEFAULT: '#C6A75E', // Matte Gold Accent
+          light: '#E7D3A3', // Champagne Gold
         },
-        slideInLeft: {
-          from: { opacity: '0', transform: 'translateX(-10px)' },
-          to: { opacity: '1', transform: 'translateX(0)' },
+
+        neutral: {
+          offwhite: '#F8F8F6',
+          charcoal: '#111111',
         },
-        slideDown: {
-          from: { opacity: '0', transform: 'translateY(-10px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
+
+        /* ===============================
+           ⚙ Functional (Muted)
+        =============================== */
+        success: '#1B5E20',
+        danger: '#7F1D1D',
+        warning: '#92400E',
+        info: '#1E3A8A',
+
+        /* ===============================
+           🩶 Warm Gray Scale (Luxury)
+        =============================== */
+        warmgray: {
+          50: '#FAFAF9',
+          100: '#F5F5F4',
+          200: '#E7E5E4',
+          300: '#D6D3D1',
+          400: '#A8A29E',
+          500: '#78716C',
+          600: '#57534E',
+          700: '#44403C',
+          800: '#292524',
+          900: '#1C1917',
         },
       },
-      animation: {
-        pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        fadeIn: 'fadeIn 0.5s ease-in-out',
-        slideInLeft: 'slideInLeft 0.3s ease-in-out',
-        slideDown: 'slideDown 0.3s ease-in-out',
-      },
+
+      /* ===============================
+         🔤 Typography
+      =============================== */
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
-        outfit: ['Outfit', 'sans-serif'],
+        display: ['Playfair Display', 'serif'],
+      },
+
+      fontSize: {
+        h1: ['40px', { lineHeight: '1.2', letterSpacing: '0.02em' }],
+        h2: ['28px', { lineHeight: '1.3', letterSpacing: '0.01em' }],
+        h3: ['22px', { lineHeight: '1.4' }],
+        body: ['16px', { lineHeight: '1.6' }],
+        small: ['14px', { lineHeight: '1.5' }],
+        caption: ['12px', { lineHeight: '1.4' }],
+      },
+
+      /* ===============================
+         📏 Spacing System
+      =============================== */
+      spacing: {
+        3: '12px',
+        6: '24px',
+        10: '40px',
+      },
+
+      /* ===============================
+         🔘 Border Radius
+      =============================== */
+      borderRadius: {
+        md: '16px',
+        lg: '20px',
+        xl: '24px',
+      },
+
+      /* ===============================
+         🌫 Shadows (Soft Luxury)
+      =============================== */
+      boxShadow: {
+        soft: '0 4px 20px rgba(0, 0, 0, 0.04)',
+        elevated: '0 10px 30px rgba(0, 0, 0, 0.08)',
+        card: '0 20px 40px rgba(0, 0, 0, 0.06)',
+        goldGlow: '0 0 0 1px rgba(198,167,94,0.4)',
+      },
+
+      /* ===============================
+         🎞 Animations (Calm & Premium)
+      =============================== */
+      keyframes: {
+        fadeIn: {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        scaleSoft: {
+          from: { transform: 'scale(1)' },
+          to: { transform: 'scale(1.02)' },
+        },
+      },
+
+      animation: {
+        fadeIn: 'fadeIn 0.4s ease-out',
+        scaleSoft: 'scaleSoft 0.25s ease-in-out forwards',
+      },
+
+      /* ===============================
+         🌈 Background Gradients
+      =============================== */
+      backgroundImage: {
+        luxuryGradient: 'linear-gradient(135deg, #064E3B 0%, #052E2B 100%)',
+        glassOverlay:
+          'linear-gradient(to bottom right, rgba(255,255,255,0.6), rgba(255,255,255,0.3))',
+      },
+
+      backdropBlur: {
+        xs: '2px',
       },
     },
   },

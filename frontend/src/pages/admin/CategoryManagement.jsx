@@ -172,17 +172,17 @@ const CategoryManagement = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="dash-content">
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý danh mục</h1>
-            <p className="text-gray-600">Quản lý các danh mục sản phẩm trên hệ thống</p>
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">Quản lý danh mục</h1>
+            <p className="text-warmgray-600">Quản lý các danh mục sản phẩm trên hệ thống</p>
           </div>
           <button
             onClick={openAddModal}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+            className="bg-primary-700 text-white px-6 py-3 rounded-[16px] hover:bg-primary-800 font-medium"
           >
             + Thêm danh mục
           </button>
@@ -190,7 +190,7 @@ const CategoryManagement = () => {
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger/5 border border-red-200 text-danger px-4 py-3 rounded-[16px]">
           {error}
         </div>
       )}
@@ -217,35 +217,35 @@ const CategoryManagement = () => {
             color: 'orange',
           },
         ].map((stat, idx) => (
-          <div key={idx} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-            <p className="text-gray-600 text-sm">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+          <div key={idx} className="lux-panel">
+            <p className="text-warmgray-600 text-sm">{stat.label}</p>
+            <p className="text-2xl font-bold text-primary-900">{stat.value}</p>
           </div>
         ))}
       </div>
 
       {/* Category List */}
-      <div className="bg-white rounded-lg shadow border border-gray-200">
+      <div className="lux-panel">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-warmgray-50 border-b border-warmgray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Danh mục
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Slug
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Số tin đăng
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Trạng thái
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Ngày tạo
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-right text-xs font-medium text-warmgray-500 uppercase">
                   Thao tác
                 </th>
               </tr>
@@ -253,36 +253,36 @@ const CategoryManagement = () => {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={6}>
+                  <td className="px-6 py-4 text-sm text-warmgray-500" colSpan={6}>
                     Đang tải danh mục...
                   </td>
                 </tr>
               ) : categories.length === 0 ? (
                 <tr>
-                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={6}>
+                  <td className="px-6 py-4 text-sm text-warmgray-500" colSpan={6}>
                     Chưa có danh mục
                   </td>
                 </tr>
               ) : (
                 categories.map((category) => (
-                  <tr key={category.id} className="hover:bg-gray-50">
+                  <tr key={category.id} className="hover:bg-warmgray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">{category.icon}</span>
                         <div>
-                          <div className="font-medium text-gray-900">{category.name}</div>
-                          <div className="text-sm text-gray-500">{category.description}</div>
+                          <div className="font-medium text-primary-900">{category.name}</div>
+                          <div className="text-sm text-warmgray-500">{category.description}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <code className="text-sm bg-gray-100 px-2 py-1 rounded">{category.slug}</code>
+                      <code className="text-sm bg-warmgray-100 px-2 py-1 rounded">{category.slug}</code>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-lg font-bold text-gray-900">
+                      <span className="text-lg font-bold text-primary-900">
                         {category.listingCount}
                       </span>
-                      <span className="text-sm text-gray-500"> tin</span>
+                      <span className="text-sm text-warmgray-500"> tin</span>
                     </td>
                     <td className="px-6 py-4">
                       <Badge variant={category.status === 'active' ? 'success' : 'secondary'}>
@@ -290,34 +290,34 @@ const CategoryManagement = () => {
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{category.createdDate}</div>
+                      <div className="text-sm text-primary-900">{category.createdDate}</div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => openEditModal(category)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          className="text-primary-700 hover:text-primary-900 text-sm font-medium"
                         >
                           Sửa
                         </button>
                         {category.status === 'active' ? (
                           <button
                             onClick={() => handleToggleStatus(category)}
-                            className="text-orange-600 hover:text-orange-800 text-sm font-medium"
+                            className="text-gold hover:text-gold text-sm font-medium"
                           >
                             Tạm dừng
                           </button>
                         ) : (
                           <button
                             onClick={() => handleToggleStatus(category)}
-                            className="text-green-600 hover:text-green-800 text-sm font-medium"
+                            className="text-success hover:text-green-800 text-sm font-medium"
                           >
                             Kích hoạt
                           </button>
                         )}
                         <button
                           onClick={() => handleDelete(category)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          className="text-danger hover:text-red-800 text-sm font-medium"
                         >
                           Xóa
                         </button>
@@ -334,9 +334,9 @@ const CategoryManagement = () => {
       {/* Add/Edit Modal */}
       {(showAddModal || editingCategory) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+          <div className="bg-white rounded-[16px] shadow-elevated max-w-2xl w-full p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-primary-900">
                 {editingCategory ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
               </h2>
               <button
@@ -345,7 +345,7 @@ const CategoryManagement = () => {
                   setEditingCategory(null);
                   resetForm();
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-warmgray-400 hover:text-warmgray-600"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -360,7 +360,7 @@ const CategoryManagement = () => {
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">
                   Tên danh mục *
                 </label>
                 <input
@@ -368,54 +368,54 @@ const CategoryManagement = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                   placeholder="Nhập tên danh mục"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Slug *</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">Slug *</label>
                 <input
                   type="text"
                   name="slug"
                   value={formData.slug}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                   placeholder="xe-dap-dia-hinh"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">Mô tả</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleFormChange}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                   placeholder="Mô tả về danh mục"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Icon/Emoji</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">Icon/Emoji</label>
                 <input
                   type="text"
                   name="icon"
                   value={formData.icon}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                   placeholder="🚴"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">Trạng thái</label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                 >
                   <option value="active">Hoạt động</option>
                   <option value="inactive">Tạm dừng</option>
@@ -430,13 +430,13 @@ const CategoryManagement = () => {
                     setEditingCategory(null);
                     resetForm();
                   }}
-                  className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 font-medium"
+                  className="flex-1 border border-warmgray-300 py-2 rounded-[16px] hover:bg-warmgray-50 font-medium"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  className="flex-1 bg-primary-700 text-white py-2 rounded-[16px] hover:bg-primary-800 font-medium"
                 >
                   {editingCategory ? 'Cập nhật' : 'Thêm mới'}
                 </button>

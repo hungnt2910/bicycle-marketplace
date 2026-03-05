@@ -222,22 +222,21 @@ const BuyerDashboard = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Decorative Background - Made lighter to ensure text contrast if using dark text, or adjust if using light text */}
-      <div className="absolute top-0 left-0 w-full h-80 bg-gradient-to-br from-blue-50 to-indigo-50 overflow-hidden z-0 rounded-b-[3rem] shadow-sm border-b border-indigo-100">
-        <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+    <div className="min-h-screen bg-neutral-offwhite pb-16">
+      {/* Decorative Background */}
+      <div className="absolute top-0 left-0 w-full h-80 bg-gradient-to-br from-primary-800/5 to-gold/5 overflow-hidden z-0 rounded-b-[3rem]">
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-white/40 rounded-full blur-3xl"></div>
         <div className="absolute top-10 -left-20 w-72 h-72 bg-white/40 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="container-custom relative z-10 pt-10">
+      <div className="container-custom relative z-10 pt-12">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 text-slate-800">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <div>
-            <div className="flex items-center gap-3 mb-2 opacity-90 text-slate-600">
-              <div className="p-1.5 bg-white/60 backdrop-blur-sm rounded-lg shadow-sm">
+            <div className="flex items-center gap-3 mb-3 text-warmgray-500">
+              <div className="p-1.5 bg-white/60 backdrop-blur-sm rounded-[16px] shadow-soft">
                 <svg
-                  className="w-5 h-5 text-themePrimary"
+                  className="w-5 h-5 text-primary-800"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -254,10 +253,10 @@ const BuyerDashboard = () => {
                 Bảng điều khiển người mua
               </span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-extrabold mb-2 tracking-tight text-slate-900">
-              Xin chào, <span className="text-themePrimary">{displayName}</span>!
+            <h1 className="text-3xl md:text-5xl font-extrabold mb-3 tracking-tight text-primary-900">
+              Xin chào, <span className="text-primary-700">{displayName}</span>!
             </h1>
-            <p className="text-slate-600 text-lg font-medium max-w-xl">
+            <p className="text-warmgray-500 text-lg font-medium max-w-xl">
               Chào mừng bạn quay trở lại. Theo dõi đơn hàng và tìm kiếm chiếc xe đạp ưng ý tiếp theo
               của bạn.
             </p>
@@ -265,18 +264,14 @@ const BuyerDashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-14">
           {stats.map((stat, index) => (
             <div
               key={index}
-              className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 relative overflow-hidden"
+              className="group bg-white rounded-[20px] p-8 shadow-soft hover:shadow-elevated transition-all duration-300 border border-warmgray-200/60 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                <svg
-                  className="w-24 h-24 text-themePrimary"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-24 h-24 text-primary-800" fill="currentColor" viewBox="0 0 24 24">
                   {index === 0 && (
                     <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   )}
@@ -291,14 +286,14 @@ const BuyerDashboard = () => {
               <div className="flex flex-col h-full justify-between relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md ${
+                    className={`w-12 h-12 rounded-[16px] flex items-center justify-center text-white shadow-soft ${
                       index === 0
                         ? 'bg-gradient-to-br from-blue-500 to-blue-600'
                         : index === 1
                           ? 'bg-gradient-to-br from-orange-400 to-orange-500'
                           : index === 2
                             ? 'bg-gradient-to-br from-emerald-500 to-emerald-600'
-                            : 'bg-gradient-to-br from-rose-500 to-rose-600'
+                            : 'bg-gradient-to-br from-danger to-danger'
                     }`}
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,19 +335,21 @@ const BuyerDashboard = () => {
                   <div
                     className={`w-2 h-2 rounded-full ${
                       index === 0
-                        ? 'bg-blue-400'
+                        ? 'bg-primary-600'
                         : index === 1
-                          ? 'bg-orange-400'
+                          ? 'bg-gold'
                           : index === 2
                             ? 'bg-emerald-400'
-                            : 'bg-rose-400'
+                            : 'bg-danger'
                     }`}
                   ></div>
                 </div>
 
                 <div>
-                  <h3 className="text-3xl font-bold text-slate-800 tracking-tight">{stat.value}</h3>
-                  <p className="text-slate-500 font-medium text-sm mt-1 uppercase tracking-wider">
+                  <h3 className="text-3xl font-bold text-primary-900 tracking-tight">
+                    {stat.value}
+                  </h3>
+                  <p className="text-warmgray-500 font-medium text-sm mt-2 uppercase tracking-wider">
                     {stat.label}
                   </p>
                 </div>
@@ -362,17 +359,17 @@ const BuyerDashboard = () => {
         </div>
 
         {/* Content Layout */}
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-10">
           {/* Main Column - Recent Orders */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="border-none shadow-lg bg-white overflow-hidden rounded-2xl">
-              <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white text-slate-800">
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="border-none shadow-soft bg-white overflow-hidden rounded-[20px]">
+              <div className="px-8 py-7 border-b border-warmgray-100 flex items-center justify-between bg-white">
                 <div>
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    <span className="w-2 h-6 bg-themePrimary rounded-full inline-block"></span>
+                  <h2 className="text-xl font-bold flex items-center gap-2 text-primary-900">
+                    <span className="w-2 h-6 bg-gold rounded-full inline-block"></span>
                     Giao dịch gần đây
                   </h2>
-                  <p className="text-slate-500 text-sm mt-1 ml-4">
+                  <p className="text-warmgray-500 text-sm mt-1 ml-4">
                     Danh sách các đơn hàng mới nhất của bạn
                   </p>
                 </div>
@@ -380,7 +377,7 @@ const BuyerDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/buyer/transactions')}
-                  className="text-themePrimary hover:bg-themePrimary/5"
+                  className="text-primary-800 hover:bg-primary-800/5"
                 >
                   Xem tất cả →
                 </Button>
@@ -389,12 +386,12 @@ const BuyerDashboard = () => {
               <div className="p-0">
                 {loadingTransactions ? (
                   <div className="p-8 text-center">
-                    <div className="w-10 h-10 border-4 border-themePrimary/30 border-t-themePrimary rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-500">Đang tải dữ liệu...</p>
+                    <div className="w-10 h-10 border-4 border-primary-800/30 border-t-primary-800 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-warmgray-400">Đang tải dữ liệu...</p>
                   </div>
                 ) : recentOrders.length === 0 ? (
-                  <div className="p-12 text-center flex flex-col items-center justify-center bg-slate-50/50">
-                    <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4 text-slate-400">
+                  <div className="p-12 text-center flex flex-col items-center justify-center bg-warmgray-50/50">
+                    <div className="w-16 h-16 bg-warmgray-200 rounded-full flex items-center justify-center mb-4 text-warmgray-400">
                       <svg
                         className="w-8 h-8"
                         fill="none"
@@ -409,23 +406,23 @@ const BuyerDashboard = () => {
                         />
                       </svg>
                     </div>
-                    <p className="text-slate-500 font-medium">Chưa có giao dịch nào</p>
+                    <p className="text-warmgray-400 font-medium">Chưa có giao dịch nào</p>
                     <Button
-                      className="mt-4 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"
+                      className="mt-4 bg-white border border-warmgray-300 text-warmgray-700 hover:bg-warmgray-50 shadow-soft"
                       onClick={() => navigate('/market')}
                     >
                       Khám phá xe ngay
                     </Button>
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-50">
+                  <div className="divide-y divide-warmgray-50">
                     {recentOrders.map((order) => (
                       <div
                         key={order.id}
-                        className="group hover:bg-slate-50/80 transition-colors duration-200 cursor-pointer p-5 flex items-center gap-4"
+                        className="group hover:bg-warmgray-50/80 transition-colors duration-200 cursor-pointer p-5 flex items-center gap-4"
                         onClick={() => goToTransaction(order.id)}
                       >
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-md transition-all">
+                        <div className="w-12 h-12 rounded-[16px] bg-warmgray-100 flex items-center justify-center text-warmgray-400 group-hover:bg-white group-hover:shadow-soft transition-all">
                           <svg
                             className="w-6 h-6"
                             fill="none"
@@ -443,16 +440,16 @@ const BuyerDashboard = () => {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start mb-1">
-                            <h4 className="font-bold text-slate-800 text-base truncate pr-2 group-hover:text-themePrimary transition-colors">
+                            <h4 className="font-bold text-primary-900 text-base truncate pr-2 group-hover:text-primary-800 transition-colors">
                               {order.bike}
                             </h4>
-                            <span className="font-bold text-themePrimary whitespace-nowrap">
+                            <span className="font-bold text-primary-800 whitespace-nowrap">
                               {formatCurrency(order.price)} ₫
                             </span>
                           </div>
 
                           <div className="flex justify-between items-center text-sm">
-                            <div className="flex items-center text-slate-400 gap-3">
+                            <div className="flex items-center text-warmgray-400 gap-3">
                               <span className="flex items-center gap-1">
                                 <svg
                                   className="w-3.5 h-3.5"
@@ -469,7 +466,7 @@ const BuyerDashboard = () => {
                                 </svg>
                                 {order.date}
                               </span>
-                              <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                              <span className="w-1 h-1 bg-warmgray-300 rounded-full"></span>
                               <span className="font-mono text-xs opacity-70">
                                 #{order.id.slice(-6).toUpperCase()}
                               </span>
@@ -477,14 +474,14 @@ const BuyerDashboard = () => {
 
                             <Badge
                               variant={statusBadgeVariant(order.rawStatus)}
-                              className="shadow-sm"
+                              className="shadow-soft"
                             >
                               {order.status}
                             </Badge>
                           </div>
                         </div>
 
-                        <div className="ml-2 text-slate-300 group-hover:translate-x-1 transition-transform group-hover:text-themePrimary">
+                        <div className="ml-2 text-warmgray-300 group-hover:translate-x-1 transition-transform group-hover:text-primary-800">
                           <svg
                             className="w-5 h-5"
                             fill="none"
@@ -505,10 +502,10 @@ const BuyerDashboard = () => {
                 )}
 
                 {recentOrders.length > 0 && (
-                  <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
+                  <div className="p-4 bg-warmgray-50 border-t border-warmgray-100 text-center">
                     <button
                       onClick={() => navigate('/buyer/transactions')}
-                      className="text-sm font-medium text-slate-500 hover:text-themePrimary transition-colors"
+                      className="text-sm font-medium text-warmgray-400 hover:text-primary-800 transition-colors"
                     >
                       Xem toàn bộ lịch sử giao dịch
                     </button>
@@ -519,25 +516,25 @@ const BuyerDashboard = () => {
           </div>
 
           {/* Side Column - Quick Status & Info */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Payment / Activity Summary Card */}
-            <Card className="bg-white rounded-2xl shadow-lg border-none overflow-hidden sticky top-24">
-              <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 text-white relative overflow-hidden">
+            <Card className="bg-white rounded-[20px] shadow-soft border-none overflow-hidden sticky top-24">
+              <div className="bg-gradient-to-r from-primary-900 to-primary-800 p-8 text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
                 <h3 className="text-lg font-bold relative z-10">Tóm tắt hoạt động</h3>
-                <p className="text-slate-300 text-sm relative z-10">
+                <p className="text-warmgray-300 text-sm relative z-10">
                   Tổng quan trạng thái đơn hàng
                 </p>
               </div>
 
-              <div className="p-6">
+              <div className="p-8">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100 text-blue-800 transition-colors hover:bg-blue-50 cursor-default">
+                  <div className="flex items-center justify-between p-3 rounded-[16px] bg-primary-800/5/50 border border-blue-100 text-primary-900 transition-colors hover:bg-primary-800/5 cursor-default">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                      <div className="w-2 h-2 rounded-full bg-primary-800/50 animate-pulse"></div>
                       <span className="font-medium">Chờ thanh toán</span>
                     </div>
-                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm border border-blue-100">
+                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-soft border border-blue-100">
                       {
                         transactions.filter((t) =>
                           ['pending_payment', 'awaiting_payment'].includes(t?.status?.toLowerCase())
@@ -546,36 +543,36 @@ const BuyerDashboard = () => {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-orange-50/50 border border-orange-100 text-orange-800 transition-colors hover:bg-orange-50 cursor-default">
+                  <div className="flex items-center justify-between p-3 rounded-[16px] bg-gold/10 border border-gold/20 text-gold transition-colors hover:bg-gold/5 cursor-default">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <div className="w-2 h-2 rounded-full bg-gold/50"></div>
                       <span className="font-medium">Đang xử lý</span>
                     </div>
-                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm border border-orange-100">
+                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-soft border border-gold/20">
                       {inProgressOrders}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 text-emerald-800 transition-colors hover:bg-emerald-50 cursor-default">
+                  <div className="flex items-center justify-between p-3 rounded-[16px] bg-emerald-50/50 border border-emerald-100 text-emerald-800 transition-colors hover:bg-emerald-50 cursor-default">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                       <span className="font-medium">Hoàn thành</span>
                     </div>
-                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm border border-emerald-100">
+                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-soft border border-emerald-100">
                       {completedOrders}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-slate-100">
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                <div className="mt-6 pt-6 border-t border-warmgray-100">
+                  <h4 className="text-sm font-semibold text-warmgray-400 uppercase tracking-wider mb-4">
                     Hành động nhanh
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="justify-center border-slate-200 hover:border-themePrimary hover:text-themePrimary transition-all"
+                      className="justify-center border-warmgray-200 hover:border-primary-800 hover:text-primary-800 transition-all"
                       onClick={() => navigate('/market')}
                     >
                       🛒 Mua xe
@@ -583,7 +580,7 @@ const BuyerDashboard = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="justify-center border-slate-200 hover:border-themePrimary hover:text-themePrimary transition-all"
+                      className="justify-center border-warmgray-200 hover:border-primary-800 hover:text-primary-800 transition-all"
                       onClick={() => navigate('/buyer/profile')}
                     >
                       👤 Hồ sơ
@@ -594,15 +591,15 @@ const BuyerDashboard = () => {
             </Card>
 
             {/* Support / Help Banner */}
-            <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg relative overflow-hidden group hover:shadow-xl transition-all">
+            <div className="rounded-[20px] p-8 bg-gradient-to-br from-primary-700 to-primary-900 text-white shadow-soft relative overflow-hidden group hover:shadow-elevated transition-all">
               <div className="relative z-10">
-                <h3 className="font-bold text-xl mb-2">Cần hỗ trợ?</h3>
-                <p className="text-white/80 text-sm mb-4">
+                <h3 className="font-bold text-xl mb-3">Cần hỗ trợ?</h3>
+                <p className="text-white/80 text-sm mb-6">
                   Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn trong mọi giao dịch.
                 </p>
                 <Button
                   size="sm"
-                  className="bg-white text-indigo-600 border-none hover:bg-indigo-50 shadow-md font-semibold"
+                  className="bg-white text-primary-700 border-none hover:bg-primary-800/5 shadow-soft font-semibold"
                 >
                   Liên hệ ngay
                 </Button>

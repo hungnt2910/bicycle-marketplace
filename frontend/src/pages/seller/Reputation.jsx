@@ -50,8 +50,8 @@ const Reputation = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold text-neutral-900">Uy tín & Đánh giá</h2>
-                <p className="text-neutral-600 mt-1">Xem đánh giá và uy tín của bạn từ người mua</p>
+                <h2 className="text-2xl font-bold text-primary-900">Uy tín & Đánh giá</h2>
+                <p className="text-warmgray-600 mt-1">Xem đánh giá và uy tín của bạn từ người mua</p>
             </div>
 
             {/* Overview Stats */}
@@ -62,17 +62,17 @@ const Reputation = () => {
                             {stats.averageRating}
                         </div>
                         <Rating value={stats.averageRating} size="lg" readonly />
-                        <p className="text-sm text-neutral-600 mt-2">{stats.totalReviews} đánh giá</p>
+                        <p className="text-sm text-warmgray-600 mt-2">{stats.totalReviews} đánh giá</p>
                     </div>
                 </Card>
                 <Card className="p-6">
-                    <div className="text-sm text-neutral-600 mb-1">Tổng giao dịch</div>
-                    <div className="text-3xl font-bold text-neutral-900 mb-2">{stats.totalSales}</div>
+                    <div className="text-sm text-warmgray-600 mb-1">Tổng giao dịch</div>
+                    <div className="text-3xl font-bold text-primary-900 mb-2">{stats.totalSales}</div>
                     <Badge variant="success">Tỷ lệ thành công: {stats.successRate}</Badge>
                 </Card>
                 <Card className="p-6">
-                    <div className="text-sm text-neutral-600 mb-1">Thời gian phản hồi</div>
-                    <div className="text-3xl font-bold text-neutral-900 mb-2">{stats.responseTime}</div>
+                    <div className="text-sm text-warmgray-600 mb-1">Thời gian phản hồi</div>
+                    <div className="text-3xl font-bold text-primary-900 mb-2">{stats.responseTime}</div>
                     <Badge variant="info">Tỷ lệ phản hồi: {stats.responseRate}</Badge>
                 </Card>
             </div>
@@ -87,13 +87,13 @@ const Reputation = () => {
                                 <span className="text-sm font-medium">{item.stars}</span>
                                 <span className="text-warning-500">★</span>
                             </div>
-                            <div className="flex-1 bg-neutral-200 rounded-full h-2">
+                            <div className="flex-1 bg-warmgray-200 rounded-full h-2">
                                 <div
                                     className="bg-warning-500 h-2 rounded-full"
                                     style={{ width: `${item.percentage}%` }}
                                 />
                             </div>
-                            <span className="text-sm text-neutral-600 w-16 text-right">
+                            <span className="text-sm text-warmgray-600 w-16 text-right">
                                 {item.count} ({item.percentage}%)
                             </span>
                         </div>
@@ -106,21 +106,21 @@ const Reputation = () => {
                 <h3 className="font-semibold text-lg mb-4">Đánh giá gần đây</h3>
                 <div className="space-y-6">
                     {reviews.map((review) => (
-                        <div key={review.id} className="border-b border-neutral-100 pb-6 last:border-0 last:pb-0">
+                        <div key={review.id} className="border-b border-warmgray-100 pb-6 last:border-0 last:pb-0">
                             <div className="flex items-start gap-4">
                                 <Avatar name={review.buyer} size="md" />
                                 <div className="flex-1">
                                     <div className="flex items-start justify-between mb-2">
                                         <div>
                                             <h4 className="font-medium">{review.buyer}</h4>
-                                            <p className="text-sm text-neutral-600">
+                                            <p className="text-sm text-warmgray-600">
                                                 Đã mua: {review.bike}
                                             </p>
                                         </div>
-                                        <span className="text-sm text-neutral-500">{review.date}</span>
+                                        <span className="text-sm text-warmgray-500">{review.date}</span>
                                     </div>
                                     <Rating value={review.rating} size="sm" readonly className="mb-2" />
-                                    <p className="text-neutral-700">{review.comment}</p>
+                                    <p className="text-warmgray-700">{review.comment}</p>
                                 </div>
                             </div>
                         </div>
@@ -130,7 +130,7 @@ const Reputation = () => {
 
             {reviews.length === 0 && (
                 <Card className="p-12 text-center">
-                    <p className="text-neutral-600">Chưa có đánh giá nào</p>
+                    <p className="text-warmgray-600">Chưa có đánh giá nào</p>
                 </Card>
             )}
         </div>

@@ -11,16 +11,16 @@ export default function LoadingSpinner({ size = 'md', fullScreen = false, messag
   const spinner = (
     <div className="flex flex-col items-center justify-center gap-4">
       <div className={`${sizeClasses[size] || sizeClasses.md} relative`}>
-        <div className="absolute inset-0 rounded-full border-4 border-gray-200" />
-        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-themePrimary animate-spin" />
+        <div className="absolute inset-0 rounded-full border-4 border-warmgray-200" />
+        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary-600 animate-spin" />
       </div>
-      {message && <p className="text-gray-600 font-medium">{message}</p>}
+      {message && <p className="text-warmgray-600 font-medium">{message}</p>}
     </div>
   );
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-80 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-neutral-offwhite/90 backdrop-blur-sm z-50 flex items-center justify-center">
         {spinner}
       </div>
     );

@@ -101,15 +101,15 @@ const SellerDashboard = () => {
   ]);
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Bảng điều khiển người bán</h1>
-        <p className="text-gray-600">Quản lý tin đăng, đơn hàng và uy tín của bạn</p>
+    <div className="dash-content">
+      <div className="page-header">
+        <h1>Bảng điều khiển người bán</h1>
+        <p>Quản lý tin đăng, đơn hàng và uy tín của bạn</p>
       </div>
 
       {/* Stats Cards */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
             { label: 'Tin đang bán', value: sellerStats.activeListings, icon: '' },
             { label: 'Đã bán', value: sellerStats.soldListings, icon: '' },
@@ -120,17 +120,17 @@ const SellerDashboard = () => {
             },
             { label: 'Điểm uy tín', value: sellerStats.trustScore, icon: '' },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-              <div className="text-2xl mb-2">{stat.icon}</div>
-              <p className="text-gray-600 text-sm">{stat.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+            <div key={idx} className="lux-panel">
+              <div className="text-2xl mb-3">{stat.icon}</div>
+              <p className="text-warmgray-500 text-sm">{stat.label}</p>
+              <p className="text-2xl font-bold text-primary-900 mt-1">{stat.value}</p>
             </div>
           ))}
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6 border-b border-gray-200 flex-wrap">
+      <div className="flex gap-1 mb-10 border-b border-warmgray-200/60 flex-wrap">
         {[
           { key: 'overview', label: ' Tổng quan' },
           { key: 'listings', label: ' Quản lý tin đăng' },
@@ -140,10 +140,10 @@ const SellerDashboard = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-3 font-medium border-b-2 transition whitespace-nowrap ${
+            className={`px-5 py-3.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab.key
-                ? 'text-blue-600 border-blue-600'
-                : 'text-gray-600 border-transparent hover:text-gray-900'
+                ? 'text-gold border-gold'
+                : 'text-warmgray-500 border-transparent hover:text-primary-900 hover:border-warmgray-300'
             }`}
           >
             {tab.label}
@@ -153,35 +153,37 @@ const SellerDashboard = () => {
 
       {/* Listings Tab */}
       {activeTab === 'listings' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Quản lý tin đăng ({listings.length})</h2>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
+            <h2 className="text-xl font-bold font-display text-primary-900">
+              Quản lý tin đăng ({listings.length})
+            </h2>
+            <button className="bg-primary-700 text-white px-5 py-2.5 rounded-full hover:bg-primary-800 font-medium text-sm transition-colors">
               + Đăng tin mới
             </button>
           </div>
 
           {listings.map((listing) => (
-            <div key={listing.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
-              <div className="flex gap-4">
+            <div key={listing.id} className="lux-panel">
+              <div className="flex gap-5">
                 <img
                   src={listing.image}
                   alt={listing.name}
-                  className="w-24 h-24 rounded-lg object-cover"
+                  className="w-24 h-24 rounded-[16px] object-cover"
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-bold text-gray-900">{listing.name}</h3>
-                      <p className="text-sm text-gray-600">Đăng ngày: {listing.createdDate}</p>
+                      <h3 className="font-bold text-primary-900">{listing.name}</h3>
+                      <p className="text-sm text-warmgray-600">Đăng ngày: {listing.createdDate}</p>
                     </div>
                     <span
                       className={`px-3 py-1 rounded text-sm font-bold ${
                         listing.status === 'active'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-success/10 text-green-800'
                           : listing.status === 'pending_inspection'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
+                            ? 'bg-gold/10 text-yellow-800'
+                            : 'bg-warmgray-100 text-warmgray-800'
                       }`}
                     >
                       {listing.status === 'active'
@@ -194,42 +196,42 @@ const SellerDashboard = () => {
 
                   <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
                     <div>
-                      <p className="text-gray-600">Giá bán</p>
+                      <p className="text-warmgray-600">Giá bán</p>
                       <p className="font-bold">{(listing.price / 1000000).toFixed(0)}M</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Lượt xem</p>
+                      <p className="text-warmgray-600">Lượt xem</p>
                       <p className="font-bold">{listing.views}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Quan tâm</p>
+                      <p className="text-warmgray-600">Quan tâm</p>
                       <p className="font-bold">{listing.interests}</p>
                     </div>
                   </div>
 
                   {listing.inspectionStatus === 'pending' && (
-                    <div className="bg-yellow-50 p-2 rounded text-sm text-yellow-900 mb-2">
+                    <div className="bg-gold/5 p-2 rounded text-sm text-yellow-900 mb-2">
                       <strong> Chờ kiểm định:</strong> Yêu cầu kiểm định để có thể nhận cọc
                     </div>
                   )}
 
                   {listing.inspectionStatus === 'passed' && (
-                    <div className="bg-green-50 p-2 rounded text-sm text-green-900 mb-2">
+                    <div className="bg-success/5 p-2 rounded text-sm text-green-900 mb-2">
                       <strong> Đã kiểm định:</strong> Hạn hữu hiệu đến {listing.inspectionExpiry}
                     </div>
                   )}
 
                   <div className="flex gap-2">
-                    <Button className="text-blue-600 hover:underline text-sm font-medium">
+                    <Button className="text-primary-700 hover:underline text-sm font-medium">
                       Chỉnh sửa
                     </Button>
                     {listing.status === 'pending_inspection' && (
-                      <Button className="text-orange-600 hover:underline text-sm font-medium">
+                      <Button className="text-gold hover:underline text-sm font-medium">
                         Yêu cầu kiểm định
                       </Button>
                     )}
                     {listing.status === 'active' && (
-                      <Button className="text-red-600 hover:underline text-sm font-medium">
+                      <Button className="text-danger hover:underline text-sm font-medium">
                         Ẩn tin
                       </Button>
                     )}
@@ -243,21 +245,23 @@ const SellerDashboard = () => {
 
       {/* Orders Tab */}
       {activeTab === 'orders' && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold mb-4">Quản lý đơn hàng & Tiền cọc</h2>
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold font-display text-primary-900 mb-4">
+            Quản lý đơn hàng & Tiền cọc
+          </h2>
 
           {orders.map((order) => (
-            <div key={order.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+            <div key={order.id} className="lux-panel">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h3 className="font-bold text-gray-900">{order.bikeName}</h3>
-                  <p className="text-sm text-gray-600">Người mua: {order.buyer}</p>
+                  <h3 className="font-bold text-primary-900">{order.bikeName}</h3>
+                  <p className="text-sm text-warmgray-600">Người mua: {order.buyer}</p>
                 </div>
                 <span
                   className={`px-3 py-1 rounded text-sm font-bold ${
                     order.status === 'confirmed'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-success/10 text-green-800'
+                      : 'bg-gold/10 text-yellow-800'
                   }`}
                 >
                   {order.status === 'confirmed' ? ' Xác nhận' : 'Chờ xác nhận'}
@@ -266,35 +270,35 @@ const SellerDashboard = () => {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
                 <div>
-                  <p className="text-gray-600">Tiền cọc</p>
-                  <p className="font-bold text-blue-600">
+                  <p className="text-warmgray-600">Tiền cọc</p>
+                  <p className="font-bold text-primary-700">
                     {(order.depositAmount / 1000000).toFixed(0)}M
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Giá bán</p>
+                  <p className="text-warmgray-600">Giá bán</p>
                   <p className="font-bold">{(order.totalPrice / 1000000).toFixed(0)}M</p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Dự kiến giao</p>
+                  <p className="text-warmgray-600">Dự kiến giao</p>
                   <p className="font-bold">{order.expectedDeliveryDate}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Trạng thái cọc</p>
-                  <p className="font-bold text-green-600">Ký quỹ</p>
+                  <p className="text-warmgray-600">Trạng thái cọc</p>
+                  <p className="font-bold text-success">Ký quỹ</p>
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-2 rounded text-sm text-blue-900 mb-3">
+              <div className="bg-primary-800/5 p-2 rounded text-sm text-primary-900 mb-3">
                 <strong> Thanh toán:</strong> Tiền cọc được giữ an toàn bởi hệ thống. Sẽ được giải
                 ngân sau khi người mua xác nhận nhận xe.
               </div>
 
-              <div className="flex gap-2">
-                <button className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
+              <div className="flex gap-3">
+                <button className="flex-1 bg-primary-700 text-white py-2.5 rounded-full hover:bg-primary-800 font-medium text-sm transition-colors">
                   Nhắn tin người mua
                 </button>
-                <button className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 font-medium">
+                <button className="flex-1 border border-warmgray-200 py-2.5 rounded-full hover:bg-warmgray-50 font-medium text-sm transition-colors">
                   Cập nhật trạng thái giao hàng
                 </button>
               </div>
@@ -305,37 +309,39 @@ const SellerDashboard = () => {
 
       {/* Reviews Tab */}
       {activeTab === 'reviews' && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold mb-4">Đánh giá & Uy tín ({reviews.length} đánh giá)</h2>
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold font-display text-primary-900 mb-4">
+            Đánh giá & Uy tín ({reviews.length} đánh giá)
+          </h2>
 
-          <div className="bg-white rounded-lg shadow p-6 mb-6 border border-gray-200">
+          <div className="lux-panel !p-8 mb-6">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-gray-600 text-sm">Đánh giá trung bình</p>
-                <p className="text-3xl font-bold text-yellow-500">{sellerStats.trustScore}</p>
+                <p className="text-warmgray-600 text-sm">Đánh giá trung bình</p>
+                <p className="text-3xl font-bold text-gold">{sellerStats.trustScore}</p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">Tổng đánh giá</p>
-                <p className="text-3xl font-bold text-gray-900">{sellerStats.totalReviews}</p>
+                <p className="text-warmgray-600 text-sm">Tổng đánh giá</p>
+                <p className="text-3xl font-bold text-primary-900">{sellerStats.totalReviews}</p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">Tỷ lệ hài lòng</p>
-                <p className="text-3xl font-bold text-green-600">98%</p>
+                <p className="text-warmgray-600 text-sm">Tỷ lệ hài lòng</p>
+                <p className="text-3xl font-bold text-success">98%</p>
               </div>
             </div>
           </div>
 
           {reviews.map((review) => (
-            <div key={review.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+            <div key={review.id} className="lux-panel">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <h4 className="font-bold text-gray-900">{review.buyer}</h4>
-                  <p className="text-xs text-gray-600">{review.date}</p>
+                  <h4 className="font-bold text-primary-900">{review.buyer}</h4>
+                  <p className="text-xs text-warmgray-600">{review.date}</p>
                 </div>
-                <span className="text-yellow-500 font-bold">{'⭐'.repeat(review.rating)}</span>
+                <span className="text-gold font-bold">{'⭐'.repeat(review.rating)}</span>
               </div>
-              <p className="text-gray-700 mb-2">{review.text}</p>
-              <p className="text-xs text-gray-600">Sản phẩm: {review.bikeId}</p>
+              <p className="text-warmgray-700 mb-2">{review.text}</p>
+              <p className="text-xs text-warmgray-600">Sản phẩm: {review.bikeId}</p>
             </div>
           ))}
         </div>
@@ -343,18 +349,20 @@ const SellerDashboard = () => {
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Recent Activities */}
-          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <h2 className="text-lg font-bold mb-4">Hoạt động gần đây</h2>
-            <div className="space-y-3">
+          <div className="lux-panel">
+            <h2 className="text-lg font-bold font-display text-primary-900 mb-6">
+              Hoạt động gần đây
+            </h2>
+            <div className="space-y-4">
               {[
                 ' Đăng tin mới: Giant XTC SLR 29 (ngày hôm nay)',
                 ' Tin đăng: Trek Domane SLR 7 vượt kiểm định',
                 ' Nhận cọc: 5M từ Nguyễn Văn A',
                 ' Nhận đánh giá 5 sao từ Trần Minh B',
               ].map((activity, idx) => (
-                <p key={idx} className="text-gray-700 text-sm">
+                <p key={idx} className="text-warmgray-700 text-sm">
                   {activity}
                 </p>
               ))}
@@ -362,9 +370,9 @@ const SellerDashboard = () => {
           </div>
 
           {/* Need Attention */}
-          <div className="bg-yellow-50 rounded-lg shadow p-6 border border-yellow-200">
-            <h2 className="text-lg font-bold text-yellow-900 mb-4"> Cần chú ý</h2>
-            <ul className="space-y-2 text-yellow-900 text-sm">
+          <div className="bg-gold/5 backdrop-blur-sm rounded-[20px] shadow-soft p-8 border border-gold/20">
+            <h2 className="text-lg font-bold font-display text-yellow-900 mb-6"> Cần chú ý</h2>
+            <ul className="space-y-3 text-yellow-900 text-sm">
               <li> Tin đăng "Trek Domane SLR 7" đang chờ kiểm định</li>
               <li> Tin đăng "Specialized Tarmac SL7" sắp hết hạn kiểm định (5 ngày)</li>
             </ul>

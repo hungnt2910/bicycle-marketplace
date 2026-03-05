@@ -76,8 +76,8 @@ const Favourites = () => {
     <div className="container-custom py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-neutral-900">Tin yêu thích</h2>
-          <p className="text-neutral-600 text-sm">Lưu lại những tin bạn quan tâm để xem nhanh.</p>
+          <h2 className="text-2xl font-bold text-primary-900">Tin yêu thích</h2>
+          <p className="text-warmgray-600 text-sm">Lưu lại những tin bạn quan tâm để xem nhanh.</p>
         </div>
         <Button variant="ghost" disabled={!items.length} onClick={handleClearAll}>
           Xóa tất cả
@@ -85,9 +85,9 @@ const Favourites = () => {
       </div>
 
       {loading ? (
-        <div className="text-neutral-600">Đang tải...</div>
+        <div className="text-warmgray-600">Đang tải...</div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-neutral-200 p-8 text-center text-neutral-500">
+        <div className="bg-white rounded-[16px] border border-dashed border-warmgray-200 p-8 text-center text-warmgray-500">
           Chưa có tin yêu thích.
         </div>
       ) : (
@@ -95,14 +95,14 @@ const Favourites = () => {
           {items.map((item) => (
             <Card
               key={item.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              className="overflow-hidden hover:shadow-soft transition-shadow cursor-pointer"
               onClick={() => handleOpen(item.id)}
             >
-              <div className="relative h-48 bg-neutral-100">
+              <div className="relative h-48 bg-warmgray-100">
                 {item.image ? (
                   <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex items-center justify-center h-full text-neutral-500">
+                  <div className="flex items-center justify-center h-full text-warmgray-500">
                     Không có ảnh
                   </div>
                 )}
@@ -113,13 +113,13 @@ const Favourites = () => {
                 )}
               </div>
               <div className="p-4 space-y-3">
-                <h4 className="font-semibold text-lg line-clamp-2 text-neutral-900">
+                <h4 className="font-semibold text-lg line-clamp-2 text-primary-900">
                   {item.title}
                 </h4>
-                <div className="text-themePrimary font-bold text-xl">
+                <div className="text-primary-800 font-bold text-xl">
                   {item.price.toLocaleString('vi-VN')} ₫
                 </div>
-                <div className="flex items-center justify-between text-sm text-neutral-600">
+                <div className="flex items-center justify-between text-sm text-warmgray-600">
                   <span>{item.location || '—'}</span>
                   {item.condition && <Badge variant="success">{item.condition}</Badge>}
                 </div>

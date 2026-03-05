@@ -77,7 +77,11 @@ const ManageListings = () => {
   };
 
   const handleRequestInspection = async (bicycleId, title) => {
-    if (!window.confirm(`Bạn có chắc muốn yêu cầu kiểm định cho xe "${title}"?\n\nPhí kiểm định: 200.000₫ (Miễn phí lần đầu)`)) {
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn yêu cầu kiểm định cho xe "${title}"?\n\nPhí kiểm định: 200.000₫ (Miễn phí lần đầu)`
+      )
+    ) {
       return;
     }
 
@@ -85,7 +89,7 @@ const ManageListings = () => {
       toast.info('Đang tạo giao dịch thanh toán...', { autoClose: 1500 });
 
       const INSPECTION_FEE = 20000; // TODO: Check if first time for free
-      
+
       // Tạo transaction cho phí kiểm định
       const transactionPayload = {
         bicycleId: bicycleId,
@@ -96,7 +100,7 @@ const ManageListings = () => {
 
       const transactionRes = await transactionApi.create(transactionPayload);
       const transactionData = transactionRes?.data?.data || transactionRes?.data;
-      
+
       // Lấy order_url và app_trans_id từ response
       const paymentUrl = transactionData?.order_url;
       const appTransId = transactionData?.app_trans_id;
@@ -114,12 +118,12 @@ const ManageListings = () => {
       try {
         const myTransactionsRes = await transactionApi.getMyTransactions();
         const transactions = myTransactionsRes?.data?.data || myTransactionsRes?.data || [];
-        
+
         // Tìm transaction có payment.transactionId khớp với app_trans_id
         const foundTransaction = transactions.find(
-          tx => tx.payment?.transactionId === appTransId
+          (tx) => tx.payment?.transactionId === appTransId
         );
-        
+
         if (foundTransaction) {
           transactionId = foundTransaction._id;
           console.log('✅ Found transaction ID:', transactionId);
@@ -145,7 +149,6 @@ const ManageListings = () => {
       setTimeout(() => {
         window.location.href = paymentUrl;
       }, 1500);
-
     } catch (error) {
       console.error('Error requesting inspection:', error);
       toast.error(error?.response?.data?.message || 'Không thể tạo giao dịch thanh toán');
@@ -199,7 +202,7 @@ const ManageListings = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-neutral-600">Đang tải...</div>
+        <div className="text-lg text-warmgray-600">Đang tải...</div>
       </div>
     );
   }
@@ -209,8 +212,8 @@ const ManageListings = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-neutral-900">Quản lý tin đăng</h2>
-          <p className="text-neutral-600 mt-1">Quản lý tất cả tin đăng bán xe của bạn</p>
+          <h2 className="text-2xl font-bold text-primary-900">Quản lý tin đăng</h2>
+          <p className="text-warmgray-600 mt-1">Quản lý tất cả tin đăng bán xe của bạn</p>
         </div>
         <Button variant="primary" onClick={() => navigate('/seller/create-listing')}>
           + Đăng tin mới
@@ -220,23 +223,23 @@ const ManageListings = () => {
       {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Tổng tin đăng</div>
-          <div className="text-2xl font-bold text-neutral-900">{listings.length}</div>
+          <div className="text-sm text-warmgray-600 mb-1">Tổng tin đăng</div>
+          <div className="text-2xl font-bold text-primary-900">{listings.length}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Đang bán</div>
+          <div className="text-sm text-warmgray-600 mb-1">Đang bán</div>
           <div className="text-2xl font-bold text-success-600">
             {listings.filter((l) => l.status === 'active').length}
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Đã đặt cọc</div>
+          <div className="text-sm text-warmgray-600 mb-1">Đã đặt cọc</div>
           <div className="text-2xl font-bold text-info-600">
             {listings.filter((l) => l.status === 'reserved').length}
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Chờ duyệt</div>
+          <div className="text-sm text-warmgray-600 mb-1">Chờ duyệt</div>
           <div className="text-2xl font-bold text-warning-600">
             {listings.filter((l) => l.status === 'pending_review').length}
           </div>
@@ -258,7 +261,7 @@ const ManageListings = () => {
             placeholder="Tìm kiếm tin đăng..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="flex-1 px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
       </Card>
@@ -266,24 +269,24 @@ const ManageListings = () => {
       {/* Listings */}
       <div className="space-y-4">
         {filteredListings.map((listing) => (
-          <Card key={listing._id || listing.id} className="p-4 hover:shadow-lg transition-shadow">
+          <Card key={listing._id || listing.id} className="p-4 hover:shadow-soft transition-shadow">
             <div className="flex gap-4">
               <img
                 src={listing.media?.mainImage || listing.image || '/placeholder-bike.png'}
                 alt={listing.title || listing.name}
-                className="w-32 h-24 object-cover rounded-lg"
+                className="w-32 h-24 object-cover rounded-[16px]"
               />
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold text-lg">{listing.title || listing.name}</h3>
-                    <p className="text-sm text-neutral-600">
+                    <p className="text-sm text-warmgray-600">
                       Đăng ngày: {new Date(listing.createdAt).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
                   {getStatusBadge(listing.status)}
                 </div>
-                <div className="flex items-center gap-6 text-sm text-neutral-600 mb-3">
+                <div className="flex items-center gap-6 text-sm text-warmgray-600 mb-3">
                   <span>
                     Giá:{' '}
                     <strong className="text-primary-600">
@@ -294,8 +297,17 @@ const ManageListings = () => {
                   <span>{listing.favoriteCount || 0} yêu thích</span>
                   {listing.inspection?.isInspected && (
                     <span className="text-success-600 font-medium flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       Đã kiểm định
                     </span>
@@ -321,7 +333,9 @@ const ManageListings = () => {
                       variant="outline"
                       size="sm"
                       className="border-success-500 text-success-600 hover:bg-success-50"
-                      onClick={() => handleRequestInspection(listing._id || listing.id, listing.title)}
+                      onClick={() =>
+                        handleRequestInspection(listing._id || listing.id, listing.title)
+                      }
                     >
                       Yêu cầu kiểm định
                     </Button>
@@ -366,7 +380,7 @@ const ManageListings = () => {
 
       {filteredListings.length === 0 && (
         <Card className="p-12 text-center">
-          <p className="text-neutral-600 mb-4">Không có tin đăng nào</p>
+          <p className="text-warmgray-600 mb-4">Không có tin đăng nào</p>
           <Button variant="primary" onClick={() => navigate('/seller/create-listing')}>
             Đăng tin đầu tiên
           </Button>

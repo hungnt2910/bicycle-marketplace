@@ -51,36 +51,36 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-cosmic flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Background Circles */}
+    <div className="min-h-screen bg-gradient-to-br from-primary-800/5 via-neutral-offwhite to-gold/5 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Ambient Background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-secondary rounded-full blur-3xl opacity-30 animate-float"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-600/10 rounded-full blur-3xl animate-float"></div>
         <div
-          className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-ocean rounded-full blur-3xl opacity-30 animate-float"
+          className="absolute bottom-20 right-10 w-96 h-96 bg-gold/10 rounded-full blur-3xl animate-float"
           style={{ animationDelay: '1s' }}
         ></div>
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-sunset rounded-full blur-3xl opacity-20 animate-float"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary-400/10 rounded-full blur-3xl animate-float"
           style={{ animationDelay: '2s' }}
         ></div>
       </div>
 
       {/* Login Card */}
-      <div className="glass-card rounded-3xl p-8 md:p-12 max-w-md w-full relative z-10 shadow-2xl animate-scaleIn">
+      <div className="bg-white/90 backdrop-blur-xl rounded-xl p-10 max-w-md w-full relative z-10 shadow-card animate-scaleIn">
         {/* Logo Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-cosmic shadow-lg mb-4">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-[20px] bg-primary-800 shadow-soft mb-5">
             <span className="text-white font-black text-3xl"></span>
           </div>
           <h1 className="text-4xl font-black text-gradient mb-2">BICYCLE-MARKETPLACE</h1>
-          <p className="text-gray-600 font-medium">Chợ xe đạp uy tín & an toàn</p>
+          <p className="text-warmgray-600 font-medium">Chợ xe đạp uy tín & an toàn</p>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Email Input */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
+            <label className="block text-sm font-bold text-warmgray-700 mb-2">Email</label>
             <input
               type="email"
               value={email}
@@ -93,7 +93,7 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
 
           {/* Password Input */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Mật khẩu</label>
+            <label className="block text-sm font-bold text-warmgray-700 mb-2">Mật khẩu</label>
             <input
               type="password"
               value={password}
@@ -106,7 +106,7 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-300 text-red-900 px-4 py-3 rounded-xl text-sm font-medium animate-scaleIn">
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-300 text-red-900 px-4 py-3 rounded-[16px] text-sm font-medium animate-scaleIn">
               {error}
             </div>
           )}
@@ -115,7 +115,7 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
           <div className="flex justify-between items-center text-sm">
             <label className="flex items-center gap-2 cursor-pointer group">
               <input type="checkbox" className="w-4 h-4 rounded text-primary-500" />
-              <span className="text-gray-700 group-hover:text-primary-600 transition-colors">
+              <span className="text-warmgray-700 group-hover:text-primary-600 transition-colors">
                 Nhớ đăng nhập
               </span>
             </label>
@@ -145,8 +145,8 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
         </form>
 
         {/* Sign Up Link */}
-        <div className="mt-6">
-          <p className="text-center text-gray-600 text-sm">
+        <div className="mt-8">
+          <p className="text-center text-warmgray-600 text-sm">
             Chưa có tài khoản?{' '}
             <button
               onClick={() => onNavigate && onNavigate('register')}
@@ -160,7 +160,7 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
         <div className="divider my-6"></div>
 
         {/* Demo Accounts */}
-        {/* <div className="glass rounded-xl p-5 border-2 border-primary-200">
+        {/* <div className="glass rounded-[16px] p-5 border-2 border-primary-200">
           <p className="text-sm font-bold text-primary-900 mb-3 flex items-center gap-2">
             <span className="text-lg"></span>
             Tài khoản Demo
@@ -174,12 +174,12 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
             ].map((account) => (
               <div
                 key={account.role}
-                className="bg-white/50 p-2 rounded-lg hover:bg-white/80 transition-colors cursor-pointer"
+                className="bg-white/50 p-2 rounded-[16px] hover:bg-white/90 backdrop-blur-md transition-colors cursor-pointer"
                 onClick={() => setEmail(account.email)}
               >
                 <div className="font-bold text-primary-700">{account.role}</div>
-                <div className="text-gray-600 truncate">{account.email}</div>
-                <div className="text-gray-500 mt-1">password</div>
+                <div className="text-warmgray-600 truncate">{account.email}</div>
+                <div className="text-warmgray-500 mt-1">password</div>
               </div>
             ))}
           </div>

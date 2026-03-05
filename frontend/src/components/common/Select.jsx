@@ -17,9 +17,9 @@ export default function Select({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-warmgray-700 mb-2">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
       <div className="relative">
@@ -27,7 +27,7 @@ export default function Select({
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className={`w-full px-4 py-2 border rounded-lg outline-none transition focus:ring-2 focus:ring-themePrimary focus:border-transparent appearance-none ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'} ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} pr-10 ${className}`}
+          className={`w-full px-4 py-3 border-[1.5px] rounded-[16px] outline-none transition-all duration-300 focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 appearance-none ${error ? 'border-danger focus:ring-danger/20' : 'border-warmgray-300'} ${disabled ? 'bg-warmgray-100 cursor-not-allowed' : 'bg-white'} pr-10 ${className}`}
           {...props}
         >
           <option value="">{placeholder}</option>
@@ -39,10 +39,10 @@ export default function Select({
         </select>
         <ChevronDown
           size={18}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-warmgray-400 pointer-events-none"
         />
       </div>
-      {error && errorMessage && <p className="text-red-500 text-sm mt-1">{errorMessage}</p>}
+      {error && errorMessage && <p className="text-danger text-sm mt-1.5">{errorMessage}</p>}
     </div>
   );
 }

@@ -7,5 +7,12 @@ export default defineConfig({
     host: true,
     port: 4200,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'https://bicycle-marketplace.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 });

@@ -10,8 +10,8 @@ const BuyerLayout = ({
   isAuthenticated = false,
 }) => {
   return (
-    <div className="min-h-screen bg-neutral-50">
-      {/* Top Navigation */}
+    <div className="min-h-screen bg-neutral-offwhite flex flex-col">
+      {/* Top Navigation — transparent blur */}
       <Header
         isAuthenticated={isAuthenticated}
         role="buyer"
@@ -22,8 +22,8 @@ const BuyerLayout = ({
         onLogout={onLogout}
       />
 
-      {/* Main Content */}
-      <main className="min-h-[calc(100vh-180px)]">{children}</main>
+      {/* Main Content — generous vertical breathing room */}
+      <main className="flex-1">{children}</main>
 
       {/* Footer */}
       <Footer />

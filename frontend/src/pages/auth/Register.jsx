@@ -103,41 +103,41 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-800/5 via-neutral-offwhite to-gold/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8 animate-slide-down">
+        <div className="text-center mb-10 animate-slide-down">
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-5xl">🚴</span>
             <h1 className="text-4xl font-bold gradient-text">Bicycle-Marketplace</h1>
           </div>
-          <p className="text-neutral-600">Tạo tài khoản mới</p>
+          <p className="text-warmgray-600">Tạo tài khoản mới</p>
         </div>
 
         {/* Register Form */}
-        <Card className="p-8 animate-scale-in">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <Card className="p-10 animate-scale-in">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection */}
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
+              <label className="block text-sm font-medium text-warmgray-700 mb-2">
                 Bạn muốn <span className="text-danger-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div
                   onClick={() => {
                     setFormData((prev) => ({ ...prev, role: 'buyer' }));
                   }}
                   style={{ cursor: 'pointer', userSelect: 'none' }}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  className={`p-4 rounded-[16px] border-2 transition-all text-left ${
                     formData.role === 'buyer'
                       ? 'border-primary-500 bg-primary-50'
-                      : 'border-neutral-200 hover:border-neutral-300'
+                      : 'border-warmgray-200 hover:border-warmgray-300'
                   }`}
                 >
                   <div className="text-2xl mb-2">🛒</div>
                   <div className="text-sm font-medium">Người mua</div>
                   {formData.role === 'buyer' && (
-                    <div className="text-xs text-green-600 mt-1 font-bold">✓ Đã chọn</div>
+                    <div className="text-xs text-success mt-1 font-bold">✓ Đã chọn</div>
                   )}
                 </div>
                 <div
@@ -145,16 +145,16 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
                     setFormData((prev) => ({ ...prev, role: 'seller' }));
                   }}
                   style={{ cursor: 'pointer', userSelect: 'none' }}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  className={`p-4 rounded-[16px] border-2 transition-all text-left ${
                     formData.role === 'seller'
                       ? 'border-primary-500 bg-primary-50'
-                      : 'border-neutral-200 hover:border-neutral-300'
+                      : 'border-warmgray-200 hover:border-warmgray-300'
                   }`}
                 >
                   <div className="text-2xl mb-2">🏪</div>
                   <div className="text-sm font-medium">Người bán</div>
                   {formData.role === 'seller' && (
-                    <div className="text-xs text-green-600 mt-1 font-bold">✓ Đã chọn</div>
+                    <div className="text-xs text-success mt-1 font-bold">✓ Đã chọn</div>
                   )}
                 </div>
               </div>
@@ -243,8 +243,8 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
           </form>
 
           {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-neutral-600">
+          <div className="mt-8 text-center">
+            <p className="text-sm text-warmgray-600">
               Đã có tài khoản?{' '}
               <a
                 href="#"
@@ -260,17 +260,17 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
           </div>
 
           {/* Social Login */}
-          <div className="mt-6">
+          <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-neutral-200" />
+                <div className="w-full border-t border-warmgray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-neutral-500">Hoặc đăng ký với</span>
+                <span className="px-2 bg-white text-warmgray-500">Hoặc đăng ký với</span>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-4">
               <Button variant="outline" type="button" className="w-full">
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
@@ -303,14 +303,14 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
         </Card>
 
         {/* Back to Home */}
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <a
             href="#"
             onClick={(e) => {
               e.preventDefault();
               onNavigate && onNavigate('landing');
             }}
-            className="text-sm text-neutral-600 hover:text-neutral-900"
+            className="text-sm text-warmgray-600 hover:text-primary-900"
           >
             ← Quay lại trang chủ
           </a>

@@ -53,11 +53,11 @@ const ChatWidget = ({ otherUser = null }) => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-8 right-8 bg-gradient-primary text-white p-5 rounded-full shadow-xl hover:shadow-glow transition-all hover:scale-110 z-40 animate-float"
+        className="fixed bottom-8 right-8 bg-gradient-primary text-white p-5 rounded-full shadow-elevated hover:shadow-glow transition-all hover:scale-110 z-40 animate-float"
         title="Mở chat"
       >
         <span className="text-3xl">💬</span>
-        <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+        <span className="absolute -top-1 -right-1 w-6 h-6 bg-danger/50 text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
           3
         </span>
       </button>
@@ -65,7 +65,7 @@ const ChatWidget = ({ otherUser = null }) => {
   }
 
   return (
-    <div className="fixed bottom-8 right-8 glass-card rounded-2xl shadow-2xl w-96 max-h-[32rem] flex flex-col z-50 animate-scaleIn overflow-hidden">
+    <div className="fixed bottom-8 right-8 glass-card rounded-[20px] shadow-elevated w-96 max-h-[32rem] flex flex-col z-50 animate-scaleIn overflow-hidden">
       {/* Header with Gradient */}
       <div className="bg-gradient-primary text-white p-5 flex justify-between items-center">
         <div>
@@ -77,7 +77,7 @@ const ChatWidget = ({ otherUser = null }) => {
         </div>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+          className="text-white hover:bg-white/20 p-2 rounded-[16px] transition-colors"
         >
           <span className="text-xl">✕</span>
         </button>
@@ -92,14 +92,14 @@ const ChatWidget = ({ otherUser = null }) => {
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             <div
-              className={`max-w-[75%] p-3 rounded-2xl shadow-md ${msg.sender === 'self'
+              className={`max-w-[75%] p-3 rounded-[20px] shadow-soft ${msg.sender === 'self'
                 ? 'bg-gradient-primary text-white rounded-br-sm'
-                : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
+                : 'bg-white text-primary-900 rounded-bl-sm border border-warmgray-200'
                 }`}
             >
               <p className="text-sm leading-relaxed">{msg.text}</p>
               <p
-                className={`text-xs mt-1 ${msg.sender === 'self' ? 'text-white/70' : 'text-gray-500'
+                className={`text-xs mt-1 ${msg.sender === 'self' ? 'text-white/70' : 'text-warmgray-500'
                   }`}
               >
                 {msg.time}
@@ -110,7 +110,7 @@ const ChatWidget = ({ otherUser = null }) => {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-gray-200 p-4 bg-white space-y-3">
+      <div className="border-t border-warmgray-200 p-4 bg-white space-y-3">
         <div className="flex gap-2">
           <input
             type="text"
@@ -129,13 +129,13 @@ const ChatWidget = ({ otherUser = null }) => {
           </button>
         </div>
         <div className="flex gap-3 text-xs">
-          <button className="text-gray-600 hover:text-primary-600 transition-colors font-medium">
+          <button className="text-warmgray-600 hover:text-primary-600 transition-colors font-medium">
             📎 Tệp
           </button>
-          <button className="text-gray-600 hover:text-primary-600 transition-colors font-medium">
+          <button className="text-warmgray-600 hover:text-primary-600 transition-colors font-medium">
             📸 Ảnh
           </button>
-          <button className="text-gray-600 hover:text-primary-600 transition-colors font-medium">
+          <button className="text-warmgray-600 hover:text-primary-600 transition-colors font-medium">
             😊 Emoji
           </button>
         </div>

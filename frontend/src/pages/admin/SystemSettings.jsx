@@ -142,17 +142,17 @@ const SystemSettings = () => {
   }, {});
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="dash-content">
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Cài đặt hệ thống</h1>
-            <p className="text-gray-600">Quản lý các thông số cấu hình hệ thống</p>
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">Cài đặt hệ thống</h1>
+            <p className="text-warmgray-600">Quản lý các thông số cấu hình hệ thống</p>
           </div>
           <button
             onClick={openAddModal}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+            className="bg-primary-700 text-white px-6 py-3 rounded-[16px] hover:bg-primary-800 font-medium"
           >
             + Thêm cài đặt
           </button>
@@ -160,24 +160,24 @@ const SystemSettings = () => {
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger/5 border border-red-200 text-danger px-4 py-3 rounded-[16px]">
           {error}
         </div>
       )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
-          <p className="text-gray-600 text-sm">Tổng cài đặt</p>
-          <p className="text-2xl font-bold text-gray-900">{settings.length}</p>
+        <div className="lux-panel">
+          <p className="text-warmgray-600 text-sm">Tổng cài đặt</p>
+          <p className="text-2xl font-bold text-primary-900">{settings.length}</p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
-          <p className="text-gray-600 text-sm">Danh mục</p>
-          <p className="text-2xl font-bold text-gray-900">{Object.keys(groupedSettings).length}</p>
+        <div className="lux-panel">
+          <p className="text-warmgray-600 text-sm">Danh mục</p>
+          <p className="text-2xl font-bold text-primary-900">{Object.keys(groupedSettings).length}</p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
-          <p className="text-gray-600 text-sm">Cài đặt danh mục</p>
-          <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
+        <div className="lux-panel">
+          <p className="text-warmgray-600 text-sm">Cài đặt danh mục</p>
+          <p className="text-2xl font-bold text-primary-900">{categories.length}</p>
         </div>
       </div>
 
@@ -192,36 +192,36 @@ const SystemSettings = () => {
       {!loading && (
         <div className="space-y-6">
           {Object.entries(groupedSettings).map(([categoryName, categorySettings]) => (
-            <div key={categoryName} className="bg-white rounded-lg shadow border border-gray-200">
-              <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900">{categoryName}</h3>
-                <p className="text-sm text-gray-600">{categorySettings.length} cài đặt</p>
+            <div key={categoryName} className="lux-panel">
+              <div className="p-4 bg-warmgray-50 border-b border-warmgray-200">
+                <h3 className="text-lg font-bold text-primary-900">{categoryName}</h3>
+                <p className="text-sm text-warmgray-600">{categorySettings.length} cài đặt</p>
               </div>
               <div className="divide-y divide-gray-200">
                 {categorySettings.map((setting) => (
-                  <div key={setting.key} className="p-4 hover:bg-gray-50">
+                  <div key={setting.key} className="p-4 hover:bg-warmgray-50">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <code className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm font-mono">
+                          <code className="px-2 py-1 bg-primary-800/5 text-primary-800 rounded text-sm font-mono">
                             {setting.key}
                           </code>
                         </div>
-                        <p className="text-gray-900 font-medium mb-1">{setting.value}</p>
+                        <p className="text-primary-900 font-medium mb-1">{setting.value}</p>
                         {setting.description && (
-                          <p className="text-sm text-gray-600">{setting.description}</p>
+                          <p className="text-sm text-warmgray-600">{setting.description}</p>
                         )}
                       </div>
                       <div className="flex gap-2 ml-4">
                         <button
                           onClick={() => openEditModal(setting)}
-                          className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg font-medium"
+                          className="px-4 py-2 text-primary-700 hover:bg-primary-800/5 rounded-[16px] font-medium"
                         >
                           Sửa
                         </button>
                         <button
                           onClick={() => handleDelete(setting.key)}
-                          className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium"
+                          className="px-4 py-2 text-danger hover:bg-danger/5 rounded-[16px] font-medium"
                         >
                           Xóa
                         </button>
@@ -238,17 +238,17 @@ const SystemSettings = () => {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">
+          <div className="bg-white rounded-[16px] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-warmgray-200">
+              <h2 className="text-2xl font-bold text-primary-900">
                 {editingSetting ? 'Chỉnh sửa cài đặt' : 'Thêm cài đặt mới'}
               </h2>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Key <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                  Key <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
@@ -256,46 +256,46 @@ const SystemSettings = () => {
                   value={formData.key}
                   onChange={handleFormChange}
                   disabled={editingSetting}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 disabled:bg-gray-100 font-mono"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600 disabled:bg-warmgray-100 font-mono"
                   placeholder="SETTING_KEY"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Value <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                  Value <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   name="value"
                   value={formData.value}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                   placeholder="Giá trị cài đặt"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">Mô tả</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleFormChange}
                   rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                   placeholder="Mô tả về cài đặt này..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">Danh mục</label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleFormChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
                 >
                   <option value="">-- Chọn danh mục --</option>
                   {categories.map((cat) => (
@@ -309,7 +309,7 @@ const SystemSettings = () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  className="flex-1 bg-primary-700 text-white py-2 rounded-[16px] hover:bg-primary-800 font-medium"
                 >
                   {editingSetting ? 'Cập nhật' : 'Tạo mới'}
                 </button>
@@ -321,7 +321,7 @@ const SystemSettings = () => {
                     resetForm();
                     setError('');
                   }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 font-medium"
+                  className="flex-1 bg-warmgray-200 text-warmgray-700 py-2 rounded-[16px] hover:bg-warmgray-300 font-medium"
                 >
                   Hủy
                 </button>
