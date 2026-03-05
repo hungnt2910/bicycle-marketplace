@@ -22,7 +22,7 @@ export class BicyclesService {
   }
 
   async findAllBicycles(): Promise<Bicycle[]> {
-    return await this.bicycleModel.find().exec();
+    return await this.bicycleModel.find().sort({ createdAt: -1 }).exec();
   }
 
   async findBicycleById(id: string): Promise<Bicycle | null> {
