@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -7,7 +7,13 @@ import {
 } from '../../entities/transaction.entity';
 import { AuditLog, AuditLogDocument } from '../../entities/audit-log.entity';
 import { WalletService } from '../wallet/wallet.service';
-import { WalletTransactionType } from 'src/entities/wallet-transaction.entity';
+import {
+  WalletTransactionDocument,
+  WalletTransactionType,
+} from 'src/entities/wallet-transaction.entity';
+
+// Placeholder system actor used in audit logs for automated operations
+const SYSTEM_ACTOR_ID = new Types.ObjectId('000000000000000000000000');
 
 @Injectable()
 export class EscrowService {
@@ -21,108 +27,181 @@ export class EscrowService {
     private walletService: WalletService,
   ) {}
 
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
   /**
-   * Hold funds in escrow (called when payment is received)
+   * Resolve a transaction by id or use an already-loaded document.
    */
-  async holdFunds(transaction: TransactionDocument): Promise<void> {
-    this.logger.log(
-      `Holding ${transaction.amount} VND in escrow for transaction ${transaction._id}`,
-    );
+  private async resolveTransaction(
+    transactionOrId: TransactionDocument | string,
+  ): Promise<TransactionDocument> {
+    if (typeof transactionOrId === 'string') {
+      const tx = await this.transactionModel.findById(transactionOrId);
+      if (!tx) {
+        throw new NotFoundException(
+          `Transaction ${transactionOrId} not found`,
+        );
+      }
+      return tx;
+    }
+    return transactionOrId;
+  }
 
-    // In production, this would call payment gateway API
-    // For now, we just log the action
-
+  /**
+   * Write an audit log entry for escrow operations.
+   */
+  private async writeAuditLog(
+    action: string,
+    transaction: TransactionDocument,
+    changes: Record<string, unknown>,
+  ): Promise<void> {
     await this.auditLogModel.create({
-      adminId: new Types.ObjectId('000000000000000000000000'), // System placeholder
-      action: 'escrow_hold_funds',
+      adminId: SYSTEM_ACTOR_ID,
+      action,
       entityType: 'Transaction',
       entityId: transaction._id,
-      changes: {
-        amount: transaction.amount,
-        status: 'held_in_escrow',
-      },
+      changes,
       timestamp: new Date(),
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Public API
+  // ---------------------------------------------------------------------------
+
   /**
-   * Release funds to seller (after buyer confirms or auto-confirm)
+   * Hold funds in escrow when a buyer's payment is received.
+   *
+   * Debits the buyer's wallet and marks the amount as pending so it cannot
+   * be spent until the transaction is resolved.
    */
-  async releaseFunds(transaction: TransactionDocument): Promise<void> {
-    // Check if fees exist and have commissionAmount
-    const commissionAmount = transaction.fees?.commissionAmount || 0;
-    const sellerAmount = transaction.amount;
+  async holdFunds(
+    transaction: TransactionDocument | string,
+  ): Promise<WalletTransactionDocument> {
+    const tx = await this.resolveTransaction(transaction);
 
     this.logger.log(
-      `Releasing ${sellerAmount} VND to seller ${transaction.sellerId}`,
+      `Holding ${tx.amount} VND in escrow for transaction ${tx._id}`,
     );
 
-    // In production, this would:
-    // 1. Call payment gateway to transfer to seller
-    // 2. Deduct platform commission
-    // 3. Update seller's wallet/balance
+    const walletTx = await this.walletService.holdInEscrow(
+      tx.buyerId.toString(),
+      tx.amount,
+      tx._id.toString(),
+    );
 
-    await this.auditLogModel.create({
-      adminId: new Types.ObjectId('000000000000000000000000'), // System placeholder
-      action: 'escrow_release_funds',
-      entityType: 'Transaction',
-      entityId: transaction._id,
-      changes: {
-        sellerAmount,
-        platformCommission: commissionAmount,
-        status: 'funds_released',
-      },
-      timestamp: new Date(),
+    await this.writeAuditLog('escrow_hold_funds', tx, {
+      amount: tx.amount,
+      buyerId: tx.buyerId,
+      status: 'held_in_escrow',
     });
+
+    return walletTx;
   }
 
   /**
-   * Refund to buyer (if seller doesn't ship or dispute resolved)
+   * Release funds to the seller after the buyer confirms receipt (or after
+   * the auto-confirm window expires).
+   *
+   * Platform commission is deducted from the seller's payout automatically
+   * if `fees.commissionAmount` is set on the transaction.
    */
-  async refundFunds(transaction: TransactionDocument): Promise<void> {
+  async releaseFunds(
+    transaction: TransactionDocument | string,
+  ): Promise<WalletTransactionDocument> {
+    const tx = await this.resolveTransaction(transaction);
+
+    const commissionAmount = tx.fees?.commissionAmount ?? 0;
+    const sellerAmount = tx.amount - commissionAmount;
+
     this.logger.log(
-      `Refunding ${transaction.amount} VND to buyer ${transaction.buyerId}`,
+      `Releasing ${sellerAmount} VND to seller ${tx.sellerId} ` +
+        `(commission: ${commissionAmount} VND) for transaction ${tx._id}`,
     );
 
-    await this.walletService.credit(
-      transaction.buyerId.toString(),
-      transaction.amount,
+    const walletTx = await this.walletService.releaseFromEscrow(
+      tx.sellerId.toString(),
+      sellerAmount,
+      tx._id.toString(),
+    );
+
+    await this.writeAuditLog('escrow_release_funds', tx, {
+      sellerAmount,
+      platformCommission: commissionAmount,
+      status: 'funds_released',
+    });
+
+    return walletTx;
+  }
+
+  /**
+   * Refund funds to the buyer when the seller fails to ship or a dispute is
+   * resolved in the buyer's favour.
+   */
+  async refundFunds(
+    transaction: TransactionDocument | string,
+  ): Promise<WalletTransactionDocument> {
+    const tx = await this.resolveTransaction(transaction);
+
+    this.logger.log(
+      `Refunding ${tx.amount} VND to buyer ${tx.buyerId} for transaction ${tx._id}`,
+    );
+
+    const walletTx = await this.walletService.credit(
+      tx.buyerId.toString(),
+      tx.amount,
       WalletTransactionType.REFUND,
-      `Refund for transaction ${transaction._id}`,
-      { transactionId: transaction._id.toString() },
+      `Refund for transaction ${tx._id}`,
+      { transactionId: tx._id.toString() },
     );
 
-    // In production, this would call payment gateway refund API
+    await this.writeAuditLog('escrow_refund_funds', tx, {
+      refundAmount: tx.amount,
+      buyerId: tx.buyerId,
+      reason: 'Seller failed to ship or dispute resolved in buyer favour',
+    });
 
-    await this.auditLogModel.create({
-      adminId: new Types.ObjectId('000000000000000000000000'), // System placeholder
-      action: 'escrow_refund_funds',
-      entityType: 'Transaction',
-      entityId: transaction._id,
-      changes: {
-        refundAmount: transaction.amount,
-        reason: 'Seller failed to ship or dispute resolved in buyer favor',
-      },
-      timestamp: new Date(),
+    return walletTx;
+  }
+
+  /**
+   * Freeze escrow when a dispute is opened.
+   *
+   * No money moves at this point — the freeze is a logical flag recorded in
+   * the audit trail so that automated release is blocked until the dispute is
+   * resolved.
+   */
+  async freezeTransaction(
+    transaction: TransactionDocument | string,
+  ): Promise<void> {
+    const tx = await this.resolveTransaction(transaction);
+
+    this.logger.log(
+      `Freezing transaction ${tx._id} due to dispute`,
+    );
+
+    await this.writeAuditLog('escrow_freeze_transaction', tx, {
+      status: 'frozen',
+      reason: 'Dispute opened',
     });
   }
 
   /**
-   * Freeze transaction (when dispute is opened)
+   * Unfreeze escrow once a dispute is closed without a refund (e.g. resolved
+   * in the seller's favour). Call `releaseFunds` afterwards to pay out.
    */
-  async freezeTransaction(transaction: TransactionDocument): Promise<void> {
-    this.logger.log(`Freezing transaction ${transaction._id} due to dispute`);
+  async unfreezeTransaction(
+    transaction: TransactionDocument | string,
+  ): Promise<void> {
+    const tx = await this.resolveTransaction(transaction);
 
-    await this.auditLogModel.create({
-      adminId: new Types.ObjectId('000000000000000000000000'), // System placeholder
-      action: 'escrow_freeze_transaction',
-      entityType: 'Transaction',
-      entityId: transaction._id,
-      changes: {
-        status: 'frozen',
-        reason: 'Dispute opened',
-      },
-      timestamp: new Date(),
+    this.logger.log(`Unfreezing transaction ${tx._id}`);
+
+    await this.writeAuditLog('escrow_unfreeze_transaction', tx, {
+      status: 'unfrozen',
+      reason: 'Dispute resolved',
     });
   }
 }

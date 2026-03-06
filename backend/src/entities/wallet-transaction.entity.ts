@@ -21,8 +21,8 @@ export enum WalletTransactionType {
   ESCROW_HOLD = 'escrow_hold',           // Money moved to escrow
   ESCROW_RELEASE = 'escrow_release',     // Money released from escrow
 
-  LISTING_FEE = 'listing_fee',                // Fee for listing a bicycle
-  SERVICE_FEE = 'service_fee',                // Fee for using the service
+  FEE = 'fee',                // Fee for listing a bicycle
+  INSPECTION_FEE = 'inspection_fee',                // Fee for using the service
 }
 
 export enum WalletTransactionStatus {

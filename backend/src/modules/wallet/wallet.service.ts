@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ClientSession } from 'mongoose';
+import { Model, ClientSession, Types } from 'mongoose';
 import {
   Wallet,
   WalletDocument,
@@ -16,6 +16,13 @@ import {
   WalletTransactionType,
   WalletTransactionStatus,
 } from '../../entities/wallet-transaction.entity';
+import {
+  Transaction,
+  TransactionDocument,
+  TransactionStatus,
+} from '../../entities/transaction.entity';
+
+export type EscrowRole = 'buyer' | 'seller';
 
 @Injectable()
 export class WalletService {
@@ -23,11 +30,12 @@ export class WalletService {
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
     @InjectModel(WalletTransaction.name)
     private walletTransactionModel: Model<WalletTransactionDocument>,
+    @InjectModel(Transaction.name)
+    private transactionModel: Model<TransactionDocument>,
   ) {}
 
   /**
    * Create wallet for new user
-   * ✅ Returns WalletDocument (not Wallet)
    */
   async createWallet(userId: string): Promise<WalletDocument> {
     const existingWallet = await this.walletModel.findOne({ userId });
@@ -47,12 +55,11 @@ export class WalletService {
       status: WalletStatus.ACTIVE,
     });
 
-    return wallet; // ✅ TypeScript is happy now
+    return wallet;
   }
 
   /**
    * Get user's wallet
-   * ✅ Returns WalletDocument
    */
   async getWallet(userId: string): Promise<WalletDocument> {
     let wallet = await this.walletModel.findOne({ userId });
@@ -65,8 +72,71 @@ export class WalletService {
   }
 
   /**
+   * Get wallet totals and funds currently held in escrow from the Transaction
+   * collection.
+   *
+   * @param userId - The user whose totals to fetch.
+   * @param role   - Whether to look up the user as 'buyer' or 'seller'.
+   *                 A buyer's escrow is money they paid that hasn't been
+   *                 released yet. A seller's escrow is money owed to them
+   *                 that is still being held.
+   *
+   * Escrow source of truth: Transaction documents whose status is
+   * HELD_IN_ESCROW, summing `escrow.heldAmount` (falling back to `amount`
+   * when heldAmount is not set).
+   */
+  async getEscrowAndWalletTotals(
+    userId: string,
+    role: EscrowRole,
+  ): Promise<{
+    walletBalance: number;
+    pendingBalance: number;
+    availableBalance: number;
+    escrowHeld: number;
+    role: EscrowRole;
+  }> {
+    // const objectId = new Types.ObjectId(userId);
+
+    // Match on the correct side of the transaction depending on role
+    const roleFilter =
+      role === 'buyer' ? { buyerId: userId } : { sellerId: userId };
+
+    const [wallet, escrowAgg] = await Promise.all([
+      this.getWallet(userId),
+      this.transactionModel.aggregate([
+        {
+          $match: {
+            ...roleFilter,
+            status: TransactionStatus.HELD_IN_ESCROW,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            // Prefer escrow.heldAmount; fall back to the top-level amount
+            total: {
+              $sum: {
+                $ifNull: ['$escrow.heldAmount', '$amount'],
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const escrowHeld = escrowAgg[0]?.total ?? 0;
+
+    return {
+      walletBalance: wallet.balance,
+      pendingBalance: wallet.pendingBalance,
+      availableBalance: wallet.balance - wallet.pendingBalance,
+      escrowHeld,
+      role,
+    };
+  }
+
+  /**
    * Credit wallet (add money)
-   * ✅ Returns WalletTransactionDocument
    */
   async credit(
     userId: string,
@@ -93,19 +163,16 @@ export class WalletService {
     const balanceBefore = wallet.balance;
     const balanceAfter = balanceBefore + amount;
 
-    // Update wallet
     wallet.balance = balanceAfter;
     wallet.totalDeposited += amount;
     wallet.lastTransactionAt = new Date();
 
-    // Track earnings for sellers
     if (type === WalletTransactionType.SALE_PAYMENT) {
       wallet.totalEarned += amount;
     }
 
-    await wallet.save({ session }); // ✅ .save() works now!
+    await wallet.save({ session });
 
-    // Create transaction record
     const walletTransaction = await this.walletTransactionModel.create(
       [
         {
@@ -130,7 +197,6 @@ export class WalletService {
 
   /**
    * Debit wallet (subtract money)
-   * ✅ Returns WalletTransactionDocument
    */
   async debit(
     userId: string,
@@ -163,19 +229,16 @@ export class WalletService {
     const balanceBefore = wallet.balance;
     const balanceAfter = balanceBefore - amount;
 
-    // Update wallet
     wallet.balance = balanceAfter;
     wallet.totalWithdrawn += amount;
     wallet.lastTransactionAt = new Date();
 
-    // Track spending for buyers
     if (type === WalletTransactionType.PURCHASE) {
       wallet.totalSpent += amount;
     }
 
-    await wallet.save({ session }); // ✅ Works!
+    await wallet.save({ session });
 
-    // Create transaction record
     const walletTransaction = await this.walletTransactionModel.create(
       [
         {
@@ -199,7 +262,7 @@ export class WalletService {
   }
 
   /**
-   * Transfer between wallets
+   * Transfer between wallets (atomic)
    */
   async transfer(
     fromUserId: string,
@@ -236,10 +299,7 @@ export class WalletService {
 
       await session.commitTransaction();
 
-      return {
-        from: fromTransaction,
-        to: toTransaction,
-      };
+      return { from: fromTransaction, to: toTransaction };
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -262,9 +322,8 @@ export class WalletService {
       throw new BadRequestException('Insufficient balance');
     }
 
-    // Increase pending balance
     wallet.pendingBalance += amount;
-    await wallet.save(); // ✅ Works!
+    await wallet.save();
 
     return await this.debit(
       userId,
@@ -352,14 +411,12 @@ export class WalletService {
   async getWalletSummary(userId: string): Promise<any> {
     const wallet = await this.getWallet(userId);
 
-    // Get recent transactions
     const recentTransactions = await this.walletTransactionModel
       .find({ userId })
       .sort({ createdAt: -1 })
       .limit(10)
       .exec();
 
-    // Get monthly statistics
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -374,9 +431,7 @@ export class WalletService {
         $group: {
           _id: null,
           totalIn: {
-            $sum: {
-              $cond: [{ $gt: ['$amount', 0] }, '$amount', 0],
-            },
+            $sum: { $cond: [{ $gt: ['$amount', 0] }, '$amount', 0] },
           },
           totalOut: {
             $sum: {
@@ -421,7 +476,6 @@ export class WalletService {
     },
   ): Promise<WalletTransactionDocument> {
     const wallet = await this.getWallet(userId);
-
     const availableBalance = wallet.balance - wallet.pendingBalance;
 
     if (availableBalance < amount) {
@@ -447,12 +501,9 @@ export class WalletService {
         session,
       );
 
-      // Update with bank details
-      walletTransaction.withdrawalDetails = {
-        ...bankDetails,
-      };
+      walletTransaction.withdrawalDetails = { ...bankDetails };
       walletTransaction.status = WalletTransactionStatus.PENDING;
-      await walletTransaction.save({ session }); // ✅ Works!
+      await walletTransaction.save({ session });
 
       await session.commitTransaction();
 
@@ -468,27 +519,26 @@ export class WalletService {
   /**
    * Charge seller a listing fee when posting a bicycle
    */
-  async chargeListingFee(
-    sellerId: string,
-    bicycleId: string,
-    listingFee: number = 20000, // Default 10,000 VND
-  ): Promise<WalletTransactionDocument> {
-    const wallet = await this.getWallet(sellerId);
+  // async chargeListingFee(
+  //   sellerId: string,
+  //   bicycleId: string,
+  //   listingFee: number = 20000,
+  // ): Promise<WalletTransactionDocument> {
+  //   const wallet = await this.getWallet(sellerId);
+  //   const availableBalance = wallet.balance - wallet.pendingBalance;
 
-    const availableBalance = wallet.balance - wallet.pendingBalance;
+  //   if (availableBalance < listingFee) {
+  //     throw new BadRequestException(
+  //       `Insufficient balance to post bicycle. Required: ${listingFee} VND, Available: ${availableBalance} VND. Please top up your wallet.`,
+  //     );
+  //   }
 
-    if (availableBalance < listingFee) {
-      throw new BadRequestException(
-        `Insufficient balance to post bicycle. Required: ${listingFee} VND, Available: ${availableBalance} VND. Please top up your wallet.`,
-      );
-    }
-
-    return await this.debit(
-      sellerId,
-      listingFee,
-      WalletTransactionType.LISTING_FEE, // add this enum value (see below)
-      `Listing fee for bicycle ${bicycleId}`,
-      { bicycleId },
-    );
-  }
+  //   return await this.debit(
+  //     sellerId,
+  //     listingFee,
+  //     WalletTransactionType.LISTING_FEE,
+  //     `Listing fee for bicycle ${bicycleId}`,
+  //     { bicycleId },
+  //   );
+  // }
 }
