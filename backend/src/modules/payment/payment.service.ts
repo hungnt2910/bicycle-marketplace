@@ -49,7 +49,10 @@ export class PaymentService {
       throw new BadRequestException('Transaction not found');
     }
 
-    if (transaction.status !== TransactionStatus.PENDING_PAYMENT && transaction.status !== TransactionStatus.DEPOSIT_PAID) {
+    if (
+      transaction.status !== TransactionStatus.PENDING_PAYMENT &&
+      transaction.status !== TransactionStatus.DEPOSIT_PAID
+    ) {
       throw new BadRequestException('Transaction is not pending payment');
     }
 
@@ -106,6 +109,118 @@ export class PaymentService {
   /**
    * Handle ZaloPay callback
    */
+  // async handleZaloPayCallback(
+  //   dataStr: string,
+  //   mac: string,
+  // ): Promise<{
+  //   return_code: number;
+  //   return_message: string;
+  // }> {
+  //   // Verify callback
+  //   const verification = this.zaloPayService.verifyCallback(dataStr, mac);
+
+  //   if (!verification.isValid) {
+  //     return {
+  //       return_code: -1,
+  //       return_message: 'mac not equal',
+  //     };
+  //   }
+
+  //   const callbackData = verification.data;
+  //   const embedData = JSON.parse(callbackData.embed_data);
+  //   const transactionId = embedData.transactionId;
+
+  //   this.logger.log(
+  //     `Processing ZaloPay callback for transaction ${transactionId}`,
+  //   );
+
+  //   try {
+  //     // Get transaction
+  //     const transaction = await this.transactionModel.findById(transactionId);
+
+  //     if (!transaction) {
+  //       return {
+  //         return_code: -2,
+  //         return_message: 'Transaction not found',
+  //       };
+  //     }
+
+  //     if (
+  //       transaction.type !== TransactionType.FEE &&
+  //       transaction.type !== TransactionType.INSPECTION_FEE
+  //     ) {
+  //       const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
+  //       if (!bicycle) {
+  //         throw new Error('Bicycle not found');
+  //       }
+  //       bicycle.status = BicycleStatus.RESERVED;
+  //       await bicycle.save();
+  //     }
+
+  //     if (
+  //       transaction.type === TransactionType.FEE ||
+  //       transaction.type === TransactionType.INSPECTION_FEE
+  //     ) {
+  //       transaction.status = TransactionStatus.COMPLETED;
+
+  //       await transaction.save();
+
+  //       this.logger.log(
+  //         `ZaloPay fee transaction ${transactionId} marked as completed`,
+  //       );
+  //     } else if (transaction.type === TransactionType.DEPOSIT && transaction.status === TransactionStatus.PENDING_PAYMENT) {
+  //       // Hold in escrow
+  //       this.transactionsService.confirmDepositPayment(transactionId, {
+  //         transactionId: transactionId,
+  //       });
+  //     } else if (transaction.status === TransactionStatus.DEPOSIT_PAID) {
+  //       this.transactionsService.confirmFullPayment(transactionId, {
+  //         transactionId: transactionId,
+  //       });
+  //     } else if (transaction.type === TransactionType.FULL_PAYMENT) {
+  //       transaction.status = TransactionStatus.PAYMENT_RECEIVED;
+  //       await transaction.save();
+  //     }
+
+  //     await this.walletService.credit(
+  //       transaction.buyerId.toString(),
+  //       transaction.amount,
+  //       WalletTransactionType.PURCHASE,
+  //       `Payment for bicycle: ${transaction.bicycleId}`,
+  //       {
+  //         transactionId: transaction._id.toString(),
+  //         bicycleId: transaction.bicycleId.toString(),
+  //       },
+  //     );
+
+  //     await this.walletService.debit(
+  //       transaction.buyerId.toString(),
+  //       transaction.amount,
+  //       WalletTransactionType.PURCHASE,
+  //       `Payment for bicycle: ${transaction.bicycleId}`,
+  //       {
+  //         transactionId: transaction._id.toString(),
+  //         bicycleId: transaction.bicycleId.toString(),
+  //       },
+  //     );
+
+  //     this.logger.log(
+  //       `ZaloPay payment confirmed for transaction ${transactionId}`,
+  //     );
+
+  //     return {
+  //       return_code: 1,
+  //       return_message: 'success',
+  //     };
+  //   } catch (error) {
+  //     this.logger.error(`ZaloPay callback processing failed: ${error.message}`);
+  //     return {
+  //       return_code: 0,
+  //       return_message: error.message,
+  //     };
+  //   }
+  // }
+
   async handleZaloPayCallback(
     dataStr: string,
     mac: string,
@@ -113,14 +228,11 @@ export class PaymentService {
     return_code: number;
     return_message: string;
   }> {
-    // Verify callback
+    // ── 1. Verify MAC ────────────────────────────────────────────────────────
     const verification = this.zaloPayService.verifyCallback(dataStr, mac);
 
     if (!verification.isValid) {
-      return {
-        return_code: -1,
-        return_message: 'mac not equal',
-      };
+      return { return_code: -1, return_message: 'mac not equal' };
     }
 
     const callbackData = verification.data;
@@ -132,90 +244,116 @@ export class PaymentService {
     );
 
     try {
-      // Get transaction
+      // ── 2. Load transaction ───────────────────────────────────────────────
       const transaction = await this.transactionModel.findById(transactionId);
 
       if (!transaction) {
-        return {
-          return_code: -2,
-          return_message: 'Transaction not found',
-        };
+        return { return_code: -2, return_message: 'Transaction not found' };
       }
 
-      if (
-        transaction.type !== TransactionType.FEE &&
-        transaction.type !== TransactionType.INSPECTION_FEE
-      ) {
-        const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
-        if (!bicycle) {
-          throw new Error('Bicycle not found');
+      const buyerId = transaction.buyerId.toString();
+      const sellerId = transaction.sellerId.toString()
+      const bicycleId = transaction.bicycleId.toString();
+      const txId = transaction._id.toString();
+      const amount = transaction.amount;
+
+      // ── 3. Route by transaction type ─────────────────────────────────────
+      switch (transaction.type) {
+        // ── 3a. Platform fees (listing fee / inspection fee) ───────────────
+        // Buyer pays a flat fee to the platform — debit buyer wallet, no escrow.
+        case TransactionType.FEE:
+        case TransactionType.INSPECTION_FEE: {
+          transaction.status = TransactionStatus.COMPLETED;
+          await transaction.save();
+
+          await this.walletService.debit(
+            sellerId,
+            amount,
+            transaction.type === TransactionType.FEE
+              ? WalletTransactionType.FEE
+              : WalletTransactionType.INSPECTION_FEE,
+            `${transaction.type === TransactionType.FEE ? 'Listing' : 'Inspection'} fee for bicycle ${bicycleId}`,
+            { transactionId: txId, bicycleId },
+          );
+
+          this.logger.log(
+            `Fee transaction ${transactionId} completed (type: ${transaction.type})`,
+          );
+          break;
         }
-        bicycle.status = BicycleStatus.RESERVED;
-        await bicycle.save();
+
+        // ── 3b. Deposit payment (first instalment) ─────────────────────────
+        // Buyer pays a deposit → hold in escrow, mark bicycle reserved.
+        case TransactionType.DEPOSIT: {
+          if (transaction.status === TransactionStatus.DEPOSIT_PAID) {
+            await this.reserveBicycle(bicycleId);
+
+            await this.transactionsService.confirmFullPayment(transactionId, {
+              transactionId: txId,
+            });
+
+            this.logger.log(
+              `Full payment (post-deposit) held in escrow for transaction ${transactionId}`,
+            );
+
+            break;
+          }  
+
+          await this.reserveBicycle(transaction.bicycleId.toString());
+
+          // Delegate status update + escrow hold to the service layer
+          await this.transactionsService.confirmDepositPayment(transactionId, {
+            transactionId: txId,
+          });
+
+          this.logger.log(
+            `Deposit held in escrow for transaction ${transactionId}`,
+          );
+          break;
+        }
+        
+
+        // ── 3c. Full payment after deposit (remaining balance) ─────────────
+        // Buyer clears the remaining balance → move full amount to escrow.
+        case TransactionType.FULL_PAYMENT: {
+          transaction.status = TransactionStatus.PAYMENT_RECEIVED;
+          await transaction.save();
+          break;
+        }
+
+        default: {
+          this.logger.warn(
+            `Unhandled transaction type "${transaction.type}" for transaction ${transactionId}`,
+          );
+        }
       }
-
-      if (
-        transaction.type === TransactionType.FEE ||
-        transaction.type === TransactionType.INSPECTION_FEE
-      ) {
-        transaction.status = TransactionStatus.COMPLETED;
-
-        await transaction.save();
-
-        this.logger.log(
-          `ZaloPay fee transaction ${transactionId} marked as completed`,
-        );
-      } else if (transaction.type === TransactionType.DEPOSIT && transaction.status === TransactionStatus.PENDING_PAYMENT) {
-        // Hold in escrow
-        this.transactionsService.confirmDepositPayment(transactionId, {
-          transactionId: transactionId,
-        });
-      } else if (transaction.status === TransactionStatus.DEPOSIT_PAID) {
-        this.transactionsService.confirmFullPayment(transactionId, {
-          transactionId: transactionId,
-        });
-      } else if (transaction.type === TransactionType.FULL_PAYMENT) {
-        transaction.status = TransactionStatus.PAYMENT_RECEIVED;
-        await transaction.save();
-      }
-
-      await this.walletService.credit(
-        transaction.buyerId.toString(),
-        transaction.amount,
-        WalletTransactionType.PURCHASE,
-        `Payment for bicycle: ${transaction.bicycleId}`,
-        {
-          transactionId: transaction._id.toString(),
-          bicycleId: transaction.bicycleId.toString(),
-        },
-      );
-
-      await this.walletService.debit(
-        transaction.buyerId.toString(),
-        transaction.amount,
-        WalletTransactionType.PURCHASE,
-        `Payment for bicycle: ${transaction.bicycleId}`,
-        {
-          transactionId: transaction._id.toString(),
-          bicycleId: transaction.bicycleId.toString(),
-        },
-      );
 
       this.logger.log(
-        `ZaloPay payment confirmed for transaction ${transactionId}`,
+        `ZaloPay callback processed successfully for transaction ${transactionId}`,
       );
 
-      return {
-        return_code: 1,
-        return_message: 'success',
-      };
+      return { return_code: 1, return_message: 'success' };
     } catch (error) {
-      this.logger.error(`ZaloPay callback processing failed: ${error.message}`);
-      return {
-        return_code: 0,
-        return_message: error.message,
-      };
+      this.logger.error(
+        `ZaloPay callback processing failed for transaction ${transactionId}: ${error.message}`,
+        error.stack,
+      );
+      return { return_code: 0, return_message: error.message };
     }
+  }
+
+  // ── Private helper ──────────────────────────────────────────────────────────
+
+  /**
+   * Mark a bicycle as RESERVED. Throws if the bicycle is not found.
+   */
+  private async reserveBicycle(bicycleId: string): Promise<void> {
+    const bicycle = await this.bicycleModel.findById(bicycleId);
+    if (!bicycle) {
+      throw new Error(`Bicycle ${bicycleId} not found`);
+    }
+    bicycle.status = BicycleStatus.RESERVED;
+    await bicycle.save();
   }
 
   /**

@@ -1,103 +1,142 @@
-// src/modules/wallet/wallet.controller.ts
 import {
   Controller,
   Get,
   Post,
   Body,
+  Param,
   Query,
   UseGuards,
+  Request,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { WalletService } from './wallet.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { GetUser } from '../../common/decorators/get-user.decorator';
-import { User } from '../../entities/user.entity';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiParam,
+} from '@nestjs/swagger';
+import { WalletService, EscrowRole } from './wallet.service';
 import { WalletTransactionType } from '../../entities/wallet-transaction.entity';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+
+class RequestWithdrawalDto {
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+}
 
 @ApiTags('Wallet')
-@Controller('wallet')
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('wallet')
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
-  /**
-   * Get my wallet balance and summary
-   */
-  @Get()
-  @ApiOperation({ summary: 'Get wallet balance and summary' })
-  @ApiResponse({ status: 200, description: 'Wallet retrieved successfully' })
-  async getMyWallet(@GetUser() user: User) {
-    const summary = await this.walletService.getWalletSummary(
-      user._id.toString(),
-    );
+  // ---------------------------------------------------------------------------
+  // Wallet overview
+  // ---------------------------------------------------------------------------
 
-    return {
-      message: 'Wallet retrieved successfully',
-      data: summary,
-    };
+  @Get()
+  @ApiOperation({ summary: 'Get current user wallet details' })
+  @ApiResponse({ status: 200, description: 'Returns wallet document' })
+  async getWallet(@Request() req) {
+    return this.walletService.getWallet(req.user.id);
   }
 
-  /**
-   * Get transaction history
-   */
+  @Get('summary')
+  @ApiOperation({
+    summary: 'Get wallet summary including recent transactions and 30-day stats',
+  })
+  async getWalletSummary(@Request() req) {
+    return this.walletService.getWalletSummary(req.user.id);
+  }
+
+  @Get('totals')
+  @ApiOperation({
+    summary: 'Get wallet balance and total funds currently held in escrow',
+    description:
+      'Pass `role=buyer` to see funds you paid that are still held, or `role=seller` to see funds owed to you that are still held. Escrow is sourced directly from the Transaction collection (status: HELD_IN_ESCROW).',
+  })
+  @ApiQuery({
+    name: 'role',
+    enum: ['buyer', 'seller'],
+    required: true,
+    description: 'Whether to calculate escrow as a buyer or seller',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Wallet and escrow totals',
+    schema: {
+      example: {
+        walletBalance: 5000000,
+        pendingBalance: 1000000,
+        availableBalance: 4000000,
+        escrowHeld: 1000000,
+        role: 'buyer',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid role — must be buyer or seller' })
+  async getEscrowAndWalletTotals(
+    @Request() req,
+    @Query('role') role: string,
+  ) {
+    if (role !== 'buyer' && role !== 'seller') {
+      throw new BadRequestException('role must be either "buyer" or "seller"');
+    }
+    return this.walletService.getEscrowAndWalletTotals(req.user.id, role as EscrowRole);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Transaction history
+  // ---------------------------------------------------------------------------
+
   @Get('transactions')
-  @ApiOperation({ summary: 'Get wallet transaction history' })
-  @ApiQuery({ name: 'type', required: false, enum: WalletTransactionType })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Transaction history retrieved' })
+  @ApiOperation({ summary: 'Get paginated transaction history' })
+  @ApiQuery({ name: 'type', enum: WalletTransactionType, required: false })
+  @ApiQuery({ name: 'startDate', type: String, required: false, example: '2024-01-01' })
+  @ApiQuery({ name: 'endDate', type: String, required: false, example: '2024-12-31' })
+  @ApiQuery({ name: 'page', type: Number, required: false, example: 1 })
+  @ApiQuery({ name: 'limit', type: Number, required: false, example: 20 })
   async getTransactionHistory(
-    @GetUser() user: User,
+    @Request() req,
     @Query('type') type?: WalletTransactionType,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    const result = await this.walletService.getTransactionHistory(
-      user._id.toString(),
-      { type, page, limit },
-    );
-
-    return {
-      message: 'Transaction history retrieved successfully',
-      data: result.transactions,
-      pagination: {
-        page: result.page,
-        limit: limit || 20,
-        total: result.total,
-        pages: result.pages,
-      },
-    };
+    return this.walletService.getTransactionHistory(req.user.id, {
+      type,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
-  /**
-   * Request withdrawal
-   */
-  @Post('withdraw')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request withdrawal to bank account' })
-  @ApiResponse({ status: 200, description: 'Withdrawal requested successfully' })
-  @ApiResponse({ status: 400, description: 'Insufficient balance' })
-  async requestWithdrawal(
-    @GetUser() user: User,
-    @Body('amount') amount: number,
-    @Body('bankDetails') bankDetails: {
-      bankName: string;
-      accountNumber: string;
-      accountHolder: string;
-    },
-  ) {
-    const withdrawal = await this.walletService.requestWithdrawal(
-      user._id.toString(),
-      amount,
-      bankDetails,
-    );
+  // ---------------------------------------------------------------------------
+  // Withdrawals
+  // ---------------------------------------------------------------------------
 
-    return {
-      message: 'Withdrawal requested successfully. Processing may take 1-3 business days.',
-      data: withdrawal,
-    };
+  @Post('withdraw')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Request a withdrawal to a bank account',
+    description: 'Minimum withdrawal amount is 100,000 VND.',
+  })
+  @ApiResponse({ status: 201, description: 'Withdrawal request created' })
+  @ApiResponse({ status: 400, description: 'Insufficient balance or below minimum amount' })
+  async requestWithdrawal(
+    @Request() req,
+    @Body() body: RequestWithdrawalDto,
+  ) {
+    const { amount, ...bankDetails } = body;
+    return this.walletService.requestWithdrawal(req.user.id, amount, bankDetails);
   }
 }
