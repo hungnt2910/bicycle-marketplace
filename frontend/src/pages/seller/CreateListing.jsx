@@ -308,29 +308,25 @@ const CreateListing = () => {
         createdListing?.bicycleId ||
         createdListing?.data?._id ||
         createdListing?.data?.id;
-if (!createdListing) {
-  throw new Error('Không thể tạo bài đăng, vui lòng thử lại.');
-}
+      if (!createdListing) {
+        throw new Error('Không thể tạo bài đăng, vui lòng thử lại.');
+      }
 
-const newBicycleId =
-  createdListing?._id || createdListing?.id || response?.data?.data?._id;
+      const newBicycleId = createdListing?._id || createdListing?.id || response?.data?.data?._id;
 
-if (isDraft) {
-  toast.success('Lưu nháp thành công!');
-  navigate('/seller/my-listings');
-  return;
-}
+      if (isDraft) {
+        toast.success('Lưu nháp thành công!');
+        navigate('/seller/my-listings');
+        return;
+      }
 
-// 🔹 Nếu không cần thanh toán
-if (!requiresPayment) {
-  const successMessage = `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${
-    isFirstPost
-      ? '🎉 Miễn phí bài đăng thứ ' +
-        (userPostCount + 1) +
-        '/' +
-        FREE_POST_LIMIT
-      : ''
-  }`;
+      // 🔹 Nếu không cần thanh toán
+      if (!requiresPayment) {
+        const successMessage = `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${
+          isFirstPost
+            ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT
+            : ''
+        }`;
 
         toast.success(successMessage);
         navigate('/');
@@ -355,7 +351,7 @@ if (!requiresPayment) {
 
       const transactionRes = await transactionApi.create(transactionPayload);
       const transactionData = transactionRes?.data?.data || transactionRes?.data;
-      
+
       // Lấy order_url và app_trans_id từ response
       const paymentUrl = transactionData?.order_url;
       const appTransId = transactionData?.app_trans_id;
@@ -373,12 +369,12 @@ if (!requiresPayment) {
       try {
         const myTransactionsRes = await transactionApi.getMyTransactions();
         const transactions = myTransactionsRes?.data?.data || myTransactionsRes?.data || [];
-        
+
         // Tìm transaction có payment.transactionId khớp với app_trans_id
         const foundTransaction = transactions.find(
-          tx => tx.payment?.transactionId === appTransId
+          (tx) => tx.payment?.transactionId === appTransId
         );
-        
+
         if (foundTransaction) {
           transactionId = foundTransaction._id;
           console.log('✅ Found transaction ID:', transactionId);
@@ -423,6 +419,17 @@ if (!requiresPayment) {
     setUploadingImages(true);
 
     try {
+      const userInfoStr = localStorage.getItem('user') || localStorage.getItem('userInfo');
+      const userInfo = userInfoStr ? JSON.parse(userInfoStr) : {};
+      const sellerId = userInfo._id || userInfo.id || userInfo.userId;
+
+      if (!sellerId) {
+        toast.error('Không tìm thấy thông tin người bán, vui lòng đăng nhập lại');
+        setUploadingImages(false);
+        navigate('/login');
+        return;
+      }
+
       const uploadPromises = files.map(async (file) => {
         if (file.size > 5 * 1024 * 1024) {
           toast.error(`File ${file.name} quá lớn (tối đa 5MB)`);
@@ -432,7 +439,7 @@ if (!requiresPayment) {
         const formDataFile = new FormData();
         formDataFile.append('file', file);
 
-        const res = await cloudinaryApi.uploadImage(formDataFile);
+        const res = await cloudinaryApi.uploadSellerImage(sellerId, formDataFile);
         const data = res?.data?.data || res?.data;
         const url = data?.url || data?.secure_url || data?.imageUrl;
         if (!url) {

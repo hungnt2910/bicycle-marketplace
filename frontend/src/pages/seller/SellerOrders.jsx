@@ -81,15 +81,28 @@ const SellerOrders = () => {
     }
   };
 
-  const handleUpdateShipping = (id) => {
-    const provider = window.prompt('Đối tác vận chuyển');
-    const trackingNumber = window.prompt('Mã vận đơn');
-    if (!provider && !trackingNumber) return;
-    runAction('shipping', () => transactionApi.updateShipping(id, { provider, trackingNumber }));
-  };
+  const handleUpdateShipping = (order) => {
+    const allowed = ['held_in_escrow', 'awaiting_delivery', 'payment_received'];
+    if (!allowed.includes(order.status)) {
+      toast.warn('Chỉ cập nhật vận chuyển khi đơn đã được thanh toán và chờ giao.');
+      return;
+    }
 
-  const handleMarkDelivered = (id) =>
-    runAction('delivered', () => transactionApi.markAsDelivered(id));
+    const provider = window.prompt('Đơn vị vận chuyển (VD: Giao Hang Nhanh, Viettel Post)...');
+    if (!provider) {
+      toast.warn('Vui lòng nhập đơn vị vận chuyển');
+      return;
+    }
+
+    const trackingNumber = window.prompt('Mã vận đơn (tracking number)');
+    if (!trackingNumber) {
+      toast.warn('Vui lòng nhập mã vận đơn');
+      return;
+    }
+
+    const payload = { provider, trackingNumber };
+    runAction('shipping', () => transactionApi.updateShipping(order.id, payload));
+  };
 
   useEffect(() => {
     loadOrders();
@@ -210,34 +223,12 @@ const SellerOrders = () => {
                       Xem chi tiết
                     </Button>
                     <Button
-                      variant="primary"
-                      size="sm"
-                      disabled={actionLoading === 'shipping' || order.status !== 'held_in_escrow'}
-                      onClick={() => {
-                        if (order.status !== 'held_in_escrow') {
-                          toast.warn('Chỉ cập nhật vận chuyển khi giao dịch đang giữ escrow');
-                          return;
-                        }
-                        handleUpdateShipping(order.id);
-                      }}
-                    >
-                      {actionLoading === 'shipping' ? 'Đang cập nhật...' : 'Cập nhật vận chuyển'}
-                    </Button>
-                    <Button
                       variant="success"
                       size="sm"
-                      disabled={
-                        actionLoading === 'delivered' || order.status !== 'awaiting_delivery'
-                      }
-                      onClick={() => {
-                        if (order.status !== 'awaiting_delivery') {
-                          toast.warn('Chỉ đánh dấu đã giao khi trạng thái là Chờ giao');
-                          return;
-                        }
-                        handleMarkDelivered(order.id);
-                      }}
+                      disabled={actionLoading === 'shipping'}
+                      onClick={() => handleUpdateShipping(order)}
                     >
-                      {actionLoading === 'delivered' ? 'Đang lưu...' : 'Đánh dấu đã giao'}
+                      {actionLoading === 'shipping' ? 'Đang cập nhật...' : 'Cập nhật vận chuyển'}
                     </Button>
                   </div>
                 </div>

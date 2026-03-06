@@ -320,24 +320,33 @@ const Blog = ({ onNavigate, isAuthenticated = false, role = null, user = null, o
       />
 
       {/* Hero */}
-      <section className="relative py-20 md:py-28 bg-primary-900 text-white overflow-hidden">
+      <section
+        className="relative py-20 md:py-28 overflow-hidden"
+        style={{ backgroundColor: 'var(--lux-primary-900)' }}
+      >
         <div className="absolute inset-0 opacity-20">
           <div
             className="w-full h-full"
             style={{
               backgroundImage:
-                'radial-gradient(circle at 20% 50%, rgba(5,150,105,0.4) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(198,167,94,0.3) 0%, transparent 50%)',
+                'radial-gradient(circle at 20% 50%, var(--lux-primary-500) 0%, transparent 50%), radial-gradient(circle at 80% 50%, var(--lux-gold) 0%, transparent 50%)',
             }}
           />
         </div>
         <div className="container-custom relative text-center">
-          <p className="text-sm font-semibold text-gold uppercase tracking-widest mb-4">
+          <p
+            className="text-sm font-semibold uppercase tracking-widest mb-4"
+            style={{ color: 'var(--lux-gold)' }}
+          >
             Blog & Kiến thức
           </p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display mb-6">
+          <h1
+            className="text-4xl md:text-5xl lg:text-6xl font-bold font-display mb-6"
+            style={{ color: 'white' }}
+          >
             Bicycle Journal
           </h1>
-          <p className="text-lg text-white/70 max-w-2xl mx-auto">
+          <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--lux-gold-light)' }}>
             Chia sẻ kiến thức về xe đạp, lợi ích sức khỏe, hướng dẫn chọn xe và tin tức từ cộng đồng
             Bicycle Marketplace.
           </p>
@@ -396,11 +405,31 @@ const Blog = ({ onNavigate, isAuthenticated = false, role = null, user = null, o
                 key={cat}
                 type="button"
                 onClick={() => setActiveCategory(cat)}
-                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                className="px-5 py-2 rounded-full text-sm font-semibold transition-all"
+                style={
                   activeCategory === cat
-                    ? 'bg-primary-800 text-white shadow-md'
-                    : 'bg-warmgray-100 text-warmgray-600 hover:bg-warmgray-200'
-                }`}
+                    ? {
+                        backgroundColor: 'var(--lux-primary-800)',
+                        color: 'white',
+                        boxShadow: 'var(--lux-shadow-elevated)',
+                      }
+                    : {
+                        backgroundColor: 'var(--lux-gray-100)',
+                        color: 'var(--lux-gray-600)',
+                      }
+                }
+                onMouseEnter={(e) => {
+                  if (activeCategory !== cat) {
+                    e.currentTarget.style.backgroundColor = 'var(--lux-gray-200)';
+                    e.currentTarget.style.color = 'var(--lux-primary-800)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeCategory !== cat) {
+                    e.currentTarget.style.backgroundColor = 'var(--lux-gray-100)';
+                    e.currentTarget.style.color = 'var(--lux-gray-600)';
+                  }
+                }}
               >
                 {cat}
               </button>

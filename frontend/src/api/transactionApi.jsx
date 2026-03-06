@@ -16,8 +16,9 @@ const transactionApi = {
 
   getById: (transactionId) => axiosClient.get(`/api/v1/transactions/${transactionId}`),
 
-  markAsDelivered: (transactionId) =>
-    axiosClient.patch(`/api/v1/transactions/${transactionId}/delivered`),
+  // Seller: cập nhật thông tin giao hàng (hãng + mã vận đơn)
+  updateShipping: (transactionId, payload) =>
+    axiosClient.patch(`/api/v1/transactions/${transactionId}/shipping`, payload),
 
   confirmDelivery: (transactionId, data) =>
     axiosClient.post(`/api/v1/transactions/${transactionId}/confirm`, data),

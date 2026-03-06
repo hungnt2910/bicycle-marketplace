@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Badge, Button } from '../../components/ui';
 import { toast } from 'react-toastify';
-import transactionApi from '../../api/transactionApi';
+import adminApi from '../../api/adminApi';
 
 const TransactionManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
@@ -9,13 +9,14 @@ const TransactionManagement = () => {
   const [escrowTransactions, setEscrowTransactions] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState('');
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [statsRes, escrowRes] = await Promise.all([
-        transactionApi.getAdminStatistics(),
-        transactionApi.getAdminEscrow(),
+        adminApi.getEscrowStatistics(),
+        adminApi.getEscrowHeld(),
       ]);
 
       setStats(statsRes?.data?.data || statsRes?.data || {});
@@ -62,9 +63,32 @@ const TransactionManagement = () => {
     return matchStatus && matchType;
   });
 
-  const totalAmount = escrowTransactions
-    .filter((t) => (t.status || '').toLowerCase() === 'completed')
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
+  const totalHeldAmount = useMemo(() => {
+    if (stats?.totalHeldAmount || stats?.totalEscrowAmount) {
+      return Number(stats.totalHeldAmount || stats.totalEscrowAmount || 0);
+    }
+    return escrowTransactions
+      .filter((t) =>
+        ['held_in_escrow', 'awaiting_delivery', 'delivered', 'disputed'].includes(
+          (t.status || '').toLowerCase()
+        )
+      )
+      .reduce((sum, t) => sum + Number(t.escrow?.heldAmount || t.amount || 0), 0);
+  }, [stats, escrowTransactions]);
+
+  const runAction = async (label, fn) => {
+    setActionLoading(label);
+    try {
+      await fn();
+      toast.success('Thao tác escrow thành công');
+      await loadData();
+    } catch (err) {
+      console.error(`${label} error:`, err);
+      toast.error(err?.response?.data?.message || 'Không thực hiện được thao tác escrow');
+    } finally {
+      setActionLoading('');
+    }
+  };
 
   return (
     <div className="dash-content">
@@ -90,7 +114,7 @@ const TransactionManagement = () => {
           },
           {
             label: 'Đang escrow',
-            value: stats?.escrowCount ?? escrowTransactions.length,
+            value: stats?.heldCount ?? stats?.escrowCount ?? escrowTransactions.length,
           },
           {
             label: 'Hoàn thành',
@@ -101,7 +125,7 @@ const TransactionManagement = () => {
           },
           {
             label: 'Tổng giá trị (B ₫)',
-            value: (totalAmount / 1000000000).toFixed(2),
+            value: (totalHeldAmount / 1000000000).toFixed(2),
           },
         ].map((stat, idx) => (
           <div key={idx} className="lux-panel">
@@ -280,9 +304,36 @@ const TransactionManagement = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <button className="text-primary-700 hover:text-primary-900 text-sm font-medium">
-                            Xem
-                          </button>
+                          <Button
+                            size="sm"
+                            variant="success"
+                            disabled={actionLoading === `release-${txn._id || txn.id}`}
+                            onClick={() =>
+                              runAction(`release-${txn._id || txn.id}`, () =>
+                                adminApi.releaseEscrow(txn._id || txn.id)
+                              )
+                            }
+                          >
+                            {actionLoading === `release-${txn._id || txn.id}`
+                              ? 'Đang giải ngân...'
+                              : 'Release escrow'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            disabled={actionLoading === `refund-${txn._id || txn.id}`}
+                            onClick={() => {
+                              const confirmRefund = window.confirm('Hoàn escrow về buyer?');
+                              if (!confirmRefund) return;
+                              runAction(`refund-${txn._id || txn.id}`, () =>
+                                adminApi.refundEscrow(txn._id || txn.id)
+                              );
+                            }}
+                          >
+                            {actionLoading === `refund-${txn._id || txn.id}`
+                              ? 'Đang hoàn...'
+                              : 'Refund escrow'}
+                          </Button>
                         </div>
                       </td>
                     </tr>

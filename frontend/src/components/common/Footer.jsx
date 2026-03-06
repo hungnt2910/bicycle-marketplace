@@ -2,15 +2,21 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer className="bg-primary-900 text-white">
+    <footer
+      className="bg-primary-900 text-white"
+      style={{ backgroundColor: '#1a2e1a', color: '#fff' }}
+    >
       {/* Main footer content */}
       <div className="container-custom py-20 lg:py-24">
         <div className="grid md:grid-cols-3 gap-14 lg:gap-20">
           {/* Brand column */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-3 mb-8">
-              <span className="text-3xl">🚴</span>
-              <h4 className="text-xl font-bold font-display text-white tracking-wide">
+              <span className="text-3xl"></span>
+              <h4
+                className="text-xl font-bold font-display text-white tracking-wide"
+                style={{ color: '#d4af37' }}
+              >
                 Bicycle-Marketplace
               </h4>
             </div>
@@ -22,12 +28,15 @@ const Footer = () => {
           {/* Links columns */}
           <div className="grid grid-cols-2 gap-10 md:col-span-2 lg:gap-20">
             <div>
-              <h5 className="font-semibold mb-8 text-gold font-display tracking-wide text-sm uppercase">
+              <h5
+                className="font-semibold mb-8 font-display tracking-wide text-sm uppercase"
+                style={{ color: '#d4af37' }}
+              >
                 Về chúng tôi
               </h5>
               <ul className="space-y-5 text-warmgray-400">
                 <li>
-                  <a href="#" className="hover:text-white transition-colors text-[15px]">
+                  <a href="#" className="hover:text-primary transition-colors text-[15px]">
                     Giới thiệu
                   </a>
                 </li>
@@ -44,7 +53,10 @@ const Footer = () => {
               </ul>
             </div>
             <div>
-              <h5 className="font-semibold mb-8 text-gold font-display tracking-wide text-sm uppercase">
+              <h5
+                className="font-semibold mb-8 font-display tracking-wide text-sm uppercase"
+                style={{ color: '#d4af37' }}
+              >
                 Hỗ trợ
               </h5>
               <ul className="space-y-5 text-warmgray-400">
@@ -77,10 +89,10 @@ const Footer = () => {
           </p>
           <div className="flex items-center gap-6 text-warmgray-500 text-sm">
             <a href="#" className="hover:text-white transition-colors">
-              📧 support@routin.vn
+              support@Bicycle-Marketplace.vn
             </a>
             <a href="#" className="hover:text-white transition-colors">
-              📱 1900-xxxx
+              19796886
             </a>
           </div>
         </div>

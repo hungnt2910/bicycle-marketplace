@@ -165,7 +165,7 @@ const TransactionDetail = () => {
 
   const canPayBalance = isBuyer && isDeposit && ['deposit_paid'].includes(normalizedStatus);
   const canConfirmDelivery =
-    isBuyer && ['awaiting_delivery', 'delivered', 'held_in_escrow'].includes(normalizedStatus);
+    isBuyer && ['awaiting_delivery', 'delivered'].includes(normalizedStatus);
   const canCancel =
     isBuyer &&
     [
@@ -197,19 +197,34 @@ const TransactionDetail = () => {
     try {
       const payRes = await transactionApi.payRemainingBalance(id);
       const txId =
-        payRes?.data?.data?._id || payRes?.data?.data?.id || payRes?.data?.transactionId || id;
+        payRes?.data?.data?.transactionId ||
+        payRes?.data?.data?._id ||
+        payRes?.data?.data?.id ||
+        payRes?.data?.transactionId ||
+        id;
 
-      const zaloRes = await paymentApi.createZaloPayOrder(txId);
-      const payUrl =
-        zaloRes?.data?.data?.orderUrl ||
-        zaloRes?.data?.data?.payUrl ||
-        zaloRes?.data?.data?.paymentUrl ||
-        zaloRes?.data?.data?.deeplink ||
-        zaloRes?.data?.data?.deep_link ||
-        zaloRes?.data?.orderUrl ||
-        zaloRes?.data?.payUrl ||
-        zaloRes?.data?.paymentUrl ||
-        zaloRes?.data?.deeplink;
+      // Ưu tiên URL trả về ngay từ pay-balance; fallback gọi createZaloPayOrder
+      let payUrl =
+        payRes?.data?.data?.order_url ||
+        payRes?.data?.data?.orderUrl ||
+        payRes?.data?.data?.payUrl ||
+        payRes?.data?.data?.paymentUrl ||
+        payRes?.data?.data?.deeplink ||
+        payRes?.data?.data?.deep_link;
+
+      if (!payUrl && txId) {
+        const zaloRes = await paymentApi.createZaloPayOrder(txId);
+        payUrl =
+          zaloRes?.data?.data?.orderUrl ||
+          zaloRes?.data?.data?.payUrl ||
+          zaloRes?.data?.data?.paymentUrl ||
+          zaloRes?.data?.data?.deeplink ||
+          zaloRes?.data?.data?.deep_link ||
+          zaloRes?.data?.orderUrl ||
+          zaloRes?.data?.payUrl ||
+          zaloRes?.data?.paymentUrl ||
+          zaloRes?.data?.deeplink;
+      }
 
       if (payUrl) {
         window.open(payUrl, '_blank', 'noopener');
@@ -226,13 +241,7 @@ const TransactionDetail = () => {
       if (txId) {
         const status = await pollPaymentStatus(txId);
         if (status === 'paid') {
-          try {
-            await transactionApi.confirmFullPayment(txId);
-            toast.success('Thanh toán phần còn lại thành công');
-          } catch (err) {
-            console.error('confirm-full-payment error:', err);
-            toast.error(err?.response?.data?.message || 'Xác nhận thanh toán thất bại');
-          }
+          toast.success('Thanh toán phần còn lại thành công, chờ hệ thống cập nhật trạng thái');
         } else if (status === 'failed') {
           toast.error('Thanh toán thất bại hoặc bị hủy');
         } else {
@@ -249,8 +258,11 @@ const TransactionDetail = () => {
     }
   };
 
-  const handleConfirmDelivery = () =>
-    runAction('confirm', () => transactionApi.confirmDelivery(id, {}));
+  const handleConfirmDelivery = () => {
+    // Backend yêu cầu matchesReport là boolean; mặc định true khi buyer xác nhận đã nhận hàng
+    const payload = { matchesReport: true };
+    runAction('confirm', () => transactionApi.confirmDelivery(id, payload));
+  };
 
   const handleCancel = () => {
     const reason = window.prompt('Lý do hủy (tùy chọn)');

@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import walletApi from '../../api/walletApi';
-import { Badge, Button, Card, Input, Select } from '../../components/ui';
+import { Badge, Button, Card, Input, Pagination, Select } from '../../components/ui';
 
 const MIN_WITHDRAW = 50000;
+const DEFAULT_ESCROW_ROLE = 'seller';
 
 const numberOrZero = (value) => Number(value || 0);
 
 const Wallet = () => {
   const [summary, setSummary] = useState(null);
+  const [walletSummary, setWalletSummary] = useState(null);
+  const [totals, setTotals] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingTx, setLoadingTx] = useState(false);
@@ -25,28 +28,56 @@ const Wallet = () => {
   });
 
   const availableBalance = useMemo(
-    () => numberOrZero(summary?.balance || summary?.availableBalance || summary?.currentBalance),
-    [summary]
+    () =>
+      numberOrZero(
+        totals?.availableBalance ??
+          summary?.availableBalance ??
+          walletSummary?.wallet?.availableBalance ??
+          (summary?.balance ?? summary?.currentBalance ?? 0) - (summary?.pendingBalance ?? 0)
+      ),
+    [summary, totals, walletSummary]
   );
 
   const escrowHold = useMemo(
-    () => numberOrZero(summary?.pendingBalance || summary?.heldInEscrow || summary?.escrowHold),
-    [summary]
+    () =>
+      numberOrZero(
+        totals?.escrowHeld ??
+          totals?.pendingBalance ??
+          summary?.pendingBalance ??
+          summary?.escrowHold
+      ),
+    [summary, totals]
   );
 
   const totalWithdrawn = useMemo(
-    () => numberOrZero(summary?.totalWithdrawn || summary?.withdrawn || summary?.totalPayout),
-    [summary]
+    () =>
+      numberOrZero(
+        summary?.totalWithdrawn ||
+          walletSummary?.wallet?.totalWithdrawn ||
+          summary?.withdrawn ||
+          summary?.totalPayout
+      ),
+    [summary, walletSummary]
   );
 
-  const currency = summary?.currency || 'VND';
+  const currency = summary?.currency || walletSummary?.wallet?.currency || 'VND';
 
   const fetchSummary = async () => {
     setLoadingSummary(true);
     try {
-      const res = await walletApi.getSummary();
-      const data = res?.data?.data || res?.data || {};
-      setSummary(data);
+      const [walletRes, summaryRes, totalsRes] = await Promise.all([
+        walletApi.getWallet(),
+        walletApi.getSummary(),
+        walletApi.getTotals({ role: DEFAULT_ESCROW_ROLE }),
+      ]);
+
+      const walletData = walletRes?.data?.data || walletRes?.data || {};
+      const summaryData = summaryRes?.data?.data || summaryRes?.data || {};
+      const totalsData = totalsRes?.data?.data || totalsRes?.data || {};
+
+      setSummary(walletData);
+      setWalletSummary(summaryData);
+      setTotals(totalsData);
     } catch (err) {
       console.error('Load wallet summary error:', err);
       toast.error(err?.response?.data?.message || 'Không lấy được số dư ví');
@@ -63,10 +94,15 @@ const Wallet = () => {
         page: pageParam,
         limit,
       });
-      const data = res?.data?.data || res?.data || [];
-      const items = Array.isArray(data) ? data : data?.items || [];
+      const data = res?.data?.data || res?.data || {};
+      const items = Array.isArray(data) ? data : data?.items || data?.transactions || [];
       setTransactions(items);
-      const pg = res?.data?.pagination || data?.pagination || {};
+      const pg = res?.data?.pagination ||
+        data?.pagination || {
+          total: data?.total,
+          pages: data?.pages,
+          page: data?.page,
+        };
       setPagination({
         total: pg.total || items.length,
         pages: pg.pages || Math.ceil((pg.total || items.length || limit) / limit),
@@ -357,32 +393,6 @@ const Wallet = () => {
                             <td className="py-3 pr-3 text-sm text-slate-600 whitespace-nowrap">
                               {formatDateTime(tx?.createdAt || tx?.date)}
                             </td>
-                            <div className="flex items-center justify-between mt-4 text-sm text-slate-600">
-                              <span>
-                                Trang {page}/{pagination.pages || 1}
-                                {pagination.total ? ` • Tổng ${pagination.total} giao dịch` : ''}
-                              </span>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={loadingTx || page <= 1}
-                                  onClick={() => fetchTransactions(page - 1)}
-                                >
-                                  Trước
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={
-                                    loadingTx || (pagination.pages && page >= pagination.pages)
-                                  }
-                                  onClick={() => fetchTransactions(page + 1)}
-                                >
-                                  Tiếp
-                                </Button>
-                              </div>
-                            </div>
                             <td className="py-3 pr-3 text-sm text-slate-700 max-w-xs">
                               <p className="font-semibold text-slate-900 line-clamp-1">
                                 {tx?.description || tx?.title || 'Giao dịch ví'}
@@ -415,6 +425,22 @@ const Wallet = () => {
                   </tbody>
                 </table>
               </div>
+
+              {pagination.pages > 1 && (
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-sm text-slate-500">
+                      Trang {page}/{pagination.pages || 1}
+                      {pagination.total ? ` • Tổng ${pagination.total} giao dịch` : ''}
+                    </p>
+                    <Pagination
+                      currentPage={page}
+                      totalPages={pagination.pages || 1}
+                      onPageChange={(newPage) => fetchTransactions(newPage)}
+                    />
+                  </div>
+                </div>
+              )}
             </Card>
           </div>
 
