@@ -242,9 +242,13 @@ export class TransactionsService {
   }
 
   /**
-   * Step 4: Mark as delivered (by logistics or manual)
+   * Step 3: Seller updates shipping information and marks as delivered
    */
-  async markAsDelivered(transactionId: string): Promise<Transaction> {
+  async updateShippingAndMarkDelivered(
+    transactionId: string,
+    sellerId: string,
+    shippingData: { provider: string; trackingNumber: string },
+  ): Promise<Transaction> {
     const transaction: any =
       await this.transactionModel.findById(transactionId);
 
@@ -252,34 +256,75 @@ export class TransactionsService {
       throw new BadRequestException('Transaction not found');
     }
 
-    // if (transaction.status !== TransactionStatus.AWAITING_DELIVERY) {
+    if (transaction.sellerId.toString() !== sellerId) {
+      throw new ForbiddenException('Only the seller can update shipping');
+    }
+
+    // if (transaction.status !== TransactionStatus.HELD_IN_ESCROW) {
     //   throw new BadRequestException('Invalid transaction status');
     // }
 
-    transaction.shipping.deliveredAt = new Date();
-    transaction.status = TransactionStatus.DELIVERED;
+    const now = new Date();
+
+    // Set shipping details
+    transaction.shipping = {
+      provider: shippingData.provider,
+      trackingNumber: shippingData.trackingNumber,
+      shippedAt: now,
+      deliveredAt: now,
+    };
 
     // Set auto-confirm deadline (7 days from delivery)
     const autoConfirmDeadline = new Date();
     autoConfirmDeadline.setDate(autoConfirmDeadline.getDate() + 7);
     transaction.escrow.releaseDate = autoConfirmDeadline;
 
-    await transaction.save();
+    transaction.status = TransactionStatus.DELIVERED;
 
-    // Notify buyer to confirm
-    // await this.notificationsService.create({
-    //   userId: transaction.buyerId,
-    //   type: 'item_delivered',
-    //   title: 'Bicycle Delivered',
-    //   message: 'Please confirm receipt and verify the bicycle matches the inspection report.',
-    //   relatedEntity: {
-    //     entityType: 'transaction',
-    //     entityId: transaction._id,
-    //   },
-    // });
+    await transaction.save();
 
     return transaction;
   }
+
+  /**
+   * Step 4: Mark as delivered (by logistics or manual)
+   */
+  // async markAsDelivered(transactionId: string): Promise<Transaction> {
+  //   const transaction: any =
+  //     await this.transactionModel.findById(transactionId);
+
+  //   if (!transaction) {
+  //     throw new BadRequestException('Transaction not found');
+  //   }
+
+  //   // if (transaction.status !== TransactionStatus.AWAITING_DELIVERY) {
+  //   //   throw new BadRequestException('Invalid transaction status');
+  //   // }
+
+  //   transaction.shipping.deliveredAt = new Date();
+  //   transaction.status = TransactionStatus.DELIVERED;
+
+  //   // Set auto-confirm deadline (7 days from delivery)
+  //   const autoConfirmDeadline = new Date();
+  //   autoConfirmDeadline.setDate(autoConfirmDeadline.getDate() + 7);
+  //   transaction.escrow.releaseDate = autoConfirmDeadline;
+
+  //   await transaction.save();
+
+  //   // Notify buyer to confirm
+  //   // await this.notificationsService.create({
+  //   //   userId: transaction.buyerId,
+  //   //   type: 'item_delivered',
+  //   //   title: 'Bicycle Delivered',
+  //   //   message: 'Please confirm receipt and verify the bicycle matches the inspection report.',
+  //   //   relatedEntity: {
+  //   //     entityType: 'transaction',
+  //   //     entityId: transaction._id,
+  //   //   },
+  //   // });
+
+  //   return transaction;
+  // }
 
   /**
    * Step 5: Buyer confirms receipt and matches inspection report

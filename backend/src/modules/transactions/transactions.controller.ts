@@ -81,36 +81,36 @@ export class TransactionsController {
    * PATCH /transactions/:id/shipping
    * Seller updates shipping information
    */
-  // @Patch(':id/shipping')
-  // @Roles(UserRole.SELLER)
-  // @ApiOperation({ summary: 'Update shipping information (seller only)' })
-  // @ApiResponse({ status: 200, description: 'Shipping information updated' })
-  // @ApiResponse({ status: 403, description: 'Not authorized' })
-  // async updateShipping(
-  //   @Param('id') id: string,
-  //   @GetUser() user: User,
-  //   @Body() updateShippingDto: UpdateShippingDto,
-  // ) {
-  //   const data = await this.transactionsService.updateShipping(
-  //     id,
-  //     user._id.toString(),
-  //     updateShippingDto,
-  //   );
-  //   return { message: 'Shipping information updated successfully', data };
-  // }
+  @Patch(':id/shipping')
+  @Roles(UserRole.SELLER)
+  @ApiOperation({ summary: 'Update shipping information (seller only)' })
+  @ApiResponse({ status: 200, description: 'Shipping information updated' })
+  @ApiResponse({ status: 403, description: 'Not authorized' })
+  async updateShipping(
+    @Param('id') id: string,
+    @GetUser() user: User,
+    @Body() updateShippingDto: UpdateShippingDto,
+  ) {
+    const data = await this.transactionsService.updateShippingAndMarkDelivered(
+      id,
+      user._id.toString(),
+      updateShippingDto,
+    );
+    return { message: 'Shipping information updated successfully', data };
+  }
 
   /**
    * PATCH /transactions/:id/delivered
    * Mark transaction as delivered (seller or admin)
    */
-  @Patch(':id/delivered')
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Mark transaction as delivered' })
-  @ApiResponse({ status: 200, description: 'Marked as delivered' })
-  async markAsDelivered(@Param('id') id: string) {
-    const data = await this.transactionsService.markAsDelivered(id);
-    return { message: 'Transaction marked as delivered', data };
-  }
+  // @Patch(':id/delivered')
+  // @Roles(UserRole.SELLER, UserRole.ADMIN)
+  // @ApiOperation({ summary: 'Mark transaction as delivered' })
+  // @ApiResponse({ status: 200, description: 'Marked as delivered' })
+  // async markAsDelivered(@Param('id') id: string) {
+  //   const data = await this.transactionsService.markAsDelivered(id);
+  //   return { message: 'Transaction marked as delivered', data };
+  // }
 
   /**
    * POST /transactions/:id/confirm
