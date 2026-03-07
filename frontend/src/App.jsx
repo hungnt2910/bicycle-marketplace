@@ -11,6 +11,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 
 // Guest Pages
 import LandingPage from './pages/guest/LandingPage';
+import Blog from './pages/guest/Blog';
 
 // Auth Pages
 import Register from './pages/auth/Register';
@@ -25,6 +26,7 @@ import Compare from './pages/buyer/Compare';
 import Favourites from './pages/buyer/Favourites';
 import ZaloPayReturn from './pages/payment/ZaloPayReturn';
 import TransactionDetail from './pages/buyer/TransactionDetail';
+import Wallet from './pages/buyer/Wallet';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -58,6 +60,8 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
   switch (page) {
     case 'landing':
       return '/';
+    case 'blog':
+      return '/blog';
     case 'marketplace':
     case 'home':
       return '/marketplace';
@@ -88,6 +92,10 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
       return '/seller/manage-listings';
     case 'orders':
       return '/seller/orders';
+    case 'wallet':
+      if (role === 'seller') return '/seller/wallet';
+      if (role === 'admin') return '/admin/wallet';
+      return '/buyer/wallet';
     case 'reputation':
       return '/seller/reputation';
     case 'inspection':
@@ -198,6 +206,18 @@ const AppRoutes = () => {
         element={<Login onLoginSuccess={handleLogin} onNavigate={handleNavigate} />}
       />
       <Route
+        path="/blog"
+        element={
+          <Blog
+            onNavigate={handleNavigate}
+            isAuthenticated={isAuthenticated}
+            role={role}
+            user={user}
+            onLogout={handleLogout}
+          />
+        }
+      />
+      <Route
         path="/register"
         element={<Register onRegisterSuccess={handleRegister} onNavigate={handleNavigate} />}
       />
@@ -231,6 +251,31 @@ const AppRoutes = () => {
         element={
           <PrivateRoute allowedRoles={['buyer']}>
             {buyerShell('dashboard', <TransactionDetail />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/wallet"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>{buyerShell('wallet', <Wallet />)}</PrivateRoute>
+        }
+      />
+
+      {/* Seller protected */}
+      <Route
+        path="/seller/wallet"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+              currentPage="wallet"
+            >
+              <Wallet />
+            </DashboardLayout>
           </PrivateRoute>
         }
       />
@@ -437,6 +482,23 @@ const AppRoutes = () => {
               isAuthenticated={isAuthenticated}
             >
               <AdminDashboard user={user} />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/wallet"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              currentPage="wallet"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <Wallet />
             </DashboardLayout>
           </PrivateRoute>
         }

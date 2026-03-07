@@ -111,6 +111,20 @@ const DashboardLayout = ({
         path: 'messages',
         badge: 3,
       },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-2m0-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2m-4 0h.01"
+            />
+          </svg>
+        ),
+        label: 'Ví',
+        path: 'wallet',
+      },
     ],
     inspector: [
       {
@@ -262,6 +276,20 @@ const DashboardLayout = ({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
+              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-2m0-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2m-4 0h.01"
+            />
+          </svg>
+        ),
+        label: 'Ví',
+        path: 'wallet',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
@@ -342,9 +370,9 @@ const DashboardLayout = ({
 
   const roleConfig = {
     seller: {
-      gradient: 'from-themePrimary to-accent',
-      bgColor: 'bg-themePrimary/10',
-      textColor: 'text-themePrimary',
+      gradient: 'from-primary-800 to-gold',
+      bgColor: 'bg-primary-800/10',
+      textColor: 'text-primary-800',
       icon: (
         <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
           <path
@@ -367,9 +395,9 @@ const DashboardLayout = ({
       ),
     },
     inspector: {
-      gradient: 'from-accent to-emerald-600',
-      bgColor: 'bg-accent/10',
-      textColor: 'text-accent',
+      gradient: 'from-gold to-primary-600',
+      bgColor: 'bg-gold/15',
+      textColor: 'text-gold',
       icon: (
         <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
           <path
@@ -385,9 +413,9 @@ const DashboardLayout = ({
       ),
     },
     admin: {
-      gradient: 'from-purple-500 to-pink-600',
-      bgColor: 'bg-purple-100',
-      textColor: 'text-purple-600',
+      gradient: 'from-primary-700 to-gold',
+      bgColor: 'bg-primary-700/10',
+      textColor: 'text-primary-700',
       icon: (
         <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
           <path
@@ -430,24 +458,24 @@ const DashboardLayout = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 flex">
-      {/* Sidebar - Desktop */}
+    <div className="min-h-screen bg-warmgray-100/50 flex">
+      {/* Sidebar - Desktop — Dark matte */}
       <aside
-        className={`hidden lg:flex flex-col bg-white shadow-lg transition-all duration-300 ${
-          sidebarOpen ? 'w-64' : 'w-20'
-        } border-r border-neutral-200`}
+        className={`hidden lg:flex flex-col bg-primary-900 transition-all duration-300 ${
+          sidebarOpen ? 'w-[260px]' : 'w-20'
+        }`}
       >
         {/* Logo & Toggle */}
         <div
-          className={`h-16 border-b border-neutral-100 flex items-center bg-gradient-to-r from-white to-neutral-50 ${
-            sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'
+          className={`h-[72px] border-b border-white/10 flex items-center ${
+            sidebarOpen ? 'justify-between px-6' : 'justify-center px-2'
           }`}
         >
           {sidebarOpen && <div className="flex items-center gap-2"></div>}
           {!sidebarOpen && (
             <div className="flex flex-col items-center gap-1.5 w-full">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
+              <div className="w-9 h-9 rounded-[14px] bg-gradient-to-br from-gold to-gold-light p-1.5 shadow-md">
+                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-primary-900">
                   <path
                     d="M5 18c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
                     fill="currentColor"
@@ -459,7 +487,7 @@ const DashboardLayout = ({
                 </svg>
               </div>
               <div className="text-center w-full px-1">
-                <p className="text-[9px] font-semibold text-neutral-700 break-words leading-tight">
+                <p className="text-[9px] font-semibold text-warmgray-400 break-words leading-tight">
                   {user?.fullName?.split(' ').slice(0, 2).join(' ') || 'User'}
                 </p>
               </div>
@@ -468,11 +496,11 @@ const DashboardLayout = ({
           {sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-white/10 rounded-[12px] transition-colors"
               title="Thu gọn"
             >
               <svg
-                className="w-5 h-5 text-neutral-600"
+                className="w-5 h-5 text-warmgray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -489,11 +517,11 @@ const DashboardLayout = ({
           {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="absolute top-2 right-2 p-1 hover:bg-neutral-100 rounded-lg transition-colors"
+              className="absolute top-2 right-2 p-1 hover:bg-white/10 rounded-[12px] transition-colors"
               title="Mở rộng"
             >
               <svg
-                className="w-4 h-4 text-neutral-600"
+                className="w-4 h-4 text-warmgray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -510,24 +538,22 @@ const DashboardLayout = ({
         </div>
 
         {/* Role Badge */}
-        <div className={`${sidebarOpen ? 'px-4 py-4' : 'px-2 py-3'}`}>
+        <div className={`${sidebarOpen ? 'px-5 py-8' : 'px-2 py-6'}`}>
           <div
-            className={`${sidebarOpen ? 'p-4' : 'p-2'} rounded-2xl bg-gradient-to-br ${
-              config.gradient
-            } shadow-lg text-white transition-all overflow-hidden`}
+            className={`${sidebarOpen ? 'p-6' : 'p-2'} rounded-[16px] bg-white/8 border border-white/10 text-white transition-all overflow-hidden`}
           >
             {sidebarOpen ? (
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3">{config.icon}</div>
-                <div className="text-black font-bold">{roleNames[role]}</div>
-                <div className="text-black opacity-90 mt-1 truncate px-2 ">
+                <div className="w-11 h-11 mx-auto mb-3 text-gold">{config.icon}</div>
+                <div className="text-gold font-bold text-sm">{roleNames[role]}</div>
+                <div className="text-warmgray-400 text-xs mt-1 truncate px-2">
                   {user?.fullName || 'User'}
                 </div>
               </div>
             ) : (
               <div className="text-center">
-                <div className="w-7 h-7 mx-auto mb-1">{config.icon}</div>
-                <p className="text-[8px] font-bold leading-tight break-words">
+                <div className="w-7 h-7 mx-auto mb-1 text-gold">{config.icon}</div>
+                <p className="text-[8px] font-bold leading-tight break-words text-warmgray-400">
                   {user?.fullName?.split(' ').slice(0, 2).join(' ') || 'User'}
                 </p>
               </div>
@@ -535,23 +561,23 @@ const DashboardLayout = ({
           </div>
         </div>
 
-        {/* Menu Items */}
-        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+        {/* Menu Items — generous spacing */}
+        <nav className="flex-1 px-4 py-3 space-y-2 overflow-y-auto">
           {menuItems[role].map((item, index) => {
             const isActive = currentPage === item.path;
             return (
               <button
                 key={index}
                 onClick={() => handleNavigateItem(item.path)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative ${
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-[12px] transition-all group relative ${
                   isActive
-                    ? `${config.bgColor} ${config.textColor} shadow-sm font-semibold`
-                    : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                    ? 'bg-white/10 text-gold font-semibold border-l-[3px] border-gold'
+                    : 'text-warmgray-400 hover:bg-white/5 hover:text-warmgray-200'
                 }`}
                 title={!sidebarOpen ? item.label : ''}
               >
                 <span
-                  className={`transition-colors ${isActive ? config.textColor : 'text-neutral-400 group-hover:text-neutral-600'}`}
+                  className={`transition-colors ${isActive ? 'text-gold' : 'text-warmgray-500 group-hover:text-warmgray-300'}`}
                 >
                   {item.icon}
                 </span>
@@ -559,14 +585,14 @@ const DashboardLayout = ({
                   <>
                     <span className="text-sm flex-1 text-left">{item.label}</span>
                     {item.badge && (
-                      <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         {item.badge}
                       </span>
                     )}
                   </>
                 )}
                 {!sidebarOpen && item.badge && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
                     {item.badge}
                   </span>
                 )}
@@ -576,28 +602,28 @@ const DashboardLayout = ({
         </nav>
 
         {/* User Profile */}
-        <div className="border-t border-neutral-100 p-3">
+        <div className="border-t border-white/10 p-4">
           <div className="relative">
             <button
               onClick={() => setShowProfile(!showProfile)}
-              className={`w-full flex items-center gap-3 p-2 hover:bg-neutral-50 rounded-xl transition-all ${
+              className={`w-full flex items-center gap-3 p-2.5 hover:bg-white/5 rounded-[12px] transition-all ${
                 sidebarOpen ? '' : 'justify-center'
               }`}
             >
               <Avatar name={user?.fullName || 'User'} size="sm" />
               {sidebarOpen && (
                 <div className="flex-1 text-left min-w-0">
-                  <div className="text-sm font-semibold text-neutral-900 truncate">
+                  <div className="text-sm font-semibold text-warmgray-200 truncate">
                     {user?.fullName || 'User'}
                   </div>
-                  <div className="text-xs text-neutral-500 truncate">
+                  <div className="text-xs text-warmgray-500 truncate">
                     {user?.email || 'user@example.com'}
                   </div>
                 </div>
               )}
               {sidebarOpen && (
                 <svg
-                  className={`w-4 h-4 text-neutral-400 transition-transform ${showProfile ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-warmgray-500 transition-transform ${showProfile ? 'rotate-180' : ''}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -613,9 +639,9 @@ const DashboardLayout = ({
             </button>
 
             {showProfile && sidebarOpen && (
-              <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-xl shadow-xl border border-neutral-100 overflow-hidden z-50">
+              <div className="absolute bottom-full mb-2 left-0 right-0 bg-primary-900 rounded-[14px] shadow-elevated border border-white/10 overflow-hidden z-50">
                 <button
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+                  className="w-full px-4 py-3 text-left text-sm text-warmgray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
                   onClick={() => {
                     handleNavigateItem('profile');
                     setShowProfile(false);
@@ -632,7 +658,7 @@ const DashboardLayout = ({
                   Tài khoản
                 </button>
                 <button
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+                  className="w-full px-4 py-3 text-left text-sm text-warmgray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
                   onClick={() => {
                     handleNavigateItem('settings');
                     setShowProfile(false);
@@ -654,9 +680,9 @@ const DashboardLayout = ({
                   </svg>
                   Cài đặt
                 </button>
-                <div className="border-t border-neutral-100">
+                <div className="border-t border-white/10">
                   <button
-                    className="w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2 font-medium"
+                    className="w-full px-4 py-3 text-left text-sm text-danger hover:bg-white/5 transition-colors flex items-center gap-2 font-medium"
                     onClick={() => {
                       onLogout && onLogout();
                       setShowProfile(false);
@@ -682,17 +708,17 @@ const DashboardLayout = ({
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/50"
+          className="lg:hidden fixed inset-0 z-50 bg-primary-900/60 backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
         >
           <div
-            className="bg-white h-full max-w-xs w-full shadow-2xl overflow-y-auto"
+            className="bg-primary-900 h-full max-w-[280px] w-full shadow-elevated overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-themePrimary to-accent p-1.5 shadow-md">
-                  <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[14px] bg-gradient-to-br from-gold to-gold-light p-1.5">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-primary-900">
                     <path
                       d="M5 18c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm14 5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
                       fill="currentColor"
@@ -703,13 +729,11 @@ const DashboardLayout = ({
                     />
                   </svg>
                 </div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-themePrimary to-accent bg-clip-text text-transparent">
-                  Bicycle-MP
-                </h1>
+                <h1 className="text-lg font-bold text-gold">Bicycle-MP</h1>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 hover:bg-neutral-100 rounded-lg"
+                className="p-2 hover:bg-white/10 rounded-[12px] text-warmgray-400"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -722,13 +746,11 @@ const DashboardLayout = ({
               </button>
             </div>
 
-            <div className="p-4">
-              <div
-                className={`p-4 rounded-2xl bg-gradient-to-br ${config.gradient} shadow-lg text-white text-center mb-4`}
-              >
-                <div className="w-14 h-14 mx-auto mb-3">{config.icon}</div>
-                <div className="text-sm font-bold">{roleNames[role]}</div>
-                <div className="text-xs opacity-90 mt-1 truncate px-2">
+            <div className="p-5">
+              <div className="p-5 rounded-[16px] bg-white/8 border border-white/10 text-center mb-6">
+                <div className="w-12 h-12 mx-auto mb-3 text-gold">{config.icon}</div>
+                <div className="text-sm font-bold text-gold">{roleNames[role]}</div>
+                <div className="text-xs text-warmgray-400 mt-1 truncate px-2">
                   {user?.fullName || 'User'}
                 </div>
               </div>
@@ -740,18 +762,18 @@ const DashboardLayout = ({
                     <button
                       key={index}
                       onClick={() => handleNavigateItem(item.path)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all ${
                         isActive
-                          ? `${config.bgColor} ${config.textColor} shadow-sm font-semibold`
-                          : 'text-neutral-700 hover:bg-neutral-50'
+                          ? 'bg-white/10 text-gold border-l-[3px] border-gold font-semibold'
+                          : 'text-warmgray-400 hover:bg-white/5'
                       }`}
                     >
-                      <span className={isActive ? config.textColor : 'text-neutral-400'}>
+                      <span className={isActive ? 'text-gold' : 'text-warmgray-500'}>
                         {item.icon}
                       </span>
                       <span className="text-sm flex-1 text-left">{item.label}</span>
                       {item.badge && (
-                        <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
                           {item.badge}
                         </span>
                       )}
@@ -766,8 +788,32 @@ const DashboardLayout = ({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
+        {/* Mobile Header Bar */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-warmgray-200/60 h-16 flex items-center justify-between px-4">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 hover:bg-warmgray-100/60 rounded-[12px] transition-colors"
+          >
+            <svg
+              className="w-6 h-6 text-primary-900"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+          <span className="text-sm font-bold text-primary-900">Bicycle-MP</span>
+          <Avatar name={user?.fullName || 'User'} size="sm" />
+        </div>
+
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto bg-gradient-to-br from-neutral-50 to-neutral-100">
+        <main className="flex-1 p-4 md:p-8 lg:p-10 overflow-y-auto bg-neutral-offwhite">
           {children}
         </main>
       </div>

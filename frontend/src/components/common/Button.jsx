@@ -11,19 +11,20 @@ export default function Button({
   ...props
 }) {
   const variantClasses = {
-    primary: 'bg-themePrimary text-white hover:bg-blue-700 focus:ring-blue-500',
-    secondary: 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500',
-    ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
+    primary: 'bg-primary-800 text-white hover:bg-primary-900 focus:ring-primary-500',
+    secondary: 'bg-gold text-primary-900 hover:bg-gold-light focus:ring-gold',
+    success: 'bg-success text-white hover:opacity-90 focus:ring-green-500',
+    danger: 'bg-danger text-white hover:opacity-90 focus:ring-red-500',
+    outline:
+      'border-[1.5px] border-warmgray-300 text-warmgray-700 hover:border-primary-600 hover:text-primary-800 hover:bg-warmgray-50 focus:ring-primary-500',
+    ghost: 'text-warmgray-700 hover:bg-warmgray-100 hover:text-primary-800 focus:ring-warmgray-500',
   };
 
   const sizeClasses = {
-    sm: 'px-3 py-2 text-sm rounded-md',
-    md: 'px-4 py-2 text-base rounded-lg',
-    lg: 'px-6 py-3 text-lg rounded-lg',
-    xl: 'px-8 py-4 text-xl rounded-lg',
+    sm: 'px-4 py-2 text-sm rounded-[12px]',
+    md: 'px-5 py-2.5 text-base rounded-[16px]',
+    lg: 'px-7 py-3.5 text-lg rounded-[20px]',
+    xl: 'px-9 py-4 text-xl rounded-[20px]',
   };
 
   return (

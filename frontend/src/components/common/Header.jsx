@@ -5,6 +5,7 @@ import Logo from './Logo';
 const navItems = [
   { label: 'Trang chủ', page: 'landing' },
   { label: 'Marketplace', page: 'marketplace' },
+  { label: 'Blog', page: 'blog' },
 ];
 
 const Header = ({
@@ -32,7 +33,9 @@ const Header = ({
       return [
         { label: 'Trang chủ', page: 'landing' },
         { label: 'Marketplace', page: 'marketplace' },
+        { label: 'Blog', page: 'blog' },
         { label: 'Yêu thích', page: 'favorites' },
+        { label: 'Ví', page: 'wallet' },
         { label: 'Dashboard', page: 'dashboard' },
         { label: 'Tài khoản', page: 'profile' },
       ];
@@ -41,6 +44,7 @@ const Header = ({
     if (isAuthenticated && role && role !== 'buyer') {
       return [
         { label: 'Trang chủ', page: 'landing' },
+        { label: 'Blog', page: 'blog' },
         { label: 'Dashboard', page: 'dashboard' },
       ];
     }
@@ -72,47 +76,47 @@ const Header = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm">
-      {/* Main Navigation Bar - Spacious and Modern */}
-      <nav className="bg-white border-b border-neutral-100">
+    <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-warmgray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+      {/* Main Navigation Bar */}
+      <nav>
         <div className="container-custom">
-          <div className="h-16 md:h-[68px] flex items-center justify-between gap-2 md:gap-4">
+          <div className="h-[72px] flex items-center justify-between gap-4">
             {/* Left: Logo + Nav Links */}
-            <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
+            <div className="flex items-center gap-4 md:gap-8 flex-shrink-0">
               <Logo onClick={() => handleNavigate('landing')} />
 
-              <div className="hidden lg:flex items-center gap-0.5">
+              <div className="hidden lg:flex items-center gap-1">
                 {mainNavItems.slice(0, 3).map((item) => (
                   <button
                     key={item.page}
                     onClick={() => handleNavigate(item.page)}
-                    className={`px-2 lg:px-2.5 py-1.5 text-xs lg:text-[13px] font-semibold rounded-lg transition-all relative ${
+                    className={`relative px-3 lg:px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${
                       currentPage === item.page
-                        ? 'text-themePrimary bg-themePrimary/5'
-                        : 'text-neutral-700 hover:text-themePrimary hover:bg-neutral-50'
+                        ? 'text-primary-800'
+                        : 'text-warmgray-600 hover:text-primary-800 hover:bg-warmgray-100/60'
                     }`}
                   >
                     {item.label}
                     {currentPage === item.page && (
-                      <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-gradient-to-r from-themePrimary to-accent rounded-full" />
+                      <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-gold to-gold-light rounded-full" />
                     )}
                   </button>
                 ))}
                 {/* Show all items on XL screens */}
-                <div className="hidden xl:flex items-center gap-0.5">
+                <div className="hidden xl:flex items-center gap-1">
                   {mainNavItems.slice(3).map((item) => (
                     <button
                       key={item.page}
                       onClick={() => handleNavigate(item.page)}
-                      className={`px-2.5 py-1.5 text-[13px] font-semibold rounded-lg transition-all relative ${
+                      className={`relative px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${
                         currentPage === item.page
-                          ? 'text-themePrimary bg-themePrimary/5'
-                          : 'text-neutral-700 hover:text-themePrimary hover:bg-neutral-50'
+                          ? 'text-primary-800'
+                          : 'text-warmgray-600 hover:text-primary-800 hover:bg-warmgray-100/60'
                       }`}
                     >
                       {item.label}
                       {currentPage === item.page && (
-                        <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-gradient-to-r from-themePrimary to-accent rounded-full" />
+                        <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-gold to-gold-light rounded-full" />
                       )}
                     </button>
                   ))}
@@ -122,15 +126,15 @@ const Header = ({
 
             {/* Center: Search (for authenticated buyers) */}
             {showSearch && (
-              <div className="hidden lg:block flex-1 max-w-[240px] xl:max-w-sm">
+              <div className="hidden lg:block flex-1 max-w-xs xl:max-w-sm">
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Tìm kiếm xe đạp..."
-                    className="w-full h-10 pl-10 pr-4 text-sm border border-neutral-200 rounded-xl bg-neutral-50/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-themePrimary/50 focus:border-themePrimary focus:bg-white transition-all"
+                    className="w-full h-11 pl-11 pr-4 text-sm border border-warmgray-200/80 rounded-full bg-warmgray-50/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 focus:bg-white transition-all placeholder:text-warmgray-400"
                   />
                   <svg
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-warmgray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -147,14 +151,14 @@ const Header = ({
             )}
 
             {/* Right: Actions & User Menu */}
-            <div className="flex items-center gap-0.5 flex-shrink-0">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {role === 'buyer' && isAuthenticated && (
                 <button
-                  className="relative p-1.5 lg:p-2 hover:bg-neutral-50 rounded-xl transition-colors group hidden md:flex"
+                  className="relative p-2 lg:p-2.5 hover:bg-warmgray-100/60 rounded-full transition-colors group hidden md:flex"
                   onClick={() => handleNavigate('favorites')}
                 >
                   <svg
-                    className="w-4 h-4 lg:w-5 lg:h-5 text-neutral-600 group-hover:text-rose-500 transition-colors"
+                    className="w-4 h-4 lg:w-5 lg:h-5 text-warmgray-600 group-hover:text-danger transition-colors"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -166,7 +170,7 @@ const Header = ({
                       d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                     />
                   </svg>
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full border-2 border-white" />
                 </button>
               )}
 
@@ -174,10 +178,10 @@ const Header = ({
                 <div className="relative">
                   <button
                     onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative p-1.5 lg:p-2 hover:bg-neutral-50 rounded-xl transition-colors group"
+                    className="relative p-2 lg:p-2.5 hover:bg-warmgray-100/60 rounded-full transition-colors group"
                   >
                     <svg
-                      className="w-4 h-4 lg:w-5 lg:h-5 text-neutral-600 group-hover:text-themePrimary transition-colors"
+                      className="w-4 h-4 lg:w-5 lg:h-5 text-warmgray-600 group-hover:text-primary-800 transition-colors"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -190,32 +194,32 @@ const Header = ({
                       />
                     </svg>
                     {notifications.length > 0 && (
-                      <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-themePrimary text-white text-[10px] font-bold rounded-full border-2 border-white">
+                      <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-primary-800 text-white text-[10px] font-bold rounded-full border-2 border-white">
                         {notifications.length}
                       </span>
                     )}
                   </button>
 
                   {showNotifications && (
-                    <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-neutral-100 overflow-hidden z-50">
-                      <div className="px-4 py-3 bg-gradient-to-r from-themePrimary/5 to-accent/5 border-b border-neutral-100">
-                        <h3 className="font-semibold text-neutral-900">Thông báo</h3>
+                    <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-[20px] shadow-elevated border border-warmgray-100 overflow-hidden z-50">
+                      <div className="px-4 py-3 bg-gradient-to-r from-primary-800/5 to-gold/5 border-b border-warmgray-100">
+                        <h3 className="font-semibold text-primary-900">Thông báo</h3>
                       </div>
                       <div className="max-h-96 overflow-y-auto">
                         {notifications.map((notif) => (
                           <div
                             key={notif.id}
-                            className="px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer border-b border-neutral-50 last:border-0"
+                            className="px-4 py-3 hover:bg-warmgray-50 transition-colors cursor-pointer border-b border-warmgray-50 last:border-0"
                           >
-                            <p className="text-sm font-medium text-neutral-900 mb-1">
+                            <p className="text-sm font-medium text-primary-900 mb-1">
                               {notif.text}
                             </p>
-                            <p className="text-xs text-neutral-500">{notif.time}</p>
+                            <p className="text-xs text-warmgray-500">{notif.time}</p>
                           </div>
                         ))}
                       </div>
-                      <div className="px-4 py-3 bg-neutral-50 border-t border-neutral-100 text-center">
-                        <button className="text-sm font-semibold text-themePrimary hover:text-themeSecondary transition-colors">
+                      <div className="px-4 py-3 bg-warmgray-50 border-t border-warmgray-100 text-center">
+                        <button className="text-sm font-semibold text-primary-800 hover:text-themeSecondary transition-colors">
                           Xem tất cả
                         </button>
                       </div>
@@ -225,9 +229,9 @@ const Header = ({
               )}
 
               {isAuthenticated && (
-                <button className="relative p-1.5 lg:p-2 hover:bg-neutral-50 rounded-xl transition-colors group hidden xl:block">
+                <button className="relative p-2 lg:p-2.5 hover:bg-warmgray-100/60 rounded-full transition-colors group hidden xl:block">
                   <svg
-                    className="w-5 h-5 text-neutral-600 group-hover:text-themePrimary transition-colors"
+                    className="w-5 h-5 text-warmgray-600 group-hover:text-primary-800 transition-colors"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -247,11 +251,11 @@ const Header = ({
                 <div className="relative">
                   <button
                     onClick={() => setShowProfile(!showProfile)}
-                    className="flex items-center gap-1 hover:bg-neutral-50 rounded-xl p-1 transition-colors"
+                    className="flex items-center gap-2 hover:bg-warmgray-100/60 rounded-full p-1.5 transition-colors"
                   >
                     <Avatar name={userName} size="sm" />
                     <svg
-                      className={`w-4 h-4 text-neutral-400 transition-transform hidden md:block ${showProfile ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-warmgray-400 transition-transform hidden md:block ${showProfile ? 'rotate-180' : ''}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -266,19 +270,19 @@ const Header = ({
                   </button>
 
                   {showProfile && (
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-neutral-100 overflow-visible z-[100]">
-                      <div className="px-4 py-3 bg-gradient-to-br from-themePrimary/5 to-accent/5 border-b border-neutral-100">
-                        <p className="text-sm font-semibold text-neutral-900 break-words line-clamp-2">
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-[20px] shadow-elevated border border-warmgray-100 overflow-visible z-[100]">
+                      <div className="px-4 py-3 bg-gradient-to-br from-primary-800/5 to-gold/5 border-b border-warmgray-100">
+                        <p className="text-sm font-semibold text-primary-900 break-words line-clamp-2">
                           {userName}
                         </p>
-                        <p className="text-xs text-neutral-500 mt-0.5 break-all line-clamp-1">
+                        <p className="text-xs text-warmgray-500 mt-0.5 break-all line-clamp-1">
                           {userEmail}
                         </p>
                       </div>
 
                       <div className="py-1">
                         <button
-                          className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+                          className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
                           onClick={() => {
                             handleNavigate('profile');
                           }}
@@ -300,7 +304,7 @@ const Header = ({
                         </button>
                         {role === 'buyer' && (
                           <button
-                            className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+                            className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
                             onClick={() => handleNavigate('orders')}
                           >
                             <svg
@@ -319,11 +323,32 @@ const Header = ({
                             Đơn hàng của tôi
                           </button>
                         )}
+                        {role === 'buyer' && (
+                          <button
+                            className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
+                            onClick={() => handleNavigate('wallet')}
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-2m0-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2m-4 0h.01"
+                              />
+                            </svg>
+                            Ví của tôi
+                          </button>
+                        )}
                       </div>
 
-                      <div className="border-t border-neutral-100">
+                      <div className="border-t border-warmgray-100">
                         <button
-                          className="w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2 font-medium"
+                          className="w-full px-4 py-2.5 text-left text-sm text-danger hover:bg-danger/5 transition-colors flex items-center gap-2 font-medium"
                           onClick={() => {
                             onLogout && onLogout();
                             setShowProfile(false);
@@ -353,7 +378,7 @@ const Header = ({
               <Button
                 variant="primary"
                 size="sm"
-                className="hidden xl:inline-flex shadow-lg shadow-themePrimary/25 hover:shadow-xl hover:shadow-themePrimary/30 transition-all text-xs px-2.5 py-1.5"
+                className="hidden xl:inline-flex shadow-soft hover:shadow-elevated transition-all text-sm px-5 py-2.5 rounded-full"
                 onClick={handleCta}
               >
                 Đăng tin
@@ -361,11 +386,11 @@ const Header = ({
 
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 hover:bg-neutral-50 rounded-xl transition-colors"
+                className="lg:hidden p-2.5 hover:bg-warmgray-100/60 rounded-full transition-colors"
                 aria-label="Menu"
               >
                 <svg
-                  className="w-5 h-5 text-neutral-600"
+                  className="w-5 h-5 text-warmgray-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -395,16 +420,16 @@ const Header = ({
       {/* Secondary Navigation for Buyers */}
       {/* Mobile Search */}
       {showSearch && (
-        <div className="md:hidden bg-white border-b border-neutral-100">
+        <div className="md:hidden bg-white/80 backdrop-blur-xl border-b border-warmgray-200/40">
           <div className="container-custom py-3">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Tìm kiếm xe đạp..."
-                className="w-full h-10 pl-10 pr-4 text-sm border border-neutral-200 rounded-xl bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-themePrimary/50 focus:border-themePrimary transition-all"
+                className="w-full h-11 pl-11 pr-4 text-sm border border-warmgray-200/80 rounded-full bg-warmgray-50/60 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 transition-all placeholder:text-warmgray-400"
               />
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warmgray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -423,23 +448,23 @@ const Header = ({
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-neutral-100 shadow-lg">
-          <div className="container-custom py-4 space-y-1">
+        <div className="lg:hidden bg-white/95 backdrop-blur-xl border-b border-warmgray-200/40 shadow-elevated">
+          <div className="container-custom py-6 space-y-2">
             {mainNavItems.map((item) => (
               <button
                 key={item.page}
                 onClick={() => handleNavigate(item.page)}
-                className={`w-full text-left px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                className={`w-full text-left px-5 py-3.5 text-sm font-semibold rounded-[16px] transition-all ${
                   currentPage === item.page
-                    ? 'text-themePrimary bg-themePrimary/5'
-                    : 'text-neutral-700 hover:bg-neutral-50'
+                    ? 'text-primary-800 bg-primary-800/5 border-l-[3px] border-gold'
+                    : 'text-warmgray-600 hover:bg-warmgray-50'
                 }`}
               >
                 {item.label}
               </button>
             ))}
 
-            <div className="pt-3 mt-3 border-t border-neutral-100">
+            <div className="pt-4 mt-4 border-t border-warmgray-200/60">
               {isAuthenticated ? (
                 <Button variant="outline" className="w-full" onClick={() => onLogout && onLogout()}>
                   Đăng xuất

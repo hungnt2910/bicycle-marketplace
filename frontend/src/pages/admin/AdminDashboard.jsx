@@ -62,56 +62,56 @@ const AdminDashboard = ({ user }) => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="dash-content">
       {/* Welcome */}
-      <div className="mb-8">
+      <div className="page-header">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Bảng điều khiển quản trị viên</h1>
-            <p className="text-gray-600">Tổng quan hoạt động hệ thống Bicycle-Marketplace</p>
+            <h1>Bảng điều khiển quản trị viên</h1>
+            <p>Tổng quan hoạt động hệ thống Bicycle-Marketplace</p>
           </div>
           {user && (
-            <div className="text-right bg-white p-4 rounded-lg shadow border border-gray-200">
-              <p className="text-sm text-gray-600">Chào mừng,</p>
-              <p className="text-xl font-bold text-gray-900">
+            <div className="text-right lux-panel">
+              <p className="text-sm text-warmgray-600">Chào mừng,</p>
+              <p className="text-xl font-bold text-primary-900">
                 {user.fullName || user.username || 'Admin'}
               </p>
-              {user.email && <p className="text-sm text-gray-600 mt-1">{user.email}</p>}
+              {user.email && <p className="text-sm text-warmgray-600 mt-1">{user.email}</p>}
             </div>
           )}
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-            <div className="text-2xl mb-2">{stat.icon}</div>
-            <p className="text-gray-600 text-sm">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-xs text-green-600 font-medium mt-1">{stat.change}</p>
+          <div key={index} className="lux-panel">
+            <div className="text-2xl mb-3">{stat.icon}</div>
+            <p className="text-warmgray-600 text-sm">{stat.label}</p>
+            <p className="text-2xl font-bold text-primary-900 mt-1">{stat.value}</p>
+            <p className="text-xs text-success font-medium mt-2">{stat.change}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-4">
+      <div className="grid lg:grid-cols-3 gap-8">
         {/* Pending Tasks */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <div className="lux-panel">
           <h3 className="text-xl font-bold mb-6">Công việc cần xử lý</h3>
           <div className="space-y-4">
             {pendingTasks.map((item, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-5 bg-warmgray-50 rounded-[20px] hover:bg-warmgray-100 transition-colors cursor-pointer"
               >
-                <span className="font-medium text-gray-900">{item.task}</span>
+                <span className="font-medium text-primary-900">{item.task}</span>
                 <span
                   className={`px-3 py-1 rounded text-sm font-bold ${
                     item.color === 'warning'
-                      ? 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-gold/10 text-yellow-800'
                       : item.color === 'danger'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-blue-100 text-blue-800'
+                        ? 'bg-danger/10 text-red-800'
+                        : 'bg-primary-800/10 text-primary-900'
                   }`}
                 >
                   {item.count}
@@ -119,23 +119,23 @@ const AdminDashboard = ({ user }) => {
               </div>
             ))}
           </div>
-          <button className="w-full mt-6 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
+          <button className="w-full mt-8 bg-primary-700 text-white py-3 rounded-[16px] hover:bg-primary-800 font-medium">
             Xem tất cả công việc
           </button>
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200 lg:col-span-2">
+        <div className="lux-panel lg:col-span-2">
           <h3 className="text-xl font-bold mb-6">Hoạt động gần đây</h3>
           <div className="space-y-4">
             {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl flex-shrink-0">
+              <div key={index} className="flex items-start gap-4 p-5 bg-warmgray-50 rounded-[20px]">
+                <div className="w-10 h-10 rounded-full bg-primary-800/10 flex items-center justify-center text-xl flex-shrink-0">
                   {activity.icon}
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">{activity.message}</p>
-                  <p className="text-sm text-gray-600 mt-1">{activity.time}</p>
+                  <p className="font-medium text-primary-900">{activity.message}</p>
+                  <p className="text-sm text-warmgray-600 mt-1">{activity.time}</p>
                 </div>
               </div>
             ))}
@@ -144,28 +144,28 @@ const AdminDashboard = ({ user }) => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+      <div className="lux-panel">
         <h3 className="text-xl font-bold mb-6">Thao tác nhanh</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 font-medium h-20">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <button className="bg-primary-700 text-white py-5 rounded-[20px] hover:bg-primary-800 font-medium h-24">
             <div className="text-center">
               <div className="text-2xl mb-1"></div>
               <div className="text-sm">Quản lý chuyên viên kiểm định</div>
             </div>
           </button>
-          <button className="border border-gray-300 py-4 rounded-lg hover:bg-gray-50 font-medium h-20">
+          <button className="border border-warmgray-300 py-5 rounded-[20px] hover:bg-warmgray-50 font-medium h-24">
             <div className="text-center">
               <div className="text-2xl mb-1"></div>
               <div className="text-sm">Kiểm duyệt tin</div>
             </div>
           </button>
-          <button className="border border-gray-300 py-4 rounded-lg hover:bg-gray-50 font-medium h-20">
+          <button className="border border-warmgray-300 py-5 rounded-[20px] hover:bg-warmgray-50 font-medium h-24">
             <div className="text-center">
               <div className="text-2xl mb-1"></div>
               <div className="text-sm">Giải quyết tranh chấp</div>
             </div>
           </button>
-          <button className="border border-gray-300 py-4 rounded-lg hover:bg-gray-50 font-medium h-20">
+          <button className="border border-warmgray-300 py-5 rounded-[20px] hover:bg-warmgray-50 font-medium h-24">
             <div className="text-center">
               <div className="text-2xl mb-1"></div>
               <div className="text-sm">Xem báo cáo</div>

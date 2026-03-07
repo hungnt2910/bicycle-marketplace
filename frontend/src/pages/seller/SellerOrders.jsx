@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button, Avatar } from '../../components/ui';
 import { toast } from 'react-toastify';
 import transactionApi from '../../api/transactionApi';
 
 const statusLabels = {
   pending_payment: 'Chờ thanh toán',
-  payment_received: 'Đã đặt cọc',
-  held_in_escrow: 'Đang giữ cọc',
+  payment_received: 'Đã nhận thanh toán',
+  deposit_paid: 'Đã đặt cọc',
+  held_in_escrow: 'Đang giữ escrow',
   awaiting_delivery: 'Chờ giao',
   delivered: 'Đã giao',
   completed: 'Hoàn tất',
@@ -30,8 +32,10 @@ const statusVariants = {
 const formatCurrency = (value) => Number(value || 0).toLocaleString('vi-VN');
 
 const SellerOrders = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState('');
 
   const loadOrders = async () => {
     try {
@@ -63,6 +67,43 @@ const SellerOrders = () => {
     }
   };
 
+  const runAction = async (label, fn) => {
+    setActionLoading(label);
+    try {
+      await fn();
+      await loadOrders();
+      toast.success('Đã cập nhật đơn hàng');
+    } catch (err) {
+      console.error(`${label} error:`, err);
+      toast.error(err?.response?.data?.message || 'Không thực hiện được thao tác');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const handleUpdateShipping = (order) => {
+    const allowed = ['held_in_escrow', 'awaiting_delivery', 'payment_received'];
+    if (!allowed.includes(order.status)) {
+      toast.warn('Chỉ cập nhật vận chuyển khi đơn đã được thanh toán và chờ giao.');
+      return;
+    }
+
+    const provider = window.prompt('Đơn vị vận chuyển (VD: Giao Hang Nhanh, Viettel Post)...');
+    if (!provider) {
+      toast.warn('Vui lòng nhập đơn vị vận chuyển');
+      return;
+    }
+
+    const trackingNumber = window.prompt('Mã vận đơn (tracking number)');
+    if (!trackingNumber) {
+      toast.warn('Vui lòng nhập mã vận đơn');
+      return;
+    }
+
+    const payload = { provider, trackingNumber };
+    runAction('shipping', () => transactionApi.updateShipping(order.id, payload));
+  };
+
   useEffect(() => {
     loadOrders();
   }, []);
@@ -87,42 +128,42 @@ const SellerOrders = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-neutral-900">Quản lý đơn hàng</h2>
-        <p className="text-neutral-600 mt-1">Theo dõi và quản lý các đơn hàng của bạn</p>
+        <h2 className="text-2xl font-bold text-primary-900">Quản lý đơn hàng</h2>
+        <p className="text-warmgray-600 mt-1">Theo dõi và quản lý các đơn hàng của bạn</p>
       </div>
 
       {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Tổng đơn hàng</div>
-          <div className="text-2xl font-bold text-neutral-900">{stats.total}</div>
+          <div className="text-sm text-warmgray-600 mb-1">Tổng đơn hàng</div>
+          <div className="text-2xl font-bold text-primary-900">{stats.total}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Chờ thanh toán</div>
+          <div className="text-sm text-warmgray-600 mb-1">Chờ thanh toán</div>
           <div className="text-2xl font-bold text-warning-600">{stats.pendingPay}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Đang giữ cọc</div>
+          <div className="text-sm text-warmgray-600 mb-1">Đang giữ cọc</div>
           <div className="text-2xl font-bold text-info-600">{stats.holding}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Hoàn tất</div>
+          <div className="text-sm text-warmgray-600 mb-1">Hoàn tất</div>
           <div className="text-2xl font-bold text-success-600">{stats.completed}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm text-neutral-600 mb-1">Đã hủy/hoàn</div>
-          <div className="text-2xl font-bold text-neutral-600">{stats.cancelled}</div>
+          <div className="text-sm text-warmgray-600 mb-1">Đã hủy/hoàn</div>
+          <div className="text-2xl font-bold text-warmgray-600">{stats.cancelled}</div>
         </Card>
       </div>
 
       {/* Orders List */}
       {loading ? (
         <Card className="p-12 text-center">
-          <p className="text-neutral-600">Đang tải đơn hàng...</p>
+          <p className="text-warmgray-600">Đang tải đơn hàng...</p>
         </Card>
       ) : orders.length === 0 ? (
         <Card className="p-12 text-center">
-          <p className="text-neutral-600">Chưa có đơn hàng nào</p>
+          <p className="text-warmgray-600">Chưa có đơn hàng nào</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -132,7 +173,7 @@ const SellerOrders = () => {
                 <img
                   src={order.image}
                   alt={order.bike}
-                  className="w-full lg:w-48 h-36 object-cover rounded-lg"
+                  className="w-full lg:w-48 h-36 object-cover rounded-[16px]"
                 />
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-3">
@@ -141,7 +182,7 @@ const SellerOrders = () => {
                         <h3 className="font-semibold text-lg">{order.bike}</h3>
                         {getStatusBadge(order.status)}
                       </div>
-                      <p className="text-sm text-neutral-600">
+                      <p className="text-sm text-warmgray-600">
                         Mã đơn: {order.id} • {order.date}
                       </p>
                     </div>
@@ -149,36 +190,45 @@ const SellerOrders = () => {
 
                   <div className="grid sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <p className="text-sm text-neutral-600 mb-1">Người mua</p>
+                      <p className="text-sm text-warmgray-600 mb-1">Người mua</p>
                       <div className="flex items-center gap-2">
                         <Avatar name={order.buyer} size="sm" />
                         <span className="font-medium">{order.buyer}</span>
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-neutral-600 mb-1">Giá trị giao dịch</p>
+                      <p className="text-sm text-warmgray-600 mb-1">Giá trị giao dịch</p>
                       <p className="font-semibold text-lg text-primary-600">
                         {formatCurrency(order.price)} ₫
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-neutral-600 mb-1">Trạng thái</p>
-                      <p className="font-medium text-neutral-800">
+                      <p className="text-sm text-warmgray-600 mb-1">Trạng thái</p>
+                      <p className="font-medium text-warmgray-800">
                         {statusLabels[order.status] || order.status || '--'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-neutral-600 mb-1">Ghi chú</p>
-                      <p className="font-medium text-neutral-500">—</p>
+                      <p className="text-sm text-warmgray-600 mb-1">Ghi chú</p>
+                      <p className="font-medium text-warmgray-500">—</p>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm">
-                      Chat với người mua
-                    </Button>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/buyer/transactions/${order.id}`)}
+                    >
                       Xem chi tiết
+                    </Button>
+                    <Button
+                      variant="success"
+                      size="sm"
+                      disabled={actionLoading === 'shipping'}
+                      onClick={() => handleUpdateShipping(order)}
+                    >
+                      {actionLoading === 'shipping' ? 'Đang cập nhật...' : 'Cập nhật vận chuyển'}
                     </Button>
                   </div>
                 </div>

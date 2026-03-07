@@ -18,14 +18,14 @@ export default function Tooltip({ content, children, position = 'top', className
 
       {isVisible && (
         <div
-          className={`absolute z-50 px-3 py-2 text-sm text-white bg-gray-800 rounded-lg whitespace-nowrap ${positionClasses[position]} ${className}`}
+          className={`absolute z-50 px-3 py-2 text-sm text-white bg-primary-900 rounded-[12px] whitespace-nowrap shadow-elevated ${positionClasses[position]} ${className}`}
         >
           {content}
           {position === 'top' && (
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45" />
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-primary-900 rotate-45" />
           )}
           {position === 'bottom' && (
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-primary-900 rotate-45" />
           )}
         </div>
       )}

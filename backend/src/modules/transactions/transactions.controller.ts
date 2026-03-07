@@ -49,7 +49,10 @@ export class TransactionsController {
   @Roles(UserRole.BUYER, UserRole.SELLER)
   @ApiOperation({ summary: 'Create a new transaction (place order)' })
   @ApiResponse({ status: 201, description: 'Transaction created successfully' })
-  @ApiResponse({ status: 400, description: 'Bicycle not available or not inspected' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bicycle not available or not inspected',
+  })
   async createTransaction(
     @GetUser() user: User,
     @Body() createTransactionDto: CreateTransactionDto,
@@ -58,7 +61,10 @@ export class TransactionsController {
       user._id.toString(),
       createTransactionDto,
     );
-    return { message: 'Transaction created successfully. Please proceed to payment.', data };
+    return {
+      message: 'Transaction created successfully. Please proceed to payment.',
+      data,
+    };
   }
 
   /**
@@ -91,7 +97,7 @@ export class TransactionsController {
     @GetUser() user: User,
     @Body() updateShippingDto: UpdateShippingDto,
   ) {
-    const data = await this.transactionsService.updateShippingAndMarkDelivered(
+    const data = await this.transactionsService.updateShipping(
       id,
       user._id.toString(),
       updateShippingDto,
@@ -103,14 +109,14 @@ export class TransactionsController {
    * PATCH /transactions/:id/delivered
    * Mark transaction as delivered (seller or admin)
    */
-  // @Patch(':id/delivered')
-  // @Roles(UserRole.SELLER, UserRole.ADMIN)
-  // @ApiOperation({ summary: 'Mark transaction as delivered' })
-  // @ApiResponse({ status: 200, description: 'Marked as delivered' })
-  // async markAsDelivered(@Param('id') id: string) {
-  //   const data = await this.transactionsService.markAsDelivered(id);
-  //   return { message: 'Transaction marked as delivered', data };
-  // }
+  @Patch(':id/delivered')
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Mark transaction as delivered' })
+  @ApiResponse({ status: 200, description: 'Marked as delivered' })
+  async markAsDelivered(@Param('id') id: string) {
+    const data = await this.transactionsService.markAsDelivered(id);
+    return { message: 'Transaction marked as delivered', data };
+  }
 
   /**
    * POST /transactions/:id/confirm
@@ -119,8 +125,13 @@ export class TransactionsController {
   @Post(':id/confirm')
   @Roles(UserRole.BUYER)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Confirm delivery and release payment (buyer only)' })
-  @ApiResponse({ status: 200, description: 'Delivery confirmed, payment released' })
+  @ApiOperation({
+    summary: 'Confirm delivery and release payment (buyer only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Delivery confirmed, payment released',
+  })
   @ApiResponse({ status: 403, description: 'Not authorized' })
   async confirmDelivery(
     @Param('id') id: string,
@@ -132,7 +143,10 @@ export class TransactionsController {
       user._id.toString(),
       confirmDeliveryDto,
     );
-    return { message: 'Delivery confirmed. Payment has been released to seller.', data };
+    return {
+      message: 'Delivery confirmed. Payment has been released to seller.',
+      data,
+    };
   }
 
   /**
@@ -168,9 +182,17 @@ export class TransactionsController {
   @Post('deposit')
   @Roles(UserRole.BUYER)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Place a deposit to reserve a bicycle (buyer only)' })
-  @ApiResponse({ status: 201, description: 'Deposit initiated, bicycle reserved' })
-  @ApiResponse({ status: 400, description: 'Bicycle not available or already reserved' })
+  @ApiOperation({
+    summary: 'Place a deposit to reserve a bicycle (buyer only)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Deposit initiated, bicycle reserved',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bicycle not available or already reserved',
+  })
   async createDeposit(@GetUser() user: User, @Body() dto: CreateDepositDto) {
     const data = await this.transactionsService.createDepositTransaction(
       user._id.toString(),
@@ -208,9 +230,17 @@ export class TransactionsController {
   @Post(':id/pay-balance')
   @Roles(UserRole.BUYER)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Pay remaining balance within 3-day window (buyer only)' })
-  @ApiResponse({ status: 200, description: 'Payment initiated for remaining balance' })
-  @ApiResponse({ status: 400, description: 'Deadline passed — deposit forfeited' })
+  @ApiOperation({
+    summary: 'Pay remaining balance within 3-day window (buyer only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment initiated for remaining balance',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Deadline passed — deposit forfeited',
+  })
   async payRemainingBalance(
     @Param('id') transactionId: string,
     @GetUser() user: User,
@@ -256,7 +286,10 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Get all my transactions' })
   @ApiQuery({ name: 'role', enum: ['buyer', 'seller'], required: false })
   @ApiQuery({ name: 'status', required: false })
-  @ApiResponse({ status: 200, description: 'Transactions retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transactions retrieved successfully',
+  })
   async getMyTransactions(
     @GetUser() user: User,
     @Query('role') role?: 'buyer' | 'seller',
@@ -336,7 +369,8 @@ export class TransactionsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Trigger auto-refund for no-shipment (admin only)' })
   async autoRefundNoShipment(@Param('id') transactionId: string) {
-    const data = await this.transactionsService.autoRefundNoShipment(transactionId);
+    const data =
+      await this.transactionsService.autoRefundNoShipment(transactionId);
     return { message: 'Auto-refund check completed', data };
   }
 
@@ -347,9 +381,12 @@ export class TransactionsController {
   @Post('admin/auto-confirm/:id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Trigger auto-confirm for unconfirmed delivery (admin only)' })
+  @ApiOperation({
+    summary: 'Trigger auto-confirm for unconfirmed delivery (admin only)',
+  })
   async autoConfirmDelivery(@Param('id') transactionId: string) {
-    const data = await this.transactionsService.autoConfirmDelivery(transactionId);
+    const data =
+      await this.transactionsService.autoConfirmDelivery(transactionId);
     return { message: 'Auto-confirm check completed', data };
   }
 
@@ -360,7 +397,9 @@ export class TransactionsController {
   @Post('admin/auto-forfeit')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Run auto-forfeit job for expired deposits (admin only)' })
+  @ApiOperation({
+    summary: 'Run auto-forfeit job for expired deposits (admin only)',
+  })
   async autoForfeitExpiredDeposits() {
     await this.transactionsService.autoForfeitExpiredDeposits();
     return { message: 'Auto-forfeit job completed successfully' };

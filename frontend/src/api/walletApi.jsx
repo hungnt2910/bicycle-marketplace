@@ -1,10 +1,19 @@
 import axiosClient from '../services/axiosClient';
 
 const walletApi = {
-  getSummary: () => axiosClient.get('/api/v1/wallet'),
+  // Detailed wallet document for current user
+  getWallet: () => axiosClient.get('/api/v1/wallet'),
 
+  // Summary + 30-day stats + recent transactions
+  getSummary: () => axiosClient.get('/api/v1/wallet/summary'),
+
+  // Wallet + escrow totals (requires role param: buyer or seller)
+  getTotals: (params = {}) => axiosClient.get('/api/v1/wallet/totals', { params }),
+
+  // Paginated transaction history
   getTransactions: (params = {}) => axiosClient.get('/api/v1/wallet/transactions', { params }),
 
+  // Withdraw to bank
   requestWithdrawal: (payload) => axiosClient.post('/api/v1/wallet/withdraw', payload),
 };
 

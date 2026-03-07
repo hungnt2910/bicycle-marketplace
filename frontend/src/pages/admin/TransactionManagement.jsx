@@ -1,93 +1,53 @@
-import React, { useState } from 'react';
-import { Badge } from '../../components/ui';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Badge, Button } from '../../components/ui';
+import { toast } from 'react-toastify';
+import adminApi from '../../api/adminApi';
 
 const TransactionManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [escrowTransactions, setEscrowTransactions] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState('');
 
-  const [transactions] = useState([
-    {
-      id: 'TXN001',
-      orderId: 'ORD12345',
-      type: 'deposit',
-      bikeName: 'Giant XTC SLR 29',
-      buyer: 'Nguyễn Văn A',
-      seller: 'Trần Thị B',
-      amount: 5000000,
-      totalAmount: 25000000,
-      status: 'completed',
-      date: '2024-12-20 14:30',
-      paymentMethod: 'bank_transfer',
-      escrowUntil: '2024-12-27',
-    },
-    {
-      id: 'TXN002',
-      orderId: 'ORD12346',
-      type: 'payment',
-      bikeName: 'Trek Domane AL 2',
-      buyer: 'Lê Văn C',
-      seller: 'Phạm Minh D',
-      amount: 18900000,
-      status: 'pending',
-      date: '2024-12-21 10:15',
-      paymentMethod: 'e_wallet',
-      escrowUntil: '2024-12-28',
-    },
-    {
-      id: 'TXN003',
-      orderId: 'ORD12344',
-      type: 'refund',
-      bikeName: 'Specialized Sirrus X 3.0',
-      buyer: 'Hoàng Thị E',
-      seller: 'Vũ Văn F',
-      amount: 8100000,
-      totalAmount: 16200000,
-      status: 'completed',
-      date: '2024-12-19 16:45',
-      paymentMethod: 'bank_transfer',
-      refundReason: 'Sản phẩm không đúng mô tả',
-    },
-    {
-      id: 'TXN004',
-      orderId: 'ORD12347',
-      type: 'deposit',
-      bikeName: 'Cannondale Quick 4',
-      buyer: 'Trần Minh B',
-      seller: 'Nguyễn Thị G',
-      amount: 2380000,
-      totalAmount: 11900000,
-      status: 'processing',
-      date: '2024-12-21 11:20',
-      paymentMethod: 'bank_transfer',
-      escrowUntil: '2024-12-28',
-    },
-    {
-      id: 'TXN005',
-      orderId: 'ORD12343',
-      type: 'payment',
-      bikeName: 'Giant TCR Advanced 2',
-      buyer: 'Phạm Văn H',
-      seller: 'Lê Thị I',
-      amount: 25000000,
-      status: 'completed',
-      date: '2024-12-18 09:30',
-      paymentMethod: 'e_wallet',
-      releasedDate: '2024-12-20',
-    },
-  ]);
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [statsRes, escrowRes] = await Promise.all([
+        adminApi.getEscrowStatistics(),
+        adminApi.getEscrowHeld(),
+      ]);
+
+      setStats(statsRes?.data?.data || statsRes?.data || {});
+      const escrowList = escrowRes?.data?.data || escrowRes?.data || [];
+      setEscrowTransactions(Array.isArray(escrowList) ? escrowList : []);
+    } catch (err) {
+      console.error('Load admin transaction data error:', err);
+      toast.error(err?.response?.data?.message || 'Không tải được dữ liệu giao dịch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const typeLabels = {
     deposit: 'Đặt cọc',
-    payment: 'Thanh toán',
+    full_payment: 'Thanh toán đủ',
     refund: 'Hoàn tiền',
-    release: 'Giải ngân',
+    escrow_release: 'Giải phóng escrow',
   };
 
   const statusLabels = {
-    pending: 'Chờ xử lý',
-    processing: 'Đang xử lý',
+    pending_payment: 'Chờ thanh toán',
+    held_in_escrow: 'Đang giữ escrow',
+    awaiting_delivery: 'Chờ giao',
+    delivered: 'Đã giao',
     completed: 'Hoàn thành',
-    failed: 'Thất bại',
+    refunded: 'Hoàn tiền',
     cancelled: 'Đã hủy',
   };
 
@@ -97,206 +57,298 @@ const TransactionManagement = () => {
     credit_card: 'Thẻ tín dụng',
   };
 
-  const filteredTransactions = transactions.filter((txn) => {
-    const matchStatus = filterStatus === 'all' || txn.status === filterStatus;
-    const matchType = filterType === 'all' || txn.type === filterType;
+  const filteredTransactions = escrowTransactions.filter((txn) => {
+    const matchStatus = filterStatus === 'all' || (txn.status || '').toLowerCase() === filterStatus;
+    const matchType = filterType === 'all' || (txn.type || '').toLowerCase() === filterType;
     return matchStatus && matchType;
   });
 
-  const totalAmount = transactions
-    .filter((t) => t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const totalHeldAmount = useMemo(() => {
+    if (stats?.totalHeldAmount || stats?.totalEscrowAmount) {
+      return Number(stats.totalHeldAmount || stats.totalEscrowAmount || 0);
+    }
+    return escrowTransactions
+      .filter((t) =>
+        ['held_in_escrow', 'awaiting_delivery', 'delivered', 'disputed'].includes(
+          (t.status || '').toLowerCase()
+        )
+      )
+      .reduce((sum, t) => sum + Number(t.escrow?.heldAmount || t.amount || 0), 0);
+  }, [stats, escrowTransactions]);
+
+  const runAction = async (label, fn) => {
+    setActionLoading(label);
+    try {
+      await fn();
+      toast.success('Thao tác escrow thành công');
+      await loadData();
+    } catch (err) {
+      console.error(`${label} error:`, err);
+      toast.error(err?.response?.data?.message || 'Không thực hiện được thao tác escrow');
+    } finally {
+      setActionLoading('');
+    }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="dash-content">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý giao dịch</h1>
-        <p className="text-gray-600">Theo dõi và quản lý các giao dịch thanh toán</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-primary-900 mb-2">Quản lý giao dịch</h1>
+          <p className="text-warmgray-600">Thống kê và kiểm soát escrow</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
+            {loading ? 'Đang tải...' : 'Làm mới'}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Tổng giao dịch', value: transactions.length, color: 'blue' },
           {
-            label: 'Chờ xử lý',
-            value: transactions.filter((t) => t.status === 'pending').length,
-            color: 'yellow',
+            label: 'Tổng giao dịch',
+            value: stats?.totalTransactions ?? escrowTransactions.length,
+          },
+          {
+            label: 'Đang escrow',
+            value: stats?.heldCount ?? stats?.escrowCount ?? escrowTransactions.length,
           },
           {
             label: 'Hoàn thành',
-            value: transactions.filter((t) => t.status === 'completed').length,
-            color: 'green',
+            value:
+              stats?.completedCount ??
+              escrowTransactions.filter((t) => (t.status || '').toLowerCase() === 'completed')
+                .length,
           },
           {
-            label: 'Tổng giá trị',
-            value: `${(totalAmount / 1000000000).toFixed(2)}B ₫`,
-            color: 'purple',
+            label: 'Tổng giá trị (B ₫)',
+            value: (totalHeldAmount / 1000000000).toFixed(2),
           },
         ].map((stat, idx) => (
-          <div key={idx} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-            <p className="text-gray-600 text-sm">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+          <div key={idx} className="lux-panel">
+            <p className="text-warmgray-600 text-sm">{stat.label}</p>
+            <p className="text-2xl font-bold text-primary-900">{loading ? '...' : stat.value}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-4 mb-6">
+      <div className="lux-panel mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Loại giao dịch</label>
+            <label className="block text-sm font-medium text-warmgray-700 mb-2">
+              Loại giao dịch
+            </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
             >
               <option value="all">Tất cả loại</option>
               <option value="deposit">Đặt cọc</option>
-              <option value="payment">Thanh toán</option>
+              <option value="full_payment">Thanh toán đủ</option>
               <option value="refund">Hoàn tiền</option>
-              <option value="release">Giải ngân</option>
+              <option value="escrow_release">Giải phóng escrow</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+            <label className="block text-sm font-medium text-warmgray-700 mb-2">Trạng thái</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ xử lý</option>
-              <option value="processing">Đang xử lý</option>
+              <option value="pending_payment">Chờ thanh toán</option>
+              <option value="held_in_escrow">Đang giữ escrow</option>
+              <option value="awaiting_delivery">Chờ giao</option>
+              <option value="delivered">Đã giao</option>
               <option value="completed">Hoàn thành</option>
-              <option value="failed">Thất bại</option>
+              <option value="refunded">Hoàn tiền</option>
+              <option value="cancelled">Đã hủy</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Transaction List */}
-      <div className="bg-white rounded-lg shadow border border-gray-200">
+      <div className="lux-panel">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-warmgray-50 border-b border-warmgray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Mã GD
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Loại
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Thông tin
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Số tiền
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Trạng thái
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Ngày GD
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-right text-xs font-medium text-warmgray-500 uppercase">
                   Thao tác
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredTransactions.map((txn) => (
-                <tr key={txn.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="font-medium text-gray-900">{txn.id}</div>
-                      <div className="text-xs text-gray-500">{txn.orderId}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge
-                      variant={
-                        txn.type === 'deposit'
-                          ? 'warning'
-                          : txn.type === 'payment'
-                            ? 'success'
-                            : 'secondary'
-                      }
-                    >
-                      {typeLabels[txn.type]}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{txn.bikeName}</div>
-                      <div className="text-xs text-gray-600">Người mua: {txn.buyer}</div>
-                      <div className="text-xs text-gray-600">Người bán: {txn.seller}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {paymentMethodLabels[txn.paymentMethod]}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {(txn.amount / 1000000).toFixed(1)}M ₫
-                      </div>
-                      {txn.totalAmount && (
-                        <div className="text-xs text-gray-500">
-                          / {(txn.totalAmount / 1000000).toFixed(1)}M ₫
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge
-                      variant={
-                        txn.status === 'completed'
-                          ? 'success'
-                          : txn.status === 'pending'
-                            ? 'warning'
-                            : txn.status === 'failed'
-                              ? 'danger'
-                              : 'secondary'
-                      }
-                    >
-                      {statusLabels[txn.status]}
-                    </Badge>
-                    {txn.escrowUntil && (
-                      <div className="text-xs text-gray-500 mt-1">Ký quỹ đến {txn.escrowUntil}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{txn.date}</div>
-                    {txn.releasedDate && (
-                      <div className="text-xs text-green-600">Giải ngân: {txn.releasedDate}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        Xem
-                      </button>
-                      {txn.status === 'pending' && (
-                        <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                          Xác nhận
-                        </button>
-                      )}
-                    </div>
+              {loading && (
+                <tr>
+                  <td colSpan="7" className="px-6 py-4 text-center text-warmgray-600">
+                    Đang tải dữ liệu...
                   </td>
                 </tr>
-              ))}
+              )}
+              {!loading && filteredTransactions.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="px-6 py-4 text-center text-warmgray-600">
+                    Chưa có giao dịch escrow nào
+                  </td>
+                </tr>
+              )}
+              {!loading &&
+                filteredTransactions.map((txn) => {
+                  const status = (txn.status || '').toLowerCase();
+                  const type = (txn.type || '').toLowerCase();
+                  const buyer =
+                    `${txn?.buyerId?.profile?.firstName || ''} ${txn?.buyerId?.profile?.lastName || ''}`.trim() ||
+                    txn?.buyerId?.email ||
+                    'Người mua';
+                  const seller = txn?.sellerId?.email || 'Người bán';
+                  const bikeName = txn?.bicycleId?.title || 'Xe đạp';
+                  const amount = Number(txn?.amount || 0);
+                  return (
+                    <tr key={txn._id || txn.id} className="hover:bg-warmgray-50">
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="font-medium text-primary-900">{txn._id || txn.id}</div>
+                          <div className="text-xs text-warmgray-500">{txn?.orderId || '—'}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge
+                          variant={
+                            type === 'deposit'
+                              ? 'warning'
+                              : type === 'full_payment'
+                                ? 'success'
+                                : 'secondary'
+                          }
+                        >
+                          {typeLabels[type] || type || 'Khác'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-primary-900">{bikeName}</div>
+                          <div className="text-xs text-warmgray-600">Người mua: {buyer}</div>
+                          <div className="text-xs text-warmgray-600">Người bán: {seller}</div>
+                          <div className="text-xs text-warmgray-500 mt-1">
+                            {paymentMethodLabels[txn.paymentMethod] || txn.paymentMethod || '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-lg font-bold text-primary-900">
+                            {(amount / 1000000).toFixed(2)}M ₫
+                          </div>
+                          {txn.escrow?.heldAmount && (
+                            <div className="text-xs text-warmgray-500">
+                              Escrow: {(Number(txn.escrow.heldAmount) / 1000000).toFixed(2)}M ₫
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge
+                          variant={
+                            status === 'completed'
+                              ? 'success'
+                              : ['pending_payment', 'awaiting_delivery'].includes(status)
+                                ? 'warning'
+                                : ['refunded', 'cancelled', 'canceled'].includes(status)
+                                  ? 'danger'
+                                  : 'secondary'
+                          }
+                        >
+                          {statusLabels[status] || status || '—'}
+                        </Badge>
+                        {txn.escrow?.autoReleaseDeadline && (
+                          <div className="text-xs text-warmgray-500 mt-1">
+                            Ký quỹ đến {txn.escrow.autoReleaseDeadline?.slice(0, 10)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-primary-900">
+                          {txn.createdAt ? new Date(txn.createdAt).toLocaleString('vi-VN') : '—'}
+                        </div>
+                        {txn.shipping?.deliveredAt && (
+                          <div className="text-xs text-success">
+                            Giao: {new Date(txn.shipping.deliveredAt).toLocaleDateString('vi-VN')}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="success"
+                            disabled={actionLoading === `release-${txn._id || txn.id}`}
+                            onClick={() =>
+                              runAction(`release-${txn._id || txn.id}`, () =>
+                                adminApi.releaseEscrow(txn._id || txn.id)
+                              )
+                            }
+                          >
+                            {actionLoading === `release-${txn._id || txn.id}`
+                              ? 'Đang giải ngân...'
+                              : 'Release escrow'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            disabled={actionLoading === `refund-${txn._id || txn.id}`}
+                            onClick={() => {
+                              const confirmRefund = window.confirm('Hoàn escrow về buyer?');
+                              if (!confirmRefund) return;
+                              runAction(`refund-${txn._id || txn.id}`, () =>
+                                adminApi.refundEscrow(txn._id || txn.id)
+                              );
+                            }}
+                          >
+                            {actionLoading === `refund-${txn._id || txn.id}`
+                              ? 'Đang hoàn...'
+                              : 'Refund escrow'}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Note */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="mt-6 bg-primary-800/5 border border-primary-600/20 rounded-[16px] p-4">
         <div className="flex gap-3">
           <svg
-            className="w-6 h-6 text-blue-600 flex-shrink-0"
+            className="w-6 h-6 text-primary-700 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -306,7 +358,7 @@ const TransactionManagement = () => {
               clipRule="evenodd"
             />
           </svg>
-          <div className="text-sm text-blue-800">
+          <div className="text-sm text-primary-900">
             <p className="font-semibold mb-1">Lưu ý về giao dịch</p>
             <ul className="space-y-1">
               <li>• Tiền cọc được ký quỹ an toàn trong hệ thống</li>

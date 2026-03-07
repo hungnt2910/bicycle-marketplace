@@ -1,8 +1,14 @@
 import axios from 'axios';
 
-// Prefer env override; fallback to local dev
-const apiUrl = // import.meta.env.VITE_API_URL ||
-(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+// Prefer env override; fallback to relative /api (use with Vite proxy)
+const envBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+const apiUrl = (
+  envBase
+    ? envBase
+    : typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? '/api'
+      : '/api'
+).replace(/\/$/, '');
 
 const axiosClient = axios.create({
   baseURL: apiUrl,

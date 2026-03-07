@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Badge, Button, Input } from '../../components/ui';
+import { Card, Badge, Button, Input, Pagination } from '../../components/ui';
 import { toast } from 'react-toastify';
 import bicycleApi from '../../api/postNewsApi';
 import paymentApi from '../../api/paymentApi';
@@ -18,6 +18,10 @@ const BuyerDashboard = () => {
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const ORDERS_PER_PAGE = 5;
 
   const statusLabelMap = {
     pending_payment: 'Chờ thanh toán',
@@ -194,6 +198,14 @@ const BuyerDashboard = () => {
   const computedFullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
   const displayName = user?.fullName || computedFullName || user?.email || 'bạn';
 
+  const filteredTransactions = transactions.filter((tx) => {
+    const status = (tx?.status || '').toLowerCase();
+    const type = (tx?.type || '').toLowerCase();
+    const matchStatus = filterStatus === 'all' || status === filterStatus;
+    const matchType = filterType === 'all' || type === filterType;
+    return matchStatus && matchType;
+  });
+
   const totalOrders = transactions.length;
   const inProgressOrders = transactions.filter((tx) =>
     inProgressStatuses.includes((tx?.status || '').toLowerCase())
@@ -212,7 +224,12 @@ const BuyerDashboard = () => {
     { label: 'Hoàn / Huỷ', value: failedOrders },
   ];
 
-  const recentOrders = transactions.slice(0, 5).map((tx) => ({
+  const ordersTotalPages = Math.ceil(filteredTransactions.length / ORDERS_PER_PAGE);
+  const paginatedTransactions = filteredTransactions.slice(
+    (ordersPage - 1) * ORDERS_PER_PAGE,
+    ordersPage * ORDERS_PER_PAGE
+  );
+  const recentOrders = paginatedTransactions.map((tx) => ({
     id: tx?._id || tx?.id,
     bike: tx?.bicycleId?.title || 'Xe đạp',
     status: statusLabelMap[tx?.status] || tx?.status || '--',
@@ -221,213 +238,279 @@ const BuyerDashboard = () => {
     date: formatDate(tx?.createdAt),
   }));
 
-  return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Decorative Background - Made lighter to ensure text contrast if using dark text, or adjust if using light text */}
-      <div className="absolute top-0 left-0 w-full h-80 bg-gradient-to-br from-blue-50 to-indigo-50 overflow-hidden z-0 rounded-b-[3rem] shadow-sm border-b border-indigo-100">
-        <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-white/40 rounded-full blur-3xl"></div>
-        <div className="absolute top-10 -left-20 w-72 h-72 bg-white/40 rounded-full blur-3xl"></div>
-      </div>
+  const statIcons = [
+    <path
+      key={0}
+      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+    />,
+    <path key={1} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />,
+    <path key={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
+    <path key={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />,
+  ];
 
-      <div className="container-custom relative z-10 pt-10">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 text-slate-800">
-          <div>
-            <div className="flex items-center gap-3 mb-2 opacity-90 text-slate-600">
-              <div className="p-1.5 bg-white/60 backdrop-blur-sm rounded-lg shadow-sm">
-                <svg
-                  className="w-5 h-5 text-themePrimary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--lux-gray-50)' }}>
+      {/* ── Hero Header ── */}
+      <div
+        className="relative overflow-hidden"
+        style={{ backgroundColor: 'var(--lux-primary-900)' }}
+      >
+        {/* Ambient glows */}
+        <div
+          className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-10 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, var(--lux-gold) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute bottom-0 left-0 w-80 h-40 opacity-15 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse, var(--lux-primary-500) 0%, transparent 70%)',
+          }}
+        />
+
+        <div className="container-custom py-10 relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            {/* Greeting */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <span
+                  className="text-xs font-bold uppercase tracking-[0.25em]"
+                  style={{ color: 'var(--lux-gold)' }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                  Bảng điều khiển người mua
+                </span>
               </div>
-              <span className="font-bold tracking-wide text-sm uppercase">
-                Bảng điều khiển người mua
-              </span>
+              <h1
+                className="text-3xl lg:text-4xl font-bold mb-2 leading-tight"
+                style={{ color: 'white', fontFamily: "'Playfair Display', serif" }}
+              >
+                Xin chào, <span style={{ color: 'var(--lux-gold)' }}>{displayName}</span>!
+              </h1>
+              <p className="text-sm max-w-md" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Chào mừng bạn quay trở lại. Theo dõi đơn hàng và tìm kiếm chiếc xe đạp ưng ý tiếp
+                theo của bạn.
+              </p>
             </div>
-            <h1 className="text-3xl md:text-5xl font-extrabold mb-2 tracking-tight text-slate-900">
-              Xin chào, <span className="text-themePrimary">{displayName}</span>!
-            </h1>
-            <p className="text-slate-600 text-lg font-medium max-w-xl">
-              Chào mừng bạn quay trở lại. Theo dõi đơn hàng và tìm kiếm chiếc xe đạp ưng ý tiếp theo
-              của bạn.
-            </p>
+
+            {/* Inline stat pills */}
+            <div className="flex flex-wrap gap-3">
+              {stats.map((stat, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+                  style={{
+                    background: 'rgba(255,255,255,0.07)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      style={{ color: 'var(--lux-gold)' }}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {statIcons[i]}
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold leading-none" style={{ color: 'white' }}>
+                      {stat.value}
+                    </p>
+                    <p
+                      className="text-xs mt-0.5 uppercase tracking-wide"
+                      style={{ color: 'rgba(255,255,255,0.45)' }}
+                    >
+                      {stat.label}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {stats.map((stat, index) => (
+        {/* Bottom edge fade */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent, rgba(198,167,94,0.3), transparent)',
+          }}
+        />
+      </div>
+
+      {/* ── Main Content ── */}
+      <div className="container-custom py-10">
+        <div className="grid lg:grid-cols-5 gap-8">
+          {/* ── Transactions Panel (3/5) ── */}
+          <div className="lg:col-span-3 flex flex-col gap-6">
+            {/* Filter bar */}
             <div
-              key={index}
-              className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 relative overflow-hidden"
+              className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 rounded-2xl"
+              style={{ backgroundColor: 'white', border: '1px solid var(--lux-gray-200)' }}
             >
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                <svg
-                  className="w-24 h-24 text-themePrimary"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {index === 0 && (
-                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  )}
-                  {index === 1 && <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />}
-                  {index === 2 && (
-                    <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  )}
-                  {index === 3 && <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />}
-                </svg>
-              </div>
-
-              <div className="flex flex-col h-full justify-between relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md ${
-                      index === 0
-                        ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-                        : index === 1
-                          ? 'bg-gradient-to-br from-orange-400 to-orange-500'
-                          : index === 2
-                            ? 'bg-gradient-to-br from-emerald-500 to-emerald-600'
-                            : 'bg-gradient-to-br from-rose-500 to-rose-600'
-                    }`}
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-1 h-5 rounded-full"
+                  style={{ backgroundColor: 'var(--lux-gold)' }}
+                />
+                <h2 className="text-base font-bold" style={{ color: 'var(--lux-primary-900)' }}>
+                  Giao dịch gần đây
+                </h2>
+                {filteredTransactions.length > 0 && (
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full ml-1"
+                    style={{
+                      backgroundColor: 'var(--lux-gray-100)',
+                      color: 'var(--lux-gray-600)',
+                    }}
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {index === 0 && (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                      )}
-                      {index === 1 && (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      )}
-                      {index === 2 && (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      )}
-                      {index === 3 && (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      )}
-                    </svg>
-                  </div>
-                  {/* Decorative dot */}
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      index === 0
-                        ? 'bg-blue-400'
-                        : index === 1
-                          ? 'bg-orange-400'
-                          : index === 2
-                            ? 'bg-emerald-400'
-                            : 'bg-rose-400'
-                    }`}
-                  ></div>
-                </div>
-
-                <div>
-                  <h3 className="text-3xl font-bold text-slate-800 tracking-tight">{stat.value}</h3>
-                  <p className="text-slate-500 font-medium text-sm mt-1 uppercase tracking-wider">
-                    {stat.label}
-                  </p>
-                </div>
+                    {filteredTransactions.length}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={filterType}
+                  onChange={(e) => {
+                    setFilterType(e.target.value);
+                    setOrdersPage(1);
+                  }}
+                  className="px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                  style={{
+                    border: '1.5px solid var(--lux-gray-200)',
+                    color: 'var(--lux-gray-700)',
+                    backgroundColor: 'var(--lux-gray-50)',
+                  }}
+                >
+                  <option value="all">Tất cả loại</option>
+                  <option value="full_payment">Thanh toán đủ</option>
+                  <option value="deposit">Đặt cọc</option>
+                  <option value="refund">Hoàn tiền</option>
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setOrdersPage(1);
+                  }}
+                  className="px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                  style={{
+                    border: '1.5px solid var(--lux-gray-200)',
+                    color: 'var(--lux-gray-700)',
+                    backgroundColor: 'var(--lux-gray-50)',
+                  }}
+                >
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="pending_payment">Chờ thanh toán</option>
+                  <option value="held_in_escrow">Đang giữ escrow</option>
+                  <option value="awaiting_delivery">Chờ giao</option>
+                  <option value="delivered">Đã giao</option>
+                  <option value="completed">Hoàn tất</option>
+                  <option value="refunded">Đã hoàn tiền</option>
+                  <option value="cancelled">Đã hủy</option>
+                </select>
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Content Layout */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Column - Recent Orders */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="border-none shadow-lg bg-white overflow-hidden rounded-2xl">
-              <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white text-slate-800">
-                <div>
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    <span className="w-2 h-6 bg-themePrimary rounded-full inline-block"></span>
-                    Giao dịch gần đây
-                  </h2>
-                  <p className="text-slate-500 text-sm mt-1 ml-4">
-                    Danh sách các đơn hàng mới nhất của bạn
+            {/* Transaction list */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ backgroundColor: 'white', border: '1px solid var(--lux-gray-200)' }}
+            >
+              {loadingTransactions ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div
+                    className="w-10 h-10 rounded-full border-4 animate-spin mb-4"
+                    style={{
+                      borderColor: 'var(--lux-gray-200)',
+                      borderTopColor: 'var(--lux-primary-800)',
+                    }}
+                  />
+                  <p className="text-sm" style={{ color: 'var(--lux-gray-400)' }}>
+                    Đang tải dữ liệu...
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/buyer/transactions')}
-                  className="text-themePrimary hover:bg-themePrimary/5"
-                >
-                  Xem tất cả →
-                </Button>
-              </div>
-
-              <div className="p-0">
-                {loadingTransactions ? (
-                  <div className="p-8 text-center">
-                    <div className="w-10 h-10 border-4 border-themePrimary/30 border-t-themePrimary rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-500">Đang tải dữ liệu...</p>
-                  </div>
-                ) : recentOrders.length === 0 ? (
-                  <div className="p-12 text-center flex flex-col items-center justify-center bg-slate-50/50">
-                    <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4 text-slate-400">
-                      <svg
-                        className="w-8 h-8"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-slate-500 font-medium">Chưa có giao dịch nào</p>
-                    <Button
-                      className="mt-4 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"
-                      onClick={() => navigate('/market')}
+              ) : recentOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ backgroundColor: 'var(--lux-gray-100)' }}
+                  >
+                    <svg
+                      className="w-7 h-7"
+                      style={{ color: 'var(--lux-gray-400)' }}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      Khám phá xe ngay
-                    </Button>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
+                    </svg>
                   </div>
-                ) : (
-                  <div className="divide-y divide-slate-50">
-                    {recentOrders.map((order) => (
-                      <div
-                        key={order.id}
-                        className="group hover:bg-slate-50/80 transition-colors duration-200 cursor-pointer p-5 flex items-center gap-4"
-                        onClick={() => goToTransaction(order.id)}
-                      >
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-md transition-all">
+                  <p className="text-sm font-medium mb-4" style={{ color: 'var(--lux-gray-500)' }}>
+                    Chưa có giao dịch nào
+                  </p>
+                  <Button
+                    className="shadow-soft"
+                    style={{
+                      backgroundColor: 'var(--lux-primary-800)',
+                      color: 'white',
+                      border: 'none',
+                    }}
+                    onClick={() => navigate('/market')}
+                  >
+                    Khám phá xe ngay
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {/* Table header */}
+                  <div
+                    className="grid grid-cols-12 px-6 py-3 text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      color: 'var(--lux-gray-400)',
+                      borderBottom: '1px solid var(--lux-gray-100)',
+                      backgroundColor: 'var(--lux-gray-50)',
+                    }}
+                  >
+                    <span className="col-span-5">Sản phẩm</span>
+                    <span className="col-span-2 text-center">Ngày</span>
+                    <span className="col-span-2 text-center">Mã GD</span>
+                    <span className="col-span-2 text-right">Số tiền</span>
+                    <span className="col-span-1"></span>
+                  </div>
+
+                  {recentOrders.map((order, idx) => (
+                    <div
+                      key={order.id}
+                      className="group grid grid-cols-12 items-center px-6 py-4 cursor-pointer transition-colors duration-150"
+                      style={{
+                        borderBottom:
+                          idx < recentOrders.length - 1 ? '1px solid var(--lux-gray-100)' : 'none',
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)')
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      onClick={() => goToTransaction(order.id)}
+                    >
+                      {/* Product */}
+                      <div className="col-span-5 flex items-center gap-3 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: 'var(--lux-gray-100)' }}
+                        >
                           <svg
-                            className="w-6 h-6"
+                            className="w-4 h-4"
+                            style={{ color: 'var(--lux-gray-400)' }}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -440,179 +523,365 @@ const BuyerDashboard = () => {
                             />
                           </svg>
                         </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start mb-1">
-                            <h4 className="font-bold text-slate-800 text-base truncate pr-2 group-hover:text-themePrimary transition-colors">
-                              {order.bike}
-                            </h4>
-                            <span className="font-bold text-themePrimary whitespace-nowrap">
-                              {formatCurrency(order.price)} ₫
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center text-sm">
-                            <div className="flex items-center text-slate-400 gap-3">
-                              <span className="flex items-center gap-1">
-                                <svg
-                                  className="w-3.5 h-3.5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                  />
-                                </svg>
-                                {order.date}
-                              </span>
-                              <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                              <span className="font-mono text-xs opacity-70">
-                                #{order.id.slice(-6).toUpperCase()}
-                              </span>
-                            </div>
-
-                            <Badge
-                              variant={statusBadgeVariant(order.rawStatus)}
-                              className="shadow-sm"
-                            >
-                              {order.status}
-                            </Badge>
-                          </div>
-                        </div>
-
-                        <div className="ml-2 text-slate-300 group-hover:translate-x-1 transition-transform group-hover:text-themePrimary">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        <div className="min-w-0">
+                          <p
+                            className="text-sm font-semibold truncate"
+                            style={{ color: 'var(--lux-primary-900)' }}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
+                            {order.bike}
+                          </p>
+                          <Badge variant={statusBadgeVariant(order.rawStatus)} className="mt-0.5">
+                            {order.status}
+                          </Badge>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
 
-                {recentOrders.length > 0 && (
-                  <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
-                    <button
-                      onClick={() => navigate('/buyer/transactions')}
-                      className="text-sm font-medium text-slate-500 hover:text-themePrimary transition-colors"
-                    >
-                      Xem toàn bộ lịch sử giao dịch
-                    </button>
-                  </div>
-                )}
-              </div>
-            </Card>
+                      {/* Date */}
+                      <div className="col-span-2 text-center">
+                        <p className="text-xs" style={{ color: 'var(--lux-gray-500)' }}>
+                          {order.date}
+                        </p>
+                      </div>
+
+                      {/* ID */}
+                      <div className="col-span-2 text-center">
+                        <span
+                          className="text-xs font-mono px-2 py-0.5 rounded-lg"
+                          style={{
+                            backgroundColor: 'var(--lux-gray-100)',
+                            color: 'var(--lux-gray-500)',
+                          }}
+                        >
+                          #{order.id.slice(-6).toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Amount */}
+                      <div className="col-span-2 text-right">
+                        <p
+                          className="text-sm font-bold"
+                          style={{ color: 'var(--lux-primary-800)' }}
+                        >
+                          {formatCurrency(order.price)} ₫
+                        </p>
+                      </div>
+
+                      {/* Arrow */}
+                      <div className="col-span-1 flex justify-end">
+                        <svg
+                          className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+                          style={{ color: 'var(--lux-gray-300)' }}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Pagination footer */}
+              {recentOrders.length > 0 && (
+                <div
+                  className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3"
+                  style={{
+                    borderTop: '1px solid var(--lux-gray-100)',
+                    backgroundColor: 'var(--lux-gray-50)',
+                  }}
+                >
+                  {ordersTotalPages > 1 ? (
+                    <>
+                      <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
+                        Trang {ordersPage}/{ordersTotalPages} · Tổng {filteredTransactions.length}{' '}
+                        giao dịch
+                      </p>
+                      <Pagination
+                        currentPage={ordersPage}
+                        totalPages={ordersTotalPages}
+                        onPageChange={(p) => setOrdersPage(p)}
+                      />
+                    </>
+                  ) : (
+                    <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
+                      {filteredTransactions.length} giao dịch
+                    </p>
+                  )}
+                  <button
+                    onClick={() => navigate('/buyer/transactions')}
+                    className="text-xs font-semibold transition-colors"
+                    style={{ color: 'var(--lux-primary-700)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--lux-primary-900)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--lux-primary-700)')}
+                  >
+                    Xem toàn bộ lịch sử →
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Side Column - Quick Status & Info */}
-          <div className="space-y-6">
-            {/* Payment / Activity Summary Card */}
-            <Card className="bg-white rounded-2xl shadow-lg border-none overflow-hidden sticky top-24">
-              <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                <h3 className="text-lg font-bold relative z-10">Tóm tắt hoạt động</h3>
-                <p className="text-slate-300 text-sm relative z-10">
+          {/* ── Sidebar (2/5) ── */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            {/* Activity Summary */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ border: '1px solid var(--lux-gray-200)' }}
+            >
+              <div
+                className="px-6 py-5 relative overflow-hidden"
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
+                }}
+              >
+                <div
+                  className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10 pointer-events-none"
+                  style={{ backgroundColor: 'var(--lux-gold)' }}
+                />
+                <h3 className="text-sm font-bold relative z-10 mb-0.5" style={{ color: 'white' }}>
+                  Tóm tắt hoạt động
+                </h3>
+                <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   Tổng quan trạng thái đơn hàng
                 </p>
               </div>
 
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100 text-blue-800 transition-colors hover:bg-blue-50 cursor-default">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                      <span className="font-medium">Chờ thanh toán</span>
-                    </div>
-                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm border border-blue-100">
-                      {
-                        transactions.filter((t) =>
-                          ['pending_payment', 'awaiting_payment'].includes(t?.status?.toLowerCase())
-                        ).length
-                      }
+              <div className="p-5 space-y-2" style={{ backgroundColor: 'white' }}>
+                {/* Pending */}
+                <div
+                  className="flex items-center justify-between px-4 py-3 rounded-xl transition-colors cursor-default"
+                  style={{
+                    backgroundColor: 'var(--lux-gray-50)',
+                    border: '1px solid var(--lux-gray-100)',
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = 'var(--lux-gray-100)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)')
+                  }
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-2 h-2 rounded-full animate-pulse"
+                      style={{ backgroundColor: '#3b82f6' }}
+                    />
+                    <span className="text-sm font-medium" style={{ color: 'var(--lux-gray-700)' }}>
+                      Chờ thanh toán
                     </span>
                   </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-orange-50/50 border border-orange-100 text-orange-800 transition-colors hover:bg-orange-50 cursor-default">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      <span className="font-medium">Đang xử lý</span>
-                    </div>
-                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm border border-orange-100">
-                      {inProgressOrders}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 text-emerald-800 transition-colors hover:bg-emerald-50 cursor-default">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                      <span className="font-medium">Hoàn thành</span>
-                    </div>
-                    <span className="font-bold bg-white px-2 py-0.5 rounded-md shadow-sm border border-emerald-100">
-                      {completedOrders}
-                    </span>
-                  </div>
+                  <span
+                    className="text-sm font-bold px-2.5 py-0.5 rounded-lg"
+                    style={{
+                      backgroundColor: 'white',
+                      color: 'var(--lux-primary-900)',
+                      border: '1px solid var(--lux-gray-200)',
+                    }}
+                  >
+                    {
+                      transactions.filter((t) =>
+                        ['pending_payment', 'awaiting_payment'].includes(t?.status?.toLowerCase())
+                      ).length
+                    }
+                  </span>
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-slate-100">
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                {/* In Progress */}
+                <div
+                  className="flex items-center justify-between px-4 py-3 rounded-xl transition-colors cursor-default"
+                  style={{
+                    backgroundColor: 'rgba(198,167,94,0.07)',
+                    border: '1px solid rgba(198,167,94,0.2)',
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = 'rgba(198,167,94,0.12)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = 'rgba(198,167,94,0.07)')
+                  }
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: 'var(--lux-gold)' }}
+                    />
+                    <span className="text-sm font-medium" style={{ color: 'var(--lux-gray-700)' }}>
+                      Đang xử lý
+                    </span>
+                  </div>
+                  <span
+                    className="text-sm font-bold px-2.5 py-0.5 rounded-lg"
+                    style={{
+                      backgroundColor: 'white',
+                      color: 'var(--lux-primary-900)',
+                      border: '1px solid rgba(198,167,94,0.25)',
+                    }}
+                  >
+                    {inProgressOrders}
+                  </span>
+                </div>
+
+                {/* Completed */}
+                <div
+                  className="flex items-center justify-between px-4 py-3 rounded-xl transition-colors cursor-default"
+                  style={{
+                    backgroundColor: 'rgba(5,150,105,0.06)',
+                    border: '1px solid rgba(5,150,105,0.15)',
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = 'rgba(5,150,105,0.1)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = 'rgba(5,150,105,0.06)')
+                  }
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: 'var(--lux-primary-500)' }}
+                    />
+                    <span className="text-sm font-medium" style={{ color: 'var(--lux-gray-700)' }}>
+                      Hoàn thành
+                    </span>
+                  </div>
+                  <span
+                    className="text-sm font-bold px-2.5 py-0.5 rounded-lg"
+                    style={{
+                      backgroundColor: 'white',
+                      color: 'var(--lux-primary-900)',
+                      border: '1px solid rgba(5,150,105,0.2)',
+                    }}
+                  >
+                    {completedOrders}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick actions */}
+              <div className="px-5 pb-5" style={{ backgroundColor: 'white' }}>
+                <div className="pt-4 mb-4" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
+                  <p
+                    className="text-xs font-bold uppercase tracking-widest mb-3"
+                    style={{ color: 'var(--lux-gray-400)' }}
+                  >
                     Hành động nhanh
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="justify-center border-slate-200 hover:border-themePrimary hover:text-themePrimary transition-all"
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                      style={{
+                        border: '1.5px solid var(--lux-gray-200)',
+                        color: 'var(--lux-gray-700)',
+                        backgroundColor: 'var(--lux-gray-50)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--lux-primary-800)';
+                        e.currentTarget.style.color = 'var(--lux-primary-800)';
+                        e.currentTarget.style.backgroundColor = 'white';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--lux-gray-200)';
+                        e.currentTarget.style.color = 'var(--lux-gray-700)';
+                        e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)';
+                      }}
                       onClick={() => navigate('/market')}
                     >
                       🛒 Mua xe
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="justify-center border-slate-200 hover:border-themePrimary hover:text-themePrimary transition-all"
+                    </button>
+                    <button
+                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                      style={{
+                        border: '1.5px solid var(--lux-gray-200)',
+                        color: 'var(--lux-gray-700)',
+                        backgroundColor: 'var(--lux-gray-50)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--lux-primary-800)';
+                        e.currentTarget.style.color = 'var(--lux-primary-800)';
+                        e.currentTarget.style.backgroundColor = 'white';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--lux-gray-200)';
+                        e.currentTarget.style.color = 'var(--lux-gray-700)';
+                        e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)';
+                      }}
                       onClick={() => navigate('/buyer/profile')}
                     >
                       👤 Hồ sơ
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
 
-            {/* Support / Help Banner */}
-            <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg relative overflow-hidden group hover:shadow-xl transition-all">
+            {/* Support Banner */}
+            <div
+              className="rounded-2xl p-6 relative overflow-hidden group"
+              style={{
+                background:
+                  'linear-gradient(135deg, var(--lux-primary-800) 0%, var(--lux-primary-900) 100%)',
+                border: '1px solid rgba(255,255,255,0.05)',
+              }}
+            >
+              {/* Corner glow */}
+              <div
+                className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20 pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle, var(--lux-gold) 0%, transparent 70%)',
+                  transform: 'translate(30%, -30%)',
+                }}
+              />
+              {/* Decorative icon */}
+              <div className="absolute bottom-4 right-4 opacity-10 pointer-events-none transform rotate-12 group-hover:rotate-6 transition-transform duration-500">
+                <svg
+                  className="w-20 h-20"
+                  style={{ color: 'white' }}
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4 4s4-1.79 4-4c0-.88-.36-1.68-.93-2.25z" />
+                </svg>
+              </div>
+
               <div className="relative z-10">
-                <h3 className="font-bold text-xl mb-2">Cần hỗ trợ?</h3>
-                <p className="text-white/80 text-sm mb-4">
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider mb-4"
+                  style={{ backgroundColor: 'rgba(198,167,94,0.2)', color: 'var(--lux-gold)' }}
+                >
+                  Hỗ trợ 24/7
+                </div>
+                <h3
+                  className="text-lg font-bold mb-2 leading-snug"
+                  style={{ color: 'white', fontFamily: "'Playfair Display', serif" }}
+                >
+                  Cần hỗ trợ?
+                </h3>
+                <p
+                  className="text-xs leading-relaxed mb-5"
+                  style={{ color: 'rgba(255,255,255,0.6)' }}
+                >
                   Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn trong mọi giao dịch.
                 </p>
                 <Button
                   size="sm"
-                  className="bg-white text-indigo-600 border-none hover:bg-indigo-50 shadow-md font-semibold"
+                  className="font-semibold transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: 'white',
+                    color: 'var(--lux-primary-800)',
+                    border: 'none',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                  }}
                 >
-                  Liên hệ ngay
+                  Liên hệ ngay →
                 </Button>
-              </div>
-
-              <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-              <div className="absolute top-4 right-4 text-white/20 transform rotate-12">
-                <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4 4s4-1.79 4-4c0-.88-.36-1.68-.93-2.25z" />
-                </svg>
               </div>
             </div>
           </div>

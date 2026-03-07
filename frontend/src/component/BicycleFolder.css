@@ -1,0 +1,185 @@
+/* ============================
+   BicycleFolder Component Styles
+   ============================ */
+
+.bicycle-folder {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Hover lift effect */
+.bicycle-folder:not(.open):hover {
+  transform: translateY(-8px);
+}
+
+.bicycle-folder.open {
+  transform: translateY(-8px);
+}
+
+/* SVG shadow on hover/open */
+.bicycle-folder:hover .bicycle-svg,
+.bicycle-folder.open .bicycle-svg {
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.15));
+}
+
+/* ---- Body container ---- */
+.bicycle-body {
+  position: relative;
+  width: 120px;
+  height: 90px;
+}
+
+.bicycle-svg {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  transition:
+    filter 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* Slight bounce on hover */
+.bicycle-folder:not(.open):hover .bicycle-svg {
+  transform: translateX(4px);
+}
+
+/* ---- Wheel spin animation ---- */
+.bike-wheel {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.3s ease;
+}
+
+.bicycle-folder:hover .bike-wheel {
+  animation: bikeWheelSpin 2s linear infinite;
+}
+
+.bicycle-folder.open .bike-wheel {
+  animation: bikeWheelSpin 0.8s linear infinite;
+}
+
+@keyframes bikeWheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Papers / items ---- */
+.bike-paper {
+  position: absolute;
+  z-index: 2;
+  bottom: 10%;
+  left: 50%;
+  transform: translate(-50%, 10%);
+  width: 55%;
+  height: 65%;
+  background: #e8e8e8;
+  border-radius: 8px;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.bike-paper-2 {
+  background: #f2f2f2;
+  width: 60%;
+  height: 58%;
+}
+
+.bike-paper-3 {
+  background: #ffffff;
+  width: 65%;
+  height: 50%;
+}
+
+.bike-paper-4 {
+  background: #f8f8f8;
+  width: 58%;
+  height: 55%;
+}
+
+.bike-paper-5 {
+  background: #fafafa;
+  width: 62%;
+  height: 48%;
+}
+
+/* Hover papers peek up */
+.bicycle-folder:not(.open):hover .bike-paper {
+  transform: translate(-50%, -5%);
+}
+
+/* ---- Open state: papers fly out ---- */
+.bicycle-folder.open .bike-paper-1 {
+  transform: translate(calc(-140% + var(--magnet-x, 0px)), calc(-75% + var(--magnet-y, 0px)))
+    rotateZ(-15deg);
+  z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bicycle-folder.open .bike-paper-1:hover {
+  transform: translate(calc(-140% + var(--magnet-x, 0px)), calc(-75% + var(--magnet-y, 0px)))
+    rotateZ(-15deg) scale(1.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.bicycle-folder.open .bike-paper-2 {
+  transform: translate(calc(30% + var(--magnet-x, 0px)), calc(-75% + var(--magnet-y, 0px)))
+    rotateZ(15deg);
+  height: 65%;
+  z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bicycle-folder.open .bike-paper-2:hover {
+  transform: translate(calc(30% + var(--magnet-x, 0px)), calc(-75% + var(--magnet-y, 0px)))
+    rotateZ(15deg) scale(1.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.bicycle-folder.open .bike-paper-3 {
+  transform: translate(calc(-50% + var(--magnet-x, 0px)), calc(-115% + var(--magnet-y, 0px)))
+    rotateZ(3deg);
+  height: 65%;
+  z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bicycle-folder.open .bike-paper-3:hover {
+  transform: translate(calc(-50% + var(--magnet-x, 0px)), calc(-115% + var(--magnet-y, 0px)))
+    rotateZ(3deg) scale(1.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.bicycle-folder.open .bike-paper-4 {
+  transform: translate(calc(-160% + var(--magnet-x, 0px)), calc(-130% + var(--magnet-y, 0px)))
+    rotateZ(-8deg);
+  height: 65%;
+  z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bicycle-folder.open .bike-paper-4:hover {
+  transform: translate(calc(-160% + var(--magnet-x, 0px)), calc(-130% + var(--magnet-y, 0px)))
+    rotateZ(-8deg) scale(1.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.bicycle-folder.open .bike-paper-5 {
+  transform: translate(calc(60% + var(--magnet-x, 0px)), calc(-130% + var(--magnet-y, 0px)))
+    rotateZ(10deg);
+  height: 65%;
+  z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bicycle-folder.open .bike-paper-5:hover {
+  transform: translate(calc(60% + var(--magnet-x, 0px)), calc(-130% + var(--magnet-y, 0px)))
+    rotateZ(10deg) scale(1.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}

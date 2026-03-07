@@ -18,7 +18,7 @@ const InspectorDashboard = () => {
     return (
         <div className="space-y-6">
             {/* Welcome */}
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-8 text-white">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-[20px] p-8 text-white">
                 <h2 className="text-3xl font-bold mb-2">Dashboard Kiểm Định Viên</h2>
                 <p className="text-lg opacity-90">Bạn có {stats[0].value} xe đang chờ kiểm định</p>
             </div>
@@ -32,8 +32,8 @@ const InspectorDashboard = () => {
                                 {stat.icon}
                             </div>
                             <div className="text-right">
-                                <div className="text-3xl font-bold text-neutral-900">{stat.value}</div>
-                                <div className="text-sm text-neutral-600">{stat.label}</div>
+                                <div className="text-3xl font-bold text-primary-900">{stat.value}</div>
+                                <div className="text-sm text-warmgray-600">{stat.label}</div>
                             </div>
                         </div>
                     </Card>
@@ -49,26 +49,26 @@ const InspectorDashboard = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-neutral-200">
-                                <th className="text-left py-3 px-4 font-semibold text-neutral-700">Xe đạp</th>
-                                <th className="text-left py-3 px-4 font-semibold text-neutral-700">Người bán</th>
-                                <th className="text-left py-3 px-4 font-semibold text-neutral-700">Loại KĐ</th>
-                                <th className="text-left py-3 px-4 font-semibold text-neutral-700">Ngày hẹn</th>
-                                <th className="text-left py-3 px-4 font-semibold text-neutral-700">Ưu tiên</th>
-                                <th className="text-right py-3 px-4 font-semibold text-neutral-700">Hành động</th>
+                            <tr className="border-b border-warmgray-200">
+                                <th className="text-left py-3 px-4 font-semibold text-warmgray-700">Xe đạp</th>
+                                <th className="text-left py-3 px-4 font-semibold text-warmgray-700">Người bán</th>
+                                <th className="text-left py-3 px-4 font-semibold text-warmgray-700">Loại KĐ</th>
+                                <th className="text-left py-3 px-4 font-semibold text-warmgray-700">Ngày hẹn</th>
+                                <th className="text-left py-3 px-4 font-semibold text-warmgray-700">Ưu tiên</th>
+                                <th className="text-right py-3 px-4 font-semibold text-warmgray-700">Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
                             {pendingInspections.map((inspection) => (
-                                <tr key={inspection.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                                <tr key={inspection.id} className="border-b border-warmgray-100 hover:bg-neutral-offwhite">
                                     <td className="py-4 px-4 font-medium">{inspection.bike}</td>
-                                    <td className="py-4 px-4 text-neutral-600">{inspection.seller}</td>
+                                    <td className="py-4 px-4 text-warmgray-600">{inspection.seller}</td>
                                     <td className="py-4 px-4">
                                         <Badge variant={inspection.type === 'Tại chỗ' ? 'primary' : 'secondary'}>
                                             {inspection.type}
                                         </Badge>
                                     </td>
-                                    <td className="py-4 px-4 text-neutral-600">{inspection.date}</td>
+                                    <td className="py-4 px-4 text-warmgray-600">{inspection.date}</td>
                                     <td className="py-4 px-4">
                                         <Badge variant={inspection.priority === 'high' ? 'danger' : 'neutral'}>
                                             {inspection.priority === 'high' ? 'Cao' : 'Bình thường'}

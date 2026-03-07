@@ -56,26 +56,26 @@ const SystemReports = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="dash-content">
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Báo cáo hệ thống</h1>
-            <p className="text-gray-600">Thống kê và phân tích hoạt động hệ thống</p>
+            <h1 className="text-3xl font-bold text-primary-900 mb-2">Báo cáo hệ thống</h1>
+            <p className="text-warmgray-600">Thống kê và phân tích hoạt động hệ thống</p>
           </div>
           <div className="flex gap-3">
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
             >
               <option value="7days">7 ngày qua</option>
               <option value="30days">30 ngày qua</option>
               <option value="90days">90 ngày qua</option>
               <option value="year">Năm nay</option>
             </select>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+            <button className="bg-primary-700 text-white px-6 py-2 rounded-[16px] hover:bg-primary-800 font-medium">
               Xuất báo cáo
             </button>
           </div>
@@ -83,30 +83,30 @@ const SystemReports = () => {
       </div>
 
       {/* Revenue Stats */}
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Doanh thu</h2>
+      <div className="lux-panel mb-6">
+        <h2 className="text-xl font-bold text-primary-900 mb-6">Doanh thu</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Tổng doanh thu</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="p-4 bg-primary-800/5 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Tổng doanh thu</p>
+            <p className="text-2xl font-bold text-primary-900">
               {(stats.revenue.total / 1000000000).toFixed(2)}B ₫
             </p>
-            <p className="text-sm text-green-600 mt-1">+{stats.revenue.growth}%</p>
+            <p className="text-sm text-success mt-1">+{stats.revenue.growth}%</p>
           </div>
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Số giao dịch</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.revenue.transactions}</p>
-            <p className="text-sm text-gray-500 mt-1">giao dịch</p>
+          <div className="p-4 bg-success/5 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Số giao dịch</p>
+            <p className="text-2xl font-bold text-primary-900">{stats.revenue.transactions}</p>
+            <p className="text-sm text-warmgray-500 mt-1">giao dịch</p>
           </div>
-          <div className="p-4 bg-purple-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Trung bình/GD</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="p-4 bg-info/5 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Trung bình/GD</p>
+            <p className="text-2xl font-bold text-primary-900">
               {(stats.revenue.avgTransaction / 1000000).toFixed(1)}M ₫
             </p>
           </div>
-          <div className="p-4 bg-orange-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Hoa hồng (5%)</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="p-4 bg-gold/5 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Hoa hồng (5%)</p>
+            <p className="text-2xl font-bold text-primary-900">
               {((stats.revenue.total * 0.05) / 1000000).toFixed(0)}M ₫
             </p>
           </div>
@@ -114,19 +114,19 @@ const SystemReports = () => {
 
         {/* Simple Revenue Chart */}
         <div className="mt-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Doanh thu theo ngày</h3>
+          <h3 className="text-sm font-semibold text-warmgray-700 mb-4">Doanh thu theo ngày</h3>
           <div className="flex items-end gap-2 h-48">
             {revenueData.map((data, idx) => (
               <div key={idx} className="flex-1 flex flex-col items-center">
                 <div
-                  className="w-full bg-blue-100 rounded-t relative group cursor-pointer hover:bg-blue-200 transition-colors"
+                  className="w-full bg-primary-800/10 rounded-t relative group cursor-pointer hover:bg-primary-800/15 transition-colors"
                   style={{ height: `${(data.value / 200000000) * 100}%` }}
                 >
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-primary-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                     {(data.value / 1000000).toFixed(0)}M ₫
                   </div>
                 </div>
-                <p className="text-xs text-gray-600 mt-2">{data.date}</p>
+                <p className="text-xs text-warmgray-600 mt-2">{data.date}</p>
               </div>
             ))}
           </div>
@@ -136,52 +136,52 @@ const SystemReports = () => {
       {/* Users & Listings */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         {/* Users */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Người dùng</h2>
+        <div className="lux-panel">
+          <h2 className="text-xl font-bold text-primary-900 mb-6">Người dùng</h2>
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 bg-warmgray-50 rounded-[16px]">
               <div>
-                <p className="text-sm text-gray-600">Tổng người dùng</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.users.total}</p>
+                <p className="text-sm text-warmgray-600">Tổng người dùng</p>
+                <p className="text-2xl font-bold text-primary-900">{stats.users.total}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-green-600 font-medium">+{stats.users.new} mới</p>
+                <p className="text-sm text-success font-medium">+{stats.users.new} mới</p>
               </div>
             </div>
-            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 bg-warmgray-50 rounded-[16px]">
               <div>
-                <p className="text-sm text-gray-600">Người dùng hoạt động</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.users.active}</p>
+                <p className="text-sm text-warmgray-600">Người dùng hoạt động</p>
+                <p className="text-2xl font-bold text-primary-900">{stats.users.active}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-blue-600 font-medium">{stats.users.retention}%</p>
+                <p className="text-sm text-primary-700 font-medium">{stats.users.retention}%</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Listings */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Tin đăng</h2>
+        <div className="lux-panel">
+          <h2 className="text-xl font-bold text-primary-900 mb-6">Tin đăng</h2>
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 bg-warmgray-50 rounded-[16px]">
               <div>
-                <p className="text-sm text-gray-600">Tổng tin đăng</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.listings.total}</p>
+                <p className="text-sm text-warmgray-600">Tổng tin đăng</p>
+                <p className="text-2xl font-bold text-primary-900">{stats.listings.total}</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <div className="p-3 bg-green-50 rounded-lg text-center">
-                <p className="text-xs text-gray-600">Đã duyệt</p>
-                <p className="text-lg font-bold text-green-600">{stats.listings.approved}</p>
+              <div className="p-3 bg-success/5 rounded-[16px] text-center">
+                <p className="text-xs text-warmgray-600">Đã duyệt</p>
+                <p className="text-lg font-bold text-success">{stats.listings.approved}</p>
               </div>
-              <div className="p-3 bg-yellow-50 rounded-lg text-center">
-                <p className="text-xs text-gray-600">Chờ duyệt</p>
-                <p className="text-lg font-bold text-yellow-600">{stats.listings.pending}</p>
+              <div className="p-3 bg-gold/5 rounded-[16px] text-center">
+                <p className="text-xs text-warmgray-600">Chờ duyệt</p>
+                <p className="text-lg font-bold text-gold">{stats.listings.pending}</p>
               </div>
-              <div className="p-3 bg-red-50 rounded-lg text-center">
-                <p className="text-xs text-gray-600">Từ chối</p>
-                <p className="text-lg font-bold text-red-600">{stats.listings.rejected}</p>
+              <div className="p-3 bg-danger/5 rounded-[16px] text-center">
+                <p className="text-xs text-warmgray-600">Từ chối</p>
+                <p className="text-lg font-bold text-danger">{stats.listings.rejected}</p>
               </div>
             </div>
           </div>
@@ -191,27 +191,27 @@ const SystemReports = () => {
       {/* Top Performers */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         {/* Top Sellers */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Top người bán</h2>
+        <div className="lux-panel">
+          <h2 className="text-xl font-bold text-primary-900 mb-6">Top người bán</h2>
           <div className="space-y-3">
             {topSellers.map((seller, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-warmgray-50 rounded-[16px]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 bg-primary-700 text-white rounded-full flex items-center justify-center font-bold">
                     {idx + 1}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{seller.name}</p>
-                    <p className="text-xs text-gray-600">
+                    <p className="font-medium text-primary-900">{seller.name}</p>
+                    <p className="text-xs text-warmgray-600">
                       {seller.sales} đơn hàng • ⭐ {seller.rating}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-gray-900">
+                  <p className="font-bold text-primary-900">
                     {(seller.revenue / 1000000).toFixed(0)}M ₫
                   </p>
                 </div>
@@ -221,20 +221,20 @@ const SystemReports = () => {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Sản phẩm phổ biến</h2>
+        <div className="lux-panel">
+          <h2 className="text-xl font-bold text-primary-900 mb-6">Sản phẩm phổ biến</h2>
           <div className="space-y-3">
             {topProducts.map((product, idx) => (
-              <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+              <div key={idx} className="p-3 bg-warmgray-50 rounded-[16px]">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-gray-900">{product.name}</p>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                  <p className="font-medium text-primary-900">{product.name}</p>
+                  <span className="text-xs bg-success/10 text-green-800 px-2 py-1 rounded">
                     {product.sales} đã bán
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{product.views} lượt xem</span>
-                  <span className="text-blue-600 font-medium">
+                  <span className="text-warmgray-600">{product.views} lượt xem</span>
+                  <span className="text-primary-700 font-medium">
                     {(product.conversion * 100).toFixed(1)}% chuyển đổi
                   </span>
                 </div>
@@ -245,30 +245,30 @@ const SystemReports = () => {
       </div>
 
       {/* System Performance */}
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Hiệu năng hệ thống</h2>
+      <div className="lux-panel">
+        <h2 className="text-xl font-bold text-primary-900 mb-6">Hiệu năng hệ thống</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Thời gian phản hồi</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.performance.responseTime}ms</p>
-            <p className="text-sm text-green-600 mt-1">Tốt</p>
+          <div className="p-4 bg-warmgray-50 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Thời gian phản hồi</p>
+            <p className="text-2xl font-bold text-primary-900">{stats.performance.responseTime}ms</p>
+            <p className="text-sm text-success mt-1">Tốt</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Uptime</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.performance.uptime}%</p>
-            <p className="text-sm text-green-600 mt-1">Xuất sắc</p>
+          <div className="p-4 bg-warmgray-50 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Uptime</p>
+            <p className="text-2xl font-bold text-primary-900">{stats.performance.uptime}%</p>
+            <p className="text-sm text-success mt-1">Xuất sắc</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Tỷ lệ lỗi</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.performance.errorRate}%</p>
-            <p className="text-sm text-green-600 mt-1">Rất thấp</p>
+          <div className="p-4 bg-warmgray-50 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Tỷ lệ lỗi</p>
+            <p className="text-2xl font-bold text-primary-900">{stats.performance.errorRate}%</p>
+            <p className="text-sm text-success mt-1">Rất thấp</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">API Calls</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="p-4 bg-warmgray-50 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">API Calls</p>
+            <p className="text-2xl font-bold text-primary-900">
               {(stats.performance.apiCalls / 1000).toFixed(0)}K
             </p>
-            <p className="text-sm text-gray-600 mt-1">7 ngày</p>
+            <p className="text-sm text-warmgray-600 mt-1">7 ngày</p>
           </div>
         </div>
       </div>

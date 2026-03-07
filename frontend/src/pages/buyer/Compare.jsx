@@ -10,7 +10,7 @@ const Compare = ({ onNavigate }) => {
       <div className="min-h-[600px] flex items-center justify-center">
         <div className="text-center">
           <svg
-            className="w-24 h-24 mx-auto text-neutral-300 mb-4"
+            className="w-24 h-24 mx-auto text-warmgray-300 mb-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -22,8 +22,8 @@ const Compare = ({ onNavigate }) => {
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
             />
           </svg>
-          <h2 className="text-2xl font-bold text-neutral-700 mb-2">Chưa có sản phẩm để so sánh</h2>
-          <p className="text-neutral-500 mb-6">
+          <h2 className="text-2xl font-bold text-warmgray-700 mb-2">Chưa có sản phẩm để so sánh</h2>
+          <p className="text-warmgray-500 mb-6">
             Hãy chọn tối đa 2 xe đạp từ marketplace để so sánh
           </p>
           <Button onClick={() => onNavigate && onNavigate('marketplace')} variant="primary">
@@ -75,28 +75,28 @@ const Compare = ({ onNavigate }) => {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold text-neutral-800">So sánh xe đạp</h1>
+          <h1 className="text-3xl font-bold text-warmgray-800">So sánh xe đạp</h1>
           <div className="flex gap-3">
             <Button onClick={() => onNavigate && onNavigate('marketplace')} variant="outline">
               Quay lại Marketplace
             </Button>
             {compareItems.length > 0 && (
-              <Button onClick={clearCompare} variant="outline" className="text-red-600">
+              <Button onClick={clearCompare} variant="outline" className="text-danger">
                 Xóa tất cả
               </Button>
             )}
           </div>
         </div>
-        <p className="text-neutral-600">Đang so sánh {compareItems.length}/2 sản phẩm</p>
+        <p className="text-warmgray-600">Đang so sánh {compareItems.length}/2 sản phẩm</p>
       </div>
 
       {/* Comparison Table */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-white rounded-[16px] shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gradient-to-r from-themePrimary/10 to-accent/10">
-                <th className="px-6 py-4 text-left font-semibold text-neutral-700 w-48">
+              <tr className="bg-gradient-to-r from-primary-800/10 to-gold/10">
+                <th className="px-6 py-4 text-left font-semibold text-warmgray-700 w-48">
                   Thông số
                 </th>
                 {compareItems.map((bike) => (
@@ -105,7 +105,7 @@ const Compare = ({ onNavigate }) => {
                       <div className="relative">
                         <button
                           onClick={() => removeFromCompare(bike.id)}
-                          className="absolute top-0 right-0 w-8 h-8 flex items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
+                          className="absolute top-0 right-0 w-8 h-8 flex items-center justify-center bg-danger/50 text-white rounded-full hover:bg-danger transition-colors z-10"
                         >
                           <svg
                             className="w-5 h-5"
@@ -124,14 +124,14 @@ const Compare = ({ onNavigate }) => {
                         <img
                           src={bike.image}
                           alt={bike.name}
-                          className="w-full h-48 object-cover rounded-lg mb-4"
+                          className="w-full h-48 object-cover rounded-[16px] mb-4"
                         />
-                        <h3 className="text-lg font-bold text-neutral-800 mb-2">{bike.name}</h3>
+                        <h3 className="text-lg font-bold text-warmgray-800 mb-2">{bike.name}</h3>
                         <div className="flex items-center gap-2 mb-3">
                           <Rating value={bike.rating} readonly size="sm" />
-                          <span className="text-sm text-neutral-600">({bike.reviews})</span>
+                          <span className="text-sm text-warmgray-600">({bike.reviews})</span>
                         </div>
-                        <div className="text-2xl font-bold text-themePrimary mb-4">
+                        <div className="text-2xl font-bold text-primary-800 mb-4">
                           {formatPrice(bike.price)}
                         </div>
                         <Button
@@ -149,9 +149,9 @@ const Compare = ({ onNavigate }) => {
                   <th className="px-6 py-4 w-96">
                     <Card className="p-4 h-full flex items-center justify-center min-h-[400px]">
                       <div className="text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 rounded-full flex items-center justify-center">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-warmgray-100 rounded-full flex items-center justify-center">
                           <svg
-                            className="w-8 h-8 text-neutral-400"
+                            className="w-8 h-8 text-warmgray-400"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -164,7 +164,7 @@ const Compare = ({ onNavigate }) => {
                             />
                           </svg>
                         </div>
-                        <p className="text-neutral-500 mb-4">Thêm sản phẩm thứ 2 để so sánh</p>
+                        <p className="text-warmgray-500 mb-4">Thêm sản phẩm thứ 2 để so sánh</p>
                         <Button
                           onClick={() => onNavigate && onNavigate('marketplace')}
                           variant="outline"
@@ -179,8 +179,8 @@ const Compare = ({ onNavigate }) => {
             </thead>
             <tbody>
               {specifications.map((spec, index) => (
-                <tr key={spec.key} className={index % 2 === 0 ? 'bg-neutral-50' : 'bg-white'}>
-                  <td className="px-6 py-4 font-medium text-neutral-700 border-r border-neutral-200">
+                <tr key={spec.key} className={index % 2 === 0 ? 'bg-neutral-offwhite' : 'bg-white'}>
+                  <td className="px-6 py-4 font-medium text-warmgray-700 border-r border-warmgray-200">
                     {spec.label}
                   </td>
                   {compareItems.map((bike) => {
@@ -190,12 +190,12 @@ const Compare = ({ onNavigate }) => {
                     return (
                       <td
                         key={bike.id}
-                        className="px-6 py-4 text-center border-r border-neutral-200"
+                        className="px-6 py-4 text-center border-r border-warmgray-200"
                       >
                         {spec.key === 'rating' ? (
                           <div className="flex items-center justify-center gap-2">
                             <Rating value={value} readonly size="sm" />
-                            <span className="text-sm text-neutral-600">({value})</span>
+                            <span className="text-sm text-warmgray-600">({value})</span>
                           </div>
                         ) : spec.key === 'verified' && value ? (
                           <Badge variant="success" className="inline-flex items-center gap-1">
@@ -211,14 +211,14 @@ const Compare = ({ onNavigate }) => {
                         ) : spec.key === 'verified' && !value ? (
                           <Badge variant="secondary">Chưa kiểm định</Badge>
                         ) : (
-                          <span className="text-neutral-700">{displayValue || '-'}</span>
+                          <span className="text-warmgray-700">{displayValue || '-'}</span>
                         )}
                       </td>
                     );
                   })}
                   {compareItems.length === 1 && (
-                    <td className="px-6 py-4 text-center border-r border-neutral-200 bg-neutral-50">
-                      <span className="text-neutral-400">-</span>
+                    <td className="px-6 py-4 text-center border-r border-warmgray-200 bg-neutral-offwhite">
+                      <span className="text-warmgray-400">-</span>
                     </td>
                   )}
                 </tr>
@@ -229,10 +229,10 @@ const Compare = ({ onNavigate }) => {
       </div>
 
       {/* Additional Info */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <div className="mt-8 bg-primary-800/5 border border-primary-600/20 rounded-[16px] p-6">
         <div className="flex gap-3">
           <svg
-            className="w-6 h-6 text-blue-600 flex-shrink-0"
+            className="w-6 h-6 text-primary-700 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -243,8 +243,8 @@ const Compare = ({ onNavigate }) => {
             />
           </svg>
           <div>
-            <h3 className="font-semibold text-blue-900 mb-2">Mẹo so sánh</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
+            <h3 className="font-semibold text-primary-900 mb-2">Mẹo so sánh</h3>
+            <ul className="text-sm text-primary-900 space-y-1">
               <li>• So sánh các xe đạp cùng loại để đưa ra quyết định tốt nhất</li>
               <li>• Chú ý đến tình trạng và giá cả để tìm giá trị tốt nhất</li>
               <li>• Xe đã kiểm định thường đáng tin cậy hơn</li>

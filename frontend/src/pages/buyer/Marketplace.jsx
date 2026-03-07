@@ -148,11 +148,21 @@ const Marketplace = ({ onNavigate }) => {
         const response = await bicycleApi.getAllBicycles();
         const apiData = response?.data?.data || response?.data || [];
         const mapped = apiData
-          .filter((bike) => ['active', 'reserved'].includes(bike?.status))
+          // Chỉ hiển thị xe đang hoạt động; bỏ qua xe đã cọc/đang giữ/đang thanh toán
+          .filter((bike) => (bike?.status || '').toLowerCase() === 'active')
           .map((bike) => {
             const location = [bike?.location?.district, bike?.location?.city]
               .filter(Boolean)
               .join(', ');
+
+            const statusRaw = (bike?.status || '').toLowerCase();
+            const reservedStatuses = [
+              'reserved',
+              'pending_payment',
+              'payment_received',
+              'held_in_escrow',
+              'awaiting_delivery',
+            ];
 
             return {
               id: bike?._id || bike?.id,
@@ -167,7 +177,7 @@ const Marketplace = ({ onNavigate }) => {
               conditionValue: bike?.condition?.overall || '',
               verified: !!bike?.inspection?.isInspected,
               status: bike?.status,
-              isReserved: bike?.status === 'reserved',
+              isReserved: reservedStatuses.includes(statusRaw),
               rating: bike?.rating || 0,
               reviews: bike?.reviewsCount || 0,
               seller: getSellerName(bike),
@@ -332,12 +342,12 @@ const Marketplace = ({ onNavigate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-neutral-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-warmgray-100">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-themePrimary/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-themePrimary/15 rounded-full blur-3xl animate-pulse delay-700"></div>
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-themePrimary/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-800/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary-800/15 rounded-full blur-3xl animate-pulse delay-700"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-primary-800/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
       <div className="container-custom py-10 relative z-10">
@@ -345,7 +355,7 @@ const Marketplace = ({ onNavigate }) => {
         <div className="mb-12">
           <div className="relative">
             {/* Top accent line */}
-            <div className="absolute top-0 left-0 w-32 h-1 bg-themePrimary rounded-full"></div>
+            <div className="absolute top-0 left-0 w-32 h-1 bg-primary-800 rounded-full"></div>
 
             <div className="pt-6">
               <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-6">
@@ -356,7 +366,7 @@ const Marketplace = ({ onNavigate }) => {
                     </span>
                   </h1>
 
-                  <p className="text-xl text-neutral-600 max-w-2xl leading-relaxed">
+                  <p className="text-xl text-warmgray-600 max-w-2xl leading-relaxed">
                     Khám phá những chiếc xe đạp cao cấp từ các nhà cung cấp đã được xác minh trên
                     toàn quốc. Chất lượng được đảm bảo, trải nghiệm được nâng tầm.
                   </p>
@@ -371,10 +381,10 @@ const Marketplace = ({ onNavigate }) => {
         {/* Advanced Search Section */}
         <div className="mb-10">
           <div className="relative group">
-            <div className="absolute -inset-1 bg-themePrimary rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
-            <div className="relative bg-white rounded-2xl shadow-xl border border-neutral-200/50 overflow-hidden">
+            <div className="absolute -inset-1 bg-primary-800 rounded-[20px] blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+            <div className="relative bg-white rounded-[20px] shadow-elevated border border-warmgray-200/50 overflow-hidden">
               <div className="flex items-center p-2">
-                <div className="flex items-center justify-center w-12 h-12 text-themePrimary">
+                <div className="flex items-center justify-center w-12 h-12 text-primary-800">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -389,12 +399,12 @@ const Marketplace = ({ onNavigate }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by name, seller, location..."
-                  className="flex-1 px-4 py-4 text-lg bg-transparent focus:outline-none text-neutral-800 placeholder-neutral-400"
+                  className="flex-1 px-4 py-4 text-lg bg-transparent focus:outline-none text-warmgray-800 placeholder-neutral-400"
                 />
                 {searchQuery ? (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="w-12 h-12 flex items-center justify-center text-warmgray-400 hover:text-warmgray-600 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -406,7 +416,7 @@ const Marketplace = ({ onNavigate }) => {
                     </svg>
                   </button>
                 ) : (
-                  <Button className="px-6 py-3 mr-2 bg-themePrimary text-neutral-400 rounded-xl font-semibold hover:shadow-lg hover:shadow-themePrimary/50 transition-all duration-300">
+                  <Button className="px-6 py-3 mr-2 bg-primary-800 text-warmgray-400 rounded-[16px] font-semibold hover:shadow-soft hover:shadow-primary-800/50 transition-all duration-300">
                     Search
                   </Button>
                 )}
@@ -419,12 +429,12 @@ const Marketplace = ({ onNavigate }) => {
           {/* Modern Filters Sidebar */}
           <div className={`lg:col-span-1 ${showFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="sticky top-24 space-y-4">
-              <div className="bg-white rounded-2xl shadow-lg border border-neutral-200/50 overflow-hidden">
-                <div className="bg-themePrimary px-6 py-5">
+              <div className="bg-white rounded-[20px] shadow-soft border border-warmgray-200/50 overflow-hidden">
+                <div className="bg-primary-800 px-6 py-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <svg
-                        className="w-6 h-6 text-neutral-500 drop-shadow-sm"
+                        className="w-6 h-6 text-warmgray-500 drop-shadow-soft"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -436,11 +446,13 @@ const Marketplace = ({ onNavigate }) => {
                           d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
                         />
                       </svg>
-                      <h3 className="font-bold text-lg text-neutral-500 drop-shadow-sm">Bộ lọc</h3>
+                      <h3 className="font-bold text-lg text-warmgray-500 drop-shadow-soft">
+                        Bộ lọc
+                      </h3>
                     </div>
                     {activeFiltersCount > 0 && (
                       <div className="w-8 h-8 bg-white/30 backdrop-blur rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-neutral-500 drop-shadow-sm">
+                        <span className="text-sm font-bold text-warmgray-500 drop-shadow-soft">
                           {activeFiltersCount}
                         </span>
                       </div>
@@ -450,7 +462,7 @@ const Marketplace = ({ onNavigate }) => {
 
                 <div className="p-6 space-y-6">
                   <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                    <label className="block text-sm font-semibold text-warmgray-700 mb-3">
                       Loại xe
                     </label>
                     <Select
@@ -460,8 +472,8 @@ const Marketplace = ({ onNavigate }) => {
                     />
                   </div>
 
-                  <div className="pt-6 border-t border-neutral-100">
-                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                  <div className="pt-6 border-t border-warmgray-100">
+                    <label className="block text-sm font-semibold text-warmgray-700 mb-3">
                       Khoảng giá
                     </label>
                     <Select
@@ -471,8 +483,8 @@ const Marketplace = ({ onNavigate }) => {
                     />
                   </div>
 
-                  <div className="pt-6 border-t border-neutral-100">
-                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                  <div className="pt-6 border-t border-warmgray-100">
+                    <label className="block text-sm font-semibold text-warmgray-700 mb-3">
                       Thương hiệu
                     </label>
                     <Select
@@ -482,8 +494,8 @@ const Marketplace = ({ onNavigate }) => {
                     />
                   </div>
 
-                  <div className="pt-6 border-t border-neutral-100">
-                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                  <div className="pt-6 border-t border-warmgray-100">
+                    <label className="block text-sm font-semibold text-warmgray-700 mb-3">
                       Tình trạng
                     </label>
                     <Select
@@ -493,8 +505,8 @@ const Marketplace = ({ onNavigate }) => {
                     />
                   </div>
 
-                  <div className="pt-6 border-t border-neutral-100">
-                    <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                  <div className="pt-6 border-t border-warmgray-100">
+                    <label className="block text-sm font-semibold text-warmgray-700 mb-3">
                       Kích thước khung
                     </label>
                     <Select
@@ -504,22 +516,24 @@ const Marketplace = ({ onNavigate }) => {
                     />
                   </div>
 
-                  <div className="pt-6 border-t border-neutral-100">
+                  <div className="pt-6 border-t border-warmgray-100">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <input
                         type="checkbox"
                         checked={filters.verified}
                         onChange={(e) => setFilters({ ...filters, verified: e.target.checked })}
-                        className="w-5 h-5 text-themePrimary border-neutral-300 rounded focus:ring-themePrimary"
+                        className="w-5 h-5 text-primary-800 border-warmgray-300 rounded focus:ring-primary-600"
                       />
                       <div className="flex-1">
-                        <div className="text-sm font-semibold text-neutral-700 group-hover:text-themePrimary transition-colors">
+                        <div className="text-sm font-semibold text-warmgray-700 group-hover:text-primary-800 transition-colors">
                           Đã kiểm định
                         </div>
-                        <div className="text-xs text-neutral-500">Chỉ hiển thị xe đã kiểm định</div>
+                        <div className="text-xs text-warmgray-500">
+                          Chỉ hiển thị xe đã kiểm định
+                        </div>
                       </div>
                       <svg
-                        className="w-5 h-5 text-themePrimary"
+                        className="w-5 h-5 text-primary-800"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -536,7 +550,7 @@ const Marketplace = ({ onNavigate }) => {
 
                   <Button
                     onClick={clearAllFilters}
-                    className="w-full px-4 py-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 bg-warmgray-100 hover:bg-warmgray-200 text-warmgray-700 font-semibold rounded-[16px] transition-colors duration-300 flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -556,12 +570,12 @@ const Marketplace = ({ onNavigate }) => {
           {/* Products Grid */}
           <div className="lg:col-span-3">
             {/* Advanced Toolbar */}
-            <div className="bg-white rounded-2xl shadow-lg border border-neutral-200/50 p-5 mb-6">
+            <div className="bg-white rounded-[20px] shadow-soft border border-warmgray-200/50 p-5 mb-6">
               <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="lg:hidden px-5 py-2.5 bg-themePrimary text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-themePrimary/50 transition-all duration-300 flex items-center gap-2"
+                    className="lg:hidden px-5 py-2.5 bg-primary-800 text-white rounded-[16px] font-semibold hover:shadow-soft hover:shadow-primary-800/50 transition-all duration-300 flex items-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -580,14 +594,14 @@ const Marketplace = ({ onNavigate }) => {
                   </button>
 
                   <div>
-                    <div className="text-sm text-neutral-500 mb-0.5">Hiện kết quả</div>
-                    <div className="text-2xl font-bold text-neutral-900">
+                    <div className="text-sm text-warmgray-500 mb-0.5">Hiện kết quả</div>
+                    <div className="text-2xl font-bold text-primary-900">
                       {displayedBikes.length}
                     </div>
                   </div>
 
                   {searchQuery && (
-                    <div className="px-4 py-2 bg-themePrimary/10 text-themePrimary rounded-xl text-sm font-medium">
+                    <div className="px-4 py-2 bg-primary-800/10 text-primary-800 rounded-[16px] text-sm font-medium">
                       for "{searchQuery}"
                     </div>
                   )}
@@ -598,7 +612,7 @@ const Marketplace = ({ onNavigate }) => {
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="appearance-none pl-4 pr-12 py-3 bg-neutral-50 border-2 border-neutral-200 rounded-xl font-semibold text-neutral-700 hover:border-themePrimary focus:outline-none focus:border-themePrimary transition-all cursor-pointer"
+                      className="appearance-none pl-4 pr-12 py-3 bg-neutral-offwhite border-2 border-warmgray-200 rounded-[16px] font-semibold text-warmgray-700 hover:border-primary-800 focus:outline-none focus:border-primary-800 transition-all cursor-pointer"
                     >
                       <option value="newest">Mới nhất</option>
                       <option value="price-low">Giá: Thấp đến Cao</option>
@@ -607,7 +621,7 @@ const Marketplace = ({ onNavigate }) => {
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        className="w-5 h-5 text-neutral-500"
+                        className="w-5 h-5 text-warmgray-500"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -622,13 +636,13 @@ const Marketplace = ({ onNavigate }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-neutral-100 rounded-xl p-1.5">
+                  <div className="flex items-center gap-2 bg-warmgray-100 rounded-[16px] p-1.5">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`p-2.5 rounded-lg transition-all duration-300 ${
+                      className={`p-2.5 rounded-[16px] transition-all duration-300 ${
                         viewMode === 'grid'
-                          ? 'bg-white text-themePrimary shadow-sm'
-                          : 'text-neutral-500 hover:text-neutral-700'
+                          ? 'bg-white text-primary-800 shadow-soft'
+                          : 'text-warmgray-500 hover:text-warmgray-700'
                       }`}
                     >
                       <svg
@@ -647,10 +661,10 @@ const Marketplace = ({ onNavigate }) => {
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`p-2.5 rounded-lg transition-all duration-300 ${
+                      className={`p-2.5 rounded-[16px] transition-all duration-300 ${
                         viewMode === 'list'
-                          ? 'bg-white text-themePrimary shadow-sm'
-                          : 'text-neutral-500 hover:text-neutral-700'
+                          ? 'bg-white text-primary-800 shadow-soft'
+                          : 'text-warmgray-500 hover:text-warmgray-700'
                       }`}
                     >
                       <svg
@@ -673,16 +687,16 @@ const Marketplace = ({ onNavigate }) => {
 
               {/* Active Filters */}
               {activeFiltersCount > 0 && (
-                <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-neutral-100">
-                  <span className="text-sm font-semibold text-neutral-600 self-center">
+                <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-warmgray-100">
+                  <span className="text-sm font-semibold text-warmgray-600 self-center">
                     Active:
                   </span>
                   {filters.type && (
-                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                    <span className="px-4 py-2 rounded-[16px] bg-primary-800/10 border border-primary-800/30 text-primary-800 text-sm font-medium flex items-center gap-2">
                       {bikeTypes.find((t) => t.value === filters.type)?.label}
                       <button
                         onClick={() => setFilters({ ...filters, type: '' })}
-                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-primary-800/20 rounded-full p-0.5 transition-colors"
                       >
                         <svg
                           className="w-4 h-4"
@@ -701,11 +715,11 @@ const Marketplace = ({ onNavigate }) => {
                     </span>
                   )}
                   {filters.priceRange && (
-                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                    <span className="px-4 py-2 rounded-[16px] bg-primary-800/10 border border-primary-800/30 text-primary-800 text-sm font-medium flex items-center gap-2">
                       {priceRanges.find((p) => p.value === filters.priceRange)?.label}
                       <button
                         onClick={() => setFilters({ ...filters, priceRange: '' })}
-                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-primary-800/20 rounded-full p-0.5 transition-colors"
                       >
                         <svg
                           className="w-4 h-4"
@@ -724,11 +738,11 @@ const Marketplace = ({ onNavigate }) => {
                     </span>
                   )}
                   {filters.brand && (
-                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                    <span className="px-4 py-2 rounded-[16px] bg-primary-800/10 border border-primary-800/30 text-primary-800 text-sm font-medium flex items-center gap-2">
                       {brands.find((b) => b.value === filters.brand)?.label}
                       <button
                         onClick={() => setFilters({ ...filters, brand: '' })}
-                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-primary-800/20 rounded-full p-0.5 transition-colors"
                       >
                         <svg
                           className="w-4 h-4"
@@ -747,11 +761,11 @@ const Marketplace = ({ onNavigate }) => {
                     </span>
                   )}
                   {filters.condition && (
-                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                    <span className="px-4 py-2 rounded-[16px] bg-primary-800/10 border border-primary-800/30 text-primary-800 text-sm font-medium flex items-center gap-2">
                       {conditions.find((c) => c.value === filters.condition)?.label}
                       <button
                         onClick={() => setFilters({ ...filters, condition: '' })}
-                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-primary-800/20 rounded-full p-0.5 transition-colors"
                       >
                         <svg
                           className="w-4 h-4"
@@ -770,11 +784,11 @@ const Marketplace = ({ onNavigate }) => {
                     </span>
                   )}
                   {filters.frame && (
-                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                    <span className="px-4 py-2 rounded-[16px] bg-primary-800/10 border border-primary-800/30 text-primary-800 text-sm font-medium flex items-center gap-2">
                       {frameSizes.find((f) => f.value === filters.frame)?.label}
                       <button
                         onClick={() => setFilters({ ...filters, frame: '' })}
-                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-primary-800/20 rounded-full p-0.5 transition-colors"
                       >
                         <svg
                           className="w-4 h-4"
@@ -793,11 +807,11 @@ const Marketplace = ({ onNavigate }) => {
                     </span>
                   )}
                   {filters.verified && (
-                    <span className="px-4 py-2 rounded-xl bg-themePrimary/10 border border-themePrimary/30 text-themePrimary text-sm font-medium flex items-center gap-2">
+                    <span className="px-4 py-2 rounded-[16px] bg-primary-800/10 border border-primary-800/30 text-primary-800 text-sm font-medium flex items-center gap-2">
                       Verified Only
                       <button
                         onClick={() => setFilters({ ...filters, verified: false })}
-                        className="hover:bg-themePrimary/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-primary-800/20 rounded-full p-0.5 transition-colors"
                       >
                         <svg
                           className="w-4 h-4"
@@ -817,7 +831,7 @@ const Marketplace = ({ onNavigate }) => {
                   )}
                   <button
                     onClick={clearAllFilters}
-                    className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium hover:bg-red-100 transition-colors"
+                    className="px-4 py-2 rounded-[16px] bg-danger/5 border border-red-200 text-danger text-sm font-medium hover:bg-danger/10 transition-colors"
                   >
                     Clear All
                   </button>
@@ -837,7 +851,7 @@ const Marketplace = ({ onNavigate }) => {
                     <Card
                       key={bike.id}
                       variant="product"
-                      className="overflow-hidden group cursor-pointer card-surface hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-themePrimary/30 rounded-2xl"
+                      className="overflow-hidden group cursor-pointer card-surface hover:shadow-elevated transition-all duration-300 border-2 border-transparent hover:border-primary-800/30 rounded-[20px]"
                       onClick={() => handleProductClick(bike.id)}
                     >
                       <div className="relative aspect-product bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden">
@@ -851,7 +865,7 @@ const Marketplace = ({ onNavigate }) => {
                         {bike.verified && (
                           <Badge
                             variant="verified"
-                            className="absolute top-3 right-3 shadow-lg backdrop-blur-sm"
+                            className="absolute top-3 right-3 shadow-soft backdrop-blur-sm"
                           >
                             ✓ Kiểm định
                           </Badge>
@@ -860,7 +874,7 @@ const Marketplace = ({ onNavigate }) => {
                         {bike.isReserved && (
                           <Badge
                             variant="warning"
-                            className="absolute top-3 left-3 shadow-lg backdrop-blur-sm"
+                            className="absolute top-3 left-3 shadow-soft backdrop-blur-sm"
                           >
                             Đã đặt cọc
                           </Badge>
@@ -870,7 +884,7 @@ const Marketplace = ({ onNavigate }) => {
                           <div
                             className={`absolute ${bike.isReserved ? 'top-12' : 'top-3'} left-3`}
                           >
-                            <span className="px-3 py-1.5 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg">
+                            <span className="px-3 py-1.5 bg-danger/50 text-white rounded-full text-xs font-bold shadow-soft">
                               -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
                             </span>
                           </div>
@@ -879,9 +893,9 @@ const Marketplace = ({ onNavigate }) => {
                         <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
                           <button
                             onClick={(e) => handleFavouriteToggle(e, bike)}
-                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-xl transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-lg ${
+                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-[16px] transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-soft ${
                               isFavourite(bike.id)
-                                ? 'bg-rose-500 text-white hover:bg-rose-600'
+                                ? 'bg-danger/50 text-white hover:bg-danger'
                                 : 'bg-white/95 hover:bg-white'
                             }`}
                           >
@@ -902,9 +916,9 @@ const Marketplace = ({ onNavigate }) => {
                           </button>
                           <button
                             onClick={(e) => handleCompareToggle(e, bike)}
-                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-xl transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-lg ${
+                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-[16px] transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-soft ${
                               isInCompare(bike.id)
-                                ? 'bg-themePrimary text-white hover:bg-themePrimary/90'
+                                ? 'bg-primary-800 text-white hover:bg-primary-800/90'
                                 : 'bg-white/95 hover:bg-white'
                             }`}
                           >
@@ -928,21 +942,21 @@ const Marketplace = ({ onNavigate }) => {
 
                       <div className="p-5">
                         <div className="flex items-start justify-between mb-3">
-                          <h4 className="font-bold text-lg mb-1 line-clamp-2 flex-1 group-hover:text-themePrimary transition-colors">
+                          <h4 className="font-bold text-lg mb-1 line-clamp-2 flex-1 group-hover:text-primary-800 transition-colors">
                             {bike.name}
                           </h4>
                         </div>
 
                         <div className="flex items-center gap-2 mb-4">
                           <Rating value={bike.rating} size="sm" readonly />
-                          <span className="text-sm font-medium text-neutral-700">
+                          <span className="text-sm font-medium text-warmgray-700">
                             {bike.rating}
                           </span>
-                          <span className="text-xs text-neutral-500">({bike.reviews})</span>
+                          <span className="text-xs text-warmgray-500">({bike.reviews})</span>
                         </div>
 
                         <div className="flex items-baseline gap-2 mb-4">
-                          <span className="price text-2xl font-bold text-themePrimary">
+                          <span className="price text-2xl font-bold text-primary-800">
                             {bike.price.toLocaleString('vi-VN')} ₫
                           </span>
                           {bike.oldPrice && (
@@ -952,11 +966,11 @@ const Marketplace = ({ onNavigate }) => {
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-100">
+                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-warmgray-100">
                           <Badge variant="success" className="px-3 py-1.5">
                             {bike.condition}
                           </Badge>
-                          <div className="flex items-center gap-1 text-xs text-neutral-500">
+                          <div className="flex items-center gap-1 text-xs text-warmgray-500">
                             <svg
                               className="w-4 h-4"
                               fill="none"
@@ -980,9 +994,9 @@ const Marketplace = ({ onNavigate }) => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-warmgray-600 mb-4">
                           <svg
-                            className="w-4 h-4 text-neutral-400"
+                            className="w-4 h-4 text-warmgray-400"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1004,15 +1018,18 @@ const Marketplace = ({ onNavigate }) => {
                         </div>
 
                         <div className="flex items-center gap-2 mb-4">
-                          <span className="px-3 py-1.5 rounded-lg bg-neutral-100 text-xs font-medium">
+                          <span className="px-3 py-1.5 rounded-[16px] bg-warmgray-100 text-xs font-medium">
                             Khung: {(bike.frame || '').toUpperCase() || '—'}
                           </span>
-                          <span className="px-3 py-1.5 rounded-lg bg-themePrimary/10 text-themePrimary text-xs font-medium">
+                          <span className="px-3 py-1.5 rounded-[16px] bg-primary-800/10 text-primary-800 text-xs font-medium">
                             Ký quỹ
                           </span>
                         </div>
 
-                        <Button variant="primary" className="w-full py-3 font-semibold rounded-xl">
+                        <Button
+                          variant="primary"
+                          className="w-full py-3 font-semibold rounded-[16px]"
+                        >
                           Xem chi tiết →
                         </Button>
                       </div>
@@ -1020,11 +1037,11 @@ const Marketplace = ({ onNavigate }) => {
                   ) : (
                     <Card
                       key={bike.id}
-                      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer card-surface border-2 border-transparent hover:border-themePrimary/30 rounded-2xl"
+                      className="overflow-hidden hover:shadow-elevated transition-all duration-300 cursor-pointer card-surface border-2 border-transparent hover:border-primary-800/30 rounded-[20px]"
                       onClick={() => handleProductClick(bike.id)}
                     >
                       <div className="flex flex-col md:flex-row gap-5 p-5">
-                        <div className="relative w-full md:w-64 h-48 bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden flex-shrink-0 group">
+                        <div className="relative w-full md:w-64 h-48 bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-[16px] overflow-hidden flex-shrink-0 group">
                           <img
                             src={bike.image}
                             alt={bike.name}
@@ -1033,7 +1050,7 @@ const Marketplace = ({ onNavigate }) => {
                           {bike.verified && (
                             <Badge
                               variant="verified"
-                              className="absolute top-2 right-2 text-xs shadow-lg"
+                              className="absolute top-2 right-2 text-xs shadow-soft"
                             >
                               ✓
                             </Badge>
@@ -1041,7 +1058,7 @@ const Marketplace = ({ onNavigate }) => {
                           {bike.isReserved && (
                             <Badge
                               variant="warning"
-                              className="absolute top-2 left-2 text-xs shadow-lg"
+                              className="absolute top-2 left-2 text-xs shadow-soft"
                             >
                               Đã đặt cọc
                             </Badge>
@@ -1050,7 +1067,7 @@ const Marketplace = ({ onNavigate }) => {
                             <div
                               className={`absolute ${bike.isReserved ? 'top-10' : 'top-2'} left-2`}
                             >
-                              <span className="px-2.5 py-1 bg-red-500 text-white rounded-full text-xs font-bold shadow-lg">
+                              <span className="px-2.5 py-1 bg-danger/50 text-white rounded-full text-xs font-bold shadow-soft">
                                 -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
                               </span>
                             </div>
@@ -1059,14 +1076,14 @@ const Marketplace = ({ onNavigate }) => {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between mb-3">
-                            <h4 className="font-bold text-2xl hover:text-themePrimary transition-colors">
+                            <h4 className="font-bold text-2xl hover:text-primary-800 transition-colors">
                               {bike.name}
                             </h4>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                               }}
-                              className="px-4 py-2 hover:bg-neutral-100 rounded-xl transition-colors text-sm font-medium flex items-center gap-2 border border-neutral-200"
+                              className="px-4 py-2 hover:bg-warmgray-100 rounded-[16px] transition-colors text-sm font-medium flex items-center gap-2 border border-warmgray-200"
                             >
                               <svg
                                 className="w-4 h-4"
@@ -1088,10 +1105,10 @@ const Marketplace = ({ onNavigate }) => {
                           <div className="flex items-center gap-4 mb-4">
                             <div className="flex items-center gap-2">
                               <Rating value={bike.rating} size="sm" readonly />
-                              <span className="text-sm font-bold text-neutral-700">
+                              <span className="text-sm font-bold text-warmgray-700">
                                 {bike.rating}
                               </span>
-                              <span className="text-sm text-neutral-500">
+                              <span className="text-sm text-warmgray-500">
                                 ({bike.reviews} đánh giá)
                               </span>
                             </div>
@@ -1101,7 +1118,7 @@ const Marketplace = ({ onNavigate }) => {
                           </div>
 
                           <div className="flex items-baseline gap-3 mb-4">
-                            <span className="price text-3xl font-bold text-themePrimary">
+                            <span className="price text-3xl font-bold text-primary-800">
                               {bike.price.toLocaleString('vi-VN')} ₫
                             </span>
                             {bike.oldPrice && (
@@ -1111,10 +1128,10 @@ const Marketplace = ({ onNavigate }) => {
                             )}
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-100">
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-warmgray-600 mb-4 pb-4 border-b border-warmgray-100">
                             <div className="flex items-center gap-2">
                               <svg
-                                className="w-4 h-4 text-neutral-400"
+                                className="w-4 h-4 text-warmgray-400"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1128,10 +1145,10 @@ const Marketplace = ({ onNavigate }) => {
                               </svg>
                               <span className="font-medium">{bike.seller}</span>
                             </div>
-                            <span className="text-neutral-300">•</span>
+                            <span className="text-warmgray-300">•</span>
                             <div className="flex items-center gap-2">
                               <svg
-                                className="w-4 h-4 text-neutral-400"
+                                className="w-4 h-4 text-warmgray-400"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1151,10 +1168,10 @@ const Marketplace = ({ onNavigate }) => {
                               </svg>
                               <span>{bike.location}</span>
                             </div>
-                            <span className="text-neutral-300">•</span>
+                            <span className="text-warmgray-300">•</span>
                             <div className="flex items-center gap-1">
                               <svg
-                                className="w-4 h-4 text-neutral-400"
+                                className="w-4 h-4 text-warmgray-400"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1177,10 +1194,10 @@ const Marketplace = ({ onNavigate }) => {
                           </div>
 
                           <div className="flex items-center gap-2 mb-4">
-                            <span className="px-3 py-1.5 rounded-lg bg-neutral-100 text-xs font-medium">
+                            <span className="px-3 py-1.5 rounded-[16px] bg-warmgray-100 text-xs font-medium">
                               Khung: {(bike.frame || '').toUpperCase() || '—'}
                             </span>
-                            <span className="px-3 py-1.5 rounded-lg bg-themePrimary/10 text-themePrimary text-xs font-medium">
+                            <span className="px-3 py-1.5 rounded-[16px] bg-primary-800/10 text-primary-800 text-xs font-medium">
                               Ký quỹ
                             </span>
                           </div>
@@ -1191,10 +1208,10 @@ const Marketplace = ({ onNavigate }) => {
                             </Button>
                             <button
                               onClick={(e) => handleCompareToggle(e, bike)}
-                              className={`px-6 py-3 border-2 rounded-xl transition-all font-medium ${
+                              className={`px-6 py-3 border-2 rounded-[16px] transition-all font-medium ${
                                 isInCompare(bike.id)
-                                  ? 'border-themePrimary bg-themePrimary text-white hover:bg-themePrimary/90'
-                                  : 'border-neutral-200 hover:border-themePrimary hover:bg-themePrimary/5'
+                                  ? 'border-primary-800 bg-primary-800 text-white hover:bg-primary-800/90'
+                                  : 'border-warmgray-200 hover:border-primary-800 hover:bg-primary-800/5'
                               }`}
                             >
                               {isInCompare(bike.id) ? 'Đã chọn' : 'So sánh'}
@@ -1206,11 +1223,11 @@ const Marketplace = ({ onNavigate }) => {
                   )
                 )
               ) : (
-                <div className="col-span-full text-center py-20 bg-white rounded-2xl border-2 border-dashed border-neutral-200">
+                <div className="col-span-full text-center py-20 bg-white rounded-[20px] border-2 border-dashed border-warmgray-200">
                   <div className="max-w-md mx-auto">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-neutral-100 flex items-center justify-center">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-warmgray-100 flex items-center justify-center">
                       <svg
-                        className="w-10 h-10 text-neutral-400"
+                        className="w-10 h-10 text-warmgray-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1223,10 +1240,10 @@ const Marketplace = ({ onNavigate }) => {
                         />
                       </svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-neutral-800 mb-2">
+                    <h3 className="text-2xl font-bold text-warmgray-800 mb-2">
                       Không tìm thấy xe đạp
                     </h3>
-                    <p className="text-neutral-600 mb-6">
+                    <p className="text-warmgray-600 mb-6">
                       Không có xe đạp nào phù hợp với bộ lọc của bạn. Thử điều chỉnh bộ lọc hoặc xóa
                       một số tiêu chí.
                     </p>
@@ -1254,7 +1271,7 @@ const Marketplace = ({ onNavigate }) => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-8">
-                <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-4">
+                <div className="bg-white rounded-[20px] shadow-soft border border-warmgray-200 p-4">
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
@@ -1270,11 +1287,11 @@ const Marketplace = ({ onNavigate }) => {
       {/* Floating Compare Bar */}
       {compareItems.length > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up max-w-4xl w-full px-4">
-          <div className="bg-white rounded-xl shadow-2xl border-2 border-themePrimary/30 overflow-hidden">
-            <div className="bg-gradient-to-r from-themePrimary to-accent px-4 py-2">
+          <div className="bg-white rounded-[16px] shadow-elevated border-2 border-primary-800/30 overflow-hidden">
+            <div className="bg-gradient-to-r from-primary-800 to-gold px-4 py-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-white/20 rounded-[16px] flex items-center justify-center">
                     <svg
                       className="w-5 h-5 text-white"
                       fill="none"
@@ -1300,7 +1317,7 @@ const Marketplace = ({ onNavigate }) => {
                   <Button
                     onClick={() => onNavigate && onNavigate('compare')}
                     disabled={compareItems.length < 1}
-                    className="bg-white text-themePrimary hover:bg-neutral-50 font-bold px-4 py-1.5 text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-white text-primary-800 hover:bg-neutral-offwhite font-bold px-4 py-1.5 text-sm rounded-[16px] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {compareItems.length === 2 ? 'So sánh ngay' : 'Xem'}
                   </Button>
@@ -1308,7 +1325,7 @@ const Marketplace = ({ onNavigate }) => {
                     onClick={() => {
                       compareItems.forEach((bike) => removeFromCompare(bike.id));
                     }}
-                    className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+                    className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-[16px] flex items-center justify-center transition-colors"
                     title="Xóa tất cả"
                   >
                     <svg
@@ -1334,7 +1351,7 @@ const Marketplace = ({ onNavigate }) => {
                 {compareItems.map((bike) => (
                   <div
                     key={bike.id}
-                    className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg p-2 flex items-center gap-2 hover:border-themePrimary/50 transition-colors"
+                    className="flex-1 bg-neutral-offwhite border border-warmgray-200 rounded-[16px] p-2 flex items-center gap-2 hover:border-primary-800/50 transition-colors"
                   >
                     <img
                       src={bike.image}
@@ -1342,19 +1359,19 @@ const Marketplace = ({ onNavigate }) => {
                       className="w-10 h-10 object-cover rounded-md flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-neutral-800 font-semibold text-xs truncate">
+                      <h4 className="text-warmgray-800 font-semibold text-xs truncate">
                         {bike.name}
                       </h4>
-                      <p className="text-themePrimary text-xs font-bold">
+                      <p className="text-primary-800 text-xs font-bold">
                         {bike.price.toLocaleString('vi-VN')} ₫
                       </p>
                     </div>
                     <button
                       onClick={() => removeFromCompare(bike.id)}
-                      className="w-6 h-6 bg-neutral-200 hover:bg-red-100 rounded-md flex items-center justify-center transition-colors group"
+                      className="w-6 h-6 bg-warmgray-200 hover:bg-danger/10 rounded-md flex items-center justify-center transition-colors group"
                     >
                       <svg
-                        className="w-3.5 h-3.5 text-neutral-600 group-hover:text-red-600"
+                        className="w-3.5 h-3.5 text-warmgray-600 group-hover:text-danger"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -1370,8 +1387,8 @@ const Marketplace = ({ onNavigate }) => {
                   </div>
                 ))}
                 {compareItems.length === 1 && (
-                  <div className="flex-1 bg-neutral-50 border-2 border-dashed border-neutral-300 rounded-lg p-2 flex items-center justify-center h-14">
-                    <p className="text-neutral-400 text-xs">Chọn xe thứ 2</p>
+                  <div className="flex-1 bg-neutral-offwhite border-2 border-dashed border-warmgray-300 rounded-[16px] p-2 flex items-center justify-center h-14">
+                    <p className="text-warmgray-400 text-xs">Chọn xe thứ 2</p>
                   </div>
                 )}
               </div>

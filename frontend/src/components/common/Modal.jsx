@@ -14,17 +14,17 @@ export default function Modal({ open, setOpen, title, children, className = '', 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-primary-900/45 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div
-        className={`bg-white rounded-lg shadow-lg ${sizeClasses[size] || sizeClasses.md} w-full max-h-[90vh] overflow-y-auto ${className}`}
+        className={`bg-white rounded-[20px] shadow-elevated ${sizeClasses[size] || sizeClasses.md} w-full max-h-[90vh] overflow-y-auto ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="flex items-center justify-between p-6 border-b border-warmgray-200">
+          <h2 className="text-lg font-semibold text-primary-900 font-display">{title}</h2>
           <button
             onClick={() => setOpen(false)}
-            className="text-gray-500 hover:text-gray-700 transition"
+            className="text-warmgray-400 hover:text-warmgray-700 transition-colors p-1 rounded-lg hover:bg-warmgray-100"
           >
             <X size={24} />
           </button>

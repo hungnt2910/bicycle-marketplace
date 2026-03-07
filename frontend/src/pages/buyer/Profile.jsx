@@ -30,10 +30,10 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-600">Đang tải thông tin...</p>
+      <div className="min-h-screen bg-[var(--lux-gray-50)] flex flex-col items-center justify-center font-sans tracking-wide">
+        <div className="w-8 h-8 border-[3px] border-[var(--lux-gray-200)] border-t-[var(--lux-primary-900)] rounded-full animate-spin mb-6"></div>
+        <div className="text-[10px] font-bold text-[var(--lux-gray-400)] uppercase tracking-[0.2em]">
+          Đang truy xuất hồ sơ...
         </div>
       </div>
     );
@@ -41,13 +41,15 @@ const Profile = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
-        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6 max-w-md w-full text-center">
-          <h2 className="text-red-900 font-bold mb-2">Lỗi</h2>
-          <p className="text-red-700">{error}</p>
+      <div className="min-h-screen bg-[var(--lux-gray-50)] flex flex-col items-center justify-center font-sans p-4">
+        <div className="text-center space-y-4">
+          <div className="text-3xl opacity-50">🔒</div>
+          <div className="text-xs uppercase tracking-[0.2em] font-semibold text-danger">
+            {error}
+          </div>
           <button
             onClick={loadProfile}
-            className="mt-4 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
+            className="mt-6 text-[11px] font-bold uppercase tracking-[0.15em] border-b border-[var(--lux-gray-800)] pb-1 hover:text-[var(--lux-primary-900)] transition-colors"
           >
             Thử lại
           </button>
@@ -58,9 +60,12 @@ const Profile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="text-center">
-          <p className="text-neutral-600">Không có thông tin profile</p>
+      <div className="min-h-screen bg-[var(--lux-gray-50)] flex flex-col items-center justify-center font-sans">
+        <div className="text-center space-y-4">
+          <div className="text-3xl opacity-50">📄</div>
+          <div className="text-xs uppercase tracking-[0.2em] font-semibold text-[var(--lux-gray-500)]">
+            Không tìm thấy hồ sơ
+          </div>
         </div>
       </div>
     );
@@ -69,184 +74,242 @@ const Profile = () => {
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
 
   return (
-    <div className="min-h-screen bg-neutral-50 py-8">
-      <div className="container-custom max-w-4xl">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-black rounded-lg p-8 mb-6">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-5xl">
-              {profile.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt={fullName}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                ''
-              )}
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{fullName || 'User'}</h1>
-              <p className="text-primary-100 text-lg">{profile.email}</p>
-              <div className="mt-2 flex gap-4">
-                <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-semibold">
-                  {profile.role?.toUpperCase() || 'BUYER'}
+    <div className="min-h-screen bg-[var(--lux-gray-50)] bg-opacity-50 py-12 md:py-24 px-4 sm:px-6 font-sans">
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* ═══ EXECUTIVE TOP BAR ═══ */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-extrabold tracking-[0.25em] text-[var(--lux-gray-400)] uppercase mb-1">
+              Định danh điện tử
+            </span>
+            <span className="text-sm font-semibold text-[var(--lux-gray-800)] tracking-tight">
+              Hồ sơ cá nhân
+            </span>
+          </div>
+          <div className="flex flex-col sm:items-end">
+            <span className="text-[10px] font-extrabold tracking-[0.25em] text-[var(--lux-gray-400)] uppercase mb-1">
+              Khóa định danh
+            </span>
+            <span className="text-xs font-mono text-[var(--lux-gray-600)] tracking-tight">
+              {profile._id || profile.id || 'N/A'}
+            </span>
+          </div>
+        </div>
+
+        {/* ═══ LUXURY PROFILE CARD ═══ */}
+        <div className="bg-white rounded-[24px] shadow-[0_20px_80px_-20px_rgba(0,0,0,0.06)] border border-[var(--lux-gray-200)]/60 overflow-hidden">
+          {/* DOCUMENT HERO */}
+          <div className="relative px-8 md:px-20 py-12 lg:py-16 text-center border-b border-[var(--lux-gray-100)]">
+            {/* Top Brand Trim */}
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-[var(--lux-primary-900)]"></div>
+
+            <div className="flex justify-center mb-8 relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 bg-[var(--lux-gray-50)] rounded-full border-[3px] border-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-center text-3xl overflow-hidden relative z-10">
+                {profile.avatar ? (
+                  <img src={profile.avatar} alt={fullName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[var(--lux-gray-400)] font-light">
+                    {fullName ? fullName.charAt(0) : 'U'}
+                  </span>
+                )}
+              </div>
+              <div className="absolute -bottom-3 z-20 flex gap-2">
+                <span className="px-4 py-1 rounded-full text-[9px] font-extrabold tracking-[0.2em] uppercase bg-white border border-[var(--lux-gray-200)] shadow-sm text-[var(--lux-primary-900)]">
+                  {profile.role || 'BUYER'}
                 </span>
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    profile.status === 'active'
-                      ? 'bg-green-500/30 text-green-100'
-                      : 'bg-yellow-500/30 text-yellow-100'
-                  }`}
+                  className={`px-4 py-1 rounded-full text-[9px] font-extrabold tracking-[0.2em] uppercase bg-white border border-[var(--lux-gray-200)] shadow-sm ${profile.status === 'active' ? 'text-[var(--lux-primary-600)]' : 'text-[var(--lux-gray-500)]'}`}
                 >
-                  {profile.status === 'active' ? '✓ Hoạt động' : 'Chưa xác nhận'}
+                  {profile.status === 'active' ? 'HOẠT ĐỘNG' : profile.status || 'CHƯA XÁC NHẬN'}
                 </span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Personal Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Contact Information */}
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
-              <h2 className="text-2xl font-bold text-neutral-900 mb-4">Thông tin liên hệ</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-600 mb-1">Email</label>
-                  <p className="text-neutral-900">{profile.email}</p>
-                  {profile.verifiedEmail && (
-                    <span className="text-sm text-green-600 font-medium">✓ Đã xác nhận</span>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-600 mb-1">
-                    Số điện thoại
-                  </label>
-                  <p className="text-neutral-900">{profile.phone || 'Chưa cập nhật'}</p>
-                  {profile.verifiedPhone && (
-                    <span className="text-sm text-green-600 font-medium">✓ Đã xác nhận</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Address Information */}
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
-              <h2 className="text-2xl font-bold text-neutral-900 mb-4">Địa chỉ</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-600 mb-1">
-                    Thành phố
-                  </label>
-                  <p className="text-neutral-900">{profile.city || 'Chưa cập nhật'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-600 mb-1">
-                    Quận/Huyện
-                  </label>
-                  <p className="text-neutral-900">{profile.district || 'Chưa cập nhật'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-neutral-600 mb-1">
-                    Địa chỉ đầy đủ
-                  </label>
-                  <p className="text-neutral-900">{profile.address || 'Chưa cập nhật'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Stats and Details */}
-          <div className="space-y-6">
-            {/* Account Status */}
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
-              <h3 className="text-lg font-bold text-neutral-900 mb-4">Trạng thái tài khoản</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center pb-3 border-b border-neutral-200">
-                  <span className="text-neutral-600">Trạng thái</span>
-                  <span
-                    className={`font-semibold ${
-                      profile.status === 'active'
-                        ? 'text-green-600'
-                        : profile.status === 'suspended'
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
-                    }`}
-                  >
-                    {profile.status === 'active' && '✓ Hoạt động'}
-                    {profile.status === 'suspended' && '⚠ Tạm khóa'}
-                    {profile.status === 'banned' && '✕ Bị khóa'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pb-3 border-b border-neutral-200">
-                  <span className="text-neutral-600">Vai trò</span>
-                  <span className="font-semibold text-primary-600">
-                    {profile.role?.toUpperCase()}
-                  </span>
-                </div>
-                {/* <div className="flex justify-between items-center">
-                  <span className="text-neutral-600">Email xác nhận</span>
-                  <span
-                    className={`font-semibold ${profile.verifiedEmail ? 'text-green-600' : 'text-neutral-600'}`}
-                  >
-                    {profile.verifiedEmail ? '✓ Có' : '✕ Không'}
-                  </span>
-                </div> */}
-              </div>
-            </div>
-
-            {/* Reputation (if seller) */}
-            {profile.reputation && (
-              <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
-                <h3 className="text-lg font-bold text-neutral-900 mb-4">Uy tín & Đánh giá</h3>
-                <div className="space-y-3">
-                  <div className="text-center pb-3 border-b border-neutral-200">
-                    <div className="text-3xl font-bold text-primary-600">
-                      {profile.reputation.rating?.toFixed(1) || '0'}
-                    </div>
-                    <div className="text-sm text-neutral-600">Xếp hạng</div>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Tổng đánh giá</span>
-                    <span className="font-semibold">{profile.reputation.totalReviews || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Tổng giao dịch</span>
-                    <span className="font-semibold">{profile.reputation.totalSales || 0}</span>
-                  </div>
-                </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-[var(--lux-primary-900)] tracking-tight mb-3 mt-6">
+              {fullName || 'Người dùng hệ thống'}
+            </h1>
+            <p className="text-[13px] font-medium tracking-widest text-[var(--lux-gray-500)]">
+              {profile.email}
+            </p>
+            {profile.verifiedEmail && (
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--lux-primary-600)]">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Email đã xác thực
               </div>
             )}
+          </div>
 
-            {/* Account Created */}
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6">
-              <h3 className="text-lg font-bold text-neutral-900 mb-4">Thông tin tài khoản</h3>
-              <div className="text-sm">
-                <label className="text-neutral-600 block mb-1">Ngày tạo</label>
-                <p className="font-semibold text-neutral-900">
-                  {profile.createdAt
-                    ? new Date(profile.createdAt).toLocaleDateString('vi-VN')
-                    : 'N/A'}
-                </p>
+          {/* TWO-COLUMN EXECUTIVE GRID */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[var(--lux-gray-100)]">
+            {/* LEFT SHEET: PERSONAL DATA */}
+            <div className="lg:col-span-7 p-8 sm:p-12 md:p-16 space-y-14 bg-white">
+              {/* CONTACT SECTION */}
+              <section>
+                <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6 border-b border-[var(--lux-gray-100)] pb-4">
+                  Trao đổi & Liên lạc
+                </h3>
+                <dl className="space-y-1">
+                  <div className="flex justify-between items-center py-3 border-b border-[var(--lux-gray-50)]">
+                    <dt className="text-[13px] font-medium text-[var(--lux-gray-500)]">
+                      Định danh Email
+                    </dt>
+                    <dd className="text-[14px] font-semibold text-[var(--lux-gray-900)] max-w-[60%] text-right overflow-hidden text-ellipsis whitespace-nowrap">
+                      {profile.email}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between items-center py-3">
+                    <dt className="text-[13px] font-medium text-[var(--lux-gray-500)]">
+                      Kênh điện thoại
+                    </dt>
+                    <div className="text-right">
+                      <dd className="text-[14px] font-semibold text-[var(--lux-gray-900)]">
+                        {profile.phone || '--'}
+                      </dd>
+                      {profile.verifiedPhone && (
+                        <div className="text-[10px] font-bold text-[var(--lux-primary-600)] uppercase tracking-wider mt-1">
+                          Đã xác thực
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </dl>
+              </section>
+
+              {/* ADDRESS SECTION */}
+              <section>
+                <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6 border-b border-[var(--lux-gray-100)] pb-4">
+                  Tọa độ vật lý
+                </h3>
+                <dl className="space-y-1">
+                  <div className="flex justify-between items-center py-3 border-b border-[var(--lux-gray-50)]">
+                    <dt className="text-[13px] font-medium text-[var(--lux-gray-500)]">
+                      Cấp Tỉnh / Thành phố
+                    </dt>
+                    <dd className="text-[14px] font-semibold text-[var(--lux-gray-900)]">
+                      {profile.city || '--'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-[var(--lux-gray-50)]">
+                    <dt className="text-[13px] font-medium text-[var(--lux-gray-500)]">
+                      Cấp Quận / Huyện
+                    </dt>
+                    <dd className="text-[14px] font-semibold text-[var(--lux-gray-900)]">
+                      {profile.district || '--'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between items-start py-3">
+                    <dt className="text-[13px] font-medium text-[var(--lux-gray-500)] mt-0.5">
+                      Địa chỉ chi tiết
+                    </dt>
+                    <dd className="text-[14px] font-semibold text-[var(--lux-gray-900)] text-right max-w-[60%] leading-relaxed">
+                      {profile.address || '--'}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+            </div>
+
+            {/* RIGHT SHEET: SYSTEM METRICS & ACTIONS */}
+            <div className="lg:col-span-5 p-8 sm:p-12 md:p-16 bg-[var(--lux-gray-50)]/50 flex flex-col h-full">
+              <div className="flex-1 space-y-12">
+                {/* ACCOUNT METRICS */}
+                <section>
+                  <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6">
+                    Thông số hệ thống
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-[var(--lux-gray-200)]/60 shadow-sm">
+                      <span className="text-[12.5px] font-medium text-[var(--lux-gray-500)]">
+                        Ngày khởi tạo
+                      </span>
+                      <span className="text-[13px] font-semibold text-[var(--lux-gray-900)]">
+                        {profile.createdAt
+                          ? new Date(profile.createdAt).toLocaleDateString('vi-VN')
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                {/* REPUTATION METRICS */}
+                {profile.reputation && (
+                  <section>
+                    <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6">
+                      Chỉ số tín nhiệm
+                    </h3>
+                    <div className="bg-white p-5 rounded-xl border border-[var(--lux-gray-200)]/60 shadow-sm space-y-5">
+                      <div className="text-center pb-5 border-b border-[var(--lux-gray-100)]">
+                        <div className="text-4xl font-black text-[var(--lux-primary-900)] tracking-tighter">
+                          {profile.reputation.rating?.toFixed(1) || '0'}
+                        </div>
+                        <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--lux-gray-400)] mt-1">
+                          Hạng tổng hợp
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-[13px]">
+                        <span className="font-medium text-[var(--lux-gray-500)]">
+                          Tổng đánh giá
+                        </span>
+                        <span className="font-bold text-[var(--lux-gray-900)]">
+                          {profile.reputation.totalReviews || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[13px]">
+                        <span className="font-medium text-[var(--lux-gray-500)]">
+                          Giao dịch thành công
+                        </span>
+                        <span className="font-bold text-[var(--lux-gray-900)]">
+                          {profile.reputation.totalSales || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+                )}
               </div>
+
+              {/* ACTION PANEL */}
+              <section className="mt-12 lg:mt-auto pt-8 border-t border-[var(--lux-gray-200)]/50">
+                <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-5">
+                  Bảo mật & Thao tác
+                </h3>
+                <div className="space-y-3">
+                  <button className="w-full flex items-center justify-between p-3.5 rounded-xl border border-[var(--lux-gray-200)] bg-white hover:border-[var(--lux-primary-900)] hover:shadow-sm transition-all group">
+                    <span className="text-[11.5px] font-extrabold tracking-[0.15em] uppercase text-[var(--lux-gray-800)] group-hover:text-[var(--lux-primary-900)] pl-1">
+                      Chỉnh sửa thông tin
+                    </span>
+                    <span className="text-[var(--lux-gray-400)] group-hover:text-[var(--lux-primary-900)] pr-1">
+                      →
+                    </span>
+                  </button>
+                  <Button
+                    variant="primary"
+                    className="w-full flex items-center justify-between p-3.5 rounded-xl shadow-none hover:shadow-md transition-all group py-[14px]"
+                  >
+                    <span
+                      className="text-[11.5px] font-extrabold tracking-[0.15em] uppercase pl-1 bg-transparent border-0 text-inherit text-left flex-1"
+                      style={{ backgroundColor: 'transparent' }}
+                    >
+                      Đổi mật khẩu
+                    </span>
+                    <span className="pr-1">→</span>
+                  </Button>
+                </div>
+              </section>
             </div>
           </div>
-        </div>
 
-        {/* Edit Button */}
-        <div className="mt-8 flex gap-4 justify-center">
-          <button className="bg-neutral-300 hover:bg-neutral-400 text-neutral-900 font-semibold py-3 px-8 rounded-lg transition">
-            Chỉnh sửa thông tin
-          </button>
-          <Button
-            variant="primary"
-            className="font-semibold py-3 px-8 rounded-lg transition rounded-xl"
-          >
-            Đổi mật khẩu
-          </Button>
+          {/* SECURITY WATERMARK FOOTER */}
+          <div className="bg-[var(--lux-primary-900)] flex items-center justify-center p-4">
+            <span className="text-[9px] font-extrabold tracking-[0.3em] text-[white] opacity-60 uppercase">
+              Identity Verified by Bicycle Marketplace
+            </span>
+          </div>
         </div>
       </div>
     </div>

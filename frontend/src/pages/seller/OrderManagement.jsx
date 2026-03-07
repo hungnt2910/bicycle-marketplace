@@ -24,11 +24,11 @@ const OrderManagement = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản lý Đơn hàng & Tiền cọc</h2>
+      <h2 className="text-2xl font-bold mb-6 text-warmgray-800">Quản lý Đơn hàng & Tiền cọc</h2>
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
+      <div className="lux-panel overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 border-b text-gray-600 uppercase">
+          <thead className="bg-warmgray-50 border-b text-warmgray-600 uppercase">
             <tr>
               <th className="p-4">Mã đơn</th>
               <th className="p-4">Sản phẩm</th>
@@ -40,32 +40,32 @@ const OrderManagement = () => {
           </thead>
           <tbody className="divide-y">
             {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
+              <tr key={order.id} className="hover:bg-warmgray-50">
                 <td className="p-4 font-bold">{order.id}</td>
                 <td className="p-4">{order.bike}</td>
                 <td className="p-4">{order.buyer}</td>
-                <td className="p-4 font-medium text-blue-600">
+                <td className="p-4 font-medium text-primary-700">
                   {order.deposit.toLocaleString()} ₫
                 </td>
                 <td className="p-4">
                   {order.status === 'Deposited' && (
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">
+                    <span className="bg-primary-800/10 text-primary-900 px-2 py-1 rounded text-xs font-bold">
                       Đã cọc (Giữ tiền)
                     </span>
                   )}
                   {order.status === 'Completed' && (
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">
+                    <span className="bg-success/10 text-green-800 px-2 py-1 rounded text-xs font-bold">
                       Hoàn tất
                     </span>
                   )}
                 </td>
                 <td className="p-4">
                   {order.status === 'Deposited' && (
-                    <button className="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-indigo-700">
+                    <button className="bg-primary-800 text-white px-3 py-1 rounded text-xs font-bold hover:bg-indigo-700">
                       Xác nhận giao xe
                     </button>
                   )}
-                  {order.status === 'Completed' && <span className="text-gray-400">Đã xong</span>}
+                  {order.status === 'Completed' && <span className="text-warmgray-400">Đã xong</span>}
                 </td>
               </tr>
             ))}

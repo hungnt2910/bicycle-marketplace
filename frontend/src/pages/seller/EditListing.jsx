@@ -308,7 +308,7 @@ const EditListing = () => {
   if (fetchingData) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-neutral-600">Đang tải dữ liệu...</div>
+        <div className="text-lg text-warmgray-600">Đang tải dữ liệu...</div>
       </div>
     );
   }
@@ -317,8 +317,8 @@ const EditListing = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-neutral-900">Chỉnh sửa tin đăng</h2>
-        <p className="text-neutral-600 mt-1">Cập nhật thông tin tin đăng của bạn</p>
+        <h2 className="text-2xl font-bold text-primary-900">Chỉnh sửa tin đăng</h2>
+        <p className="text-warmgray-600 mt-1">Cập nhật thông tin tin đăng của bạn</p>
       </div>
 
       {/* Tabs */}
@@ -508,12 +508,12 @@ const EditListing = () => {
         {activeTab === 'media' && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                Hình ảnh sản phẩm <span className="text-rose-500">*</span>
+              <label className="block text-sm font-semibold text-primary-900 mb-2">
+                Hình ảnh sản phẩm <span className="text-danger">*</span>
               </label>
 
               {/* Upload Area */}
-              <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-primary-500 transition-colors cursor-pointer bg-neutral-50">
+              <label className="block border-2 border-dashed border-warmgray-300 rounded-[16px] p-8 text-center hover:border-primary-500 transition-colors cursor-pointer bg-neutral-offwhite">
                 <input
                   type="file"
                   multiple
@@ -522,10 +522,10 @@ const EditListing = () => {
                   className="hidden"
                 />
                 <div className="text-5xl mb-3">📷</div>
-                <p className="text-sm font-semibold text-neutral-900 mb-1">
+                <p className="text-sm font-semibold text-primary-900 mb-1">
                   Kéo thả hoặc click để upload ảnh
                 </p>
-                <p className="text-xs text-neutral-500">Tối đa 10 ảnh, mỗi ảnh không quá 5MB</p>
+                <p className="text-xs text-warmgray-500">Tối đa 10 ảnh, mỗi ảnh không quá 5MB</p>
               </label>
 
               {/* Preview Images */}
@@ -536,25 +536,25 @@ const EditListing = () => {
                       <img
                         src={image}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border-2 border-neutral-200"
+                        className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200"
                       />
                       {formData.media.mainImage === image && (
                         <div className="absolute top-2 left-2 bg-success-600 text-white text-xs px-2 py-1 rounded">
                           Ảnh chính
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                      <div className="absolute inset-0 bg-primary-900/45 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-[16px] flex items-center justify-center gap-2">
                         <button
                           type="button"
                           onClick={() => setMainImage(image)}
-                          className="px-3 py-1 bg-white text-xs rounded hover:bg-neutral-100"
+                          className="px-3 py-1 bg-white text-xs rounded hover:bg-warmgray-100"
                         >
                           Đặt ảnh chính
                         </button>
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
-                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                          className="px-3 py-1 bg-danger/50 text-white text-xs rounded hover:bg-danger"
                         >
                           Xóa
                         </button>
@@ -588,7 +588,7 @@ const EditListing = () => {
 
             {/* Location */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-neutral-900">Địa chỉ</h3>
+              <h3 className="text-lg font-bold text-primary-900">Địa chỉ</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Tỉnh/Thành phố"
