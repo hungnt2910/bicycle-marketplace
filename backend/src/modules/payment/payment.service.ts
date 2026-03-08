@@ -39,21 +39,15 @@ export class PaymentService {
    */
   async createZaloPayPayment(
     transactionId: string,
+    userId: string,
     userEmail: string,
-    depositAmount?: number,
+    amount: number,
   ): Promise<{ order_url: string; app_trans_id: string }> {
     // Get transaction
     const transaction = await this.transactionModel.findById(transactionId);
 
     if (!transaction) {
       throw new BadRequestException('Transaction not found');
-    }
-
-    if (
-      transaction.status !== TransactionStatus.PENDING_PAYMENT &&
-      transaction.status !== TransactionStatus.DEPOSIT_PAID
-    ) {
-      throw new BadRequestException('Transaction is not pending payment');
     }
 
     // Build items for ZaloPay
@@ -68,12 +62,13 @@ export class PaymentService {
 
     // Create ZaloPay order
     const zaloPayResponse = await this.zaloPayService.createPaymentOrder(
-      depositAmount || transaction.amount,
+      amount,
       userEmail,
       transactionId,
       items,
       {
         bicycleId: transaction.bicycleId.toString(),
+        userId
       },
     );
 
@@ -112,86 +107,57 @@ export class PaymentService {
     dataStr: string,
     mac: string,
   ): Promise<{ return_code: number; return_message: string }> {
-    // ── 1. Verify MAC ────────────────────────────────────────────────────────
+    // ── 1. Verify MAC ──────────────────────────────────────────────────────
     const verification = this.zaloPayService.verifyCallback(dataStr, mac);
     if (!verification.isValid) {
       return { return_code: -1, return_message: 'mac not equal' };
     }
 
     const callbackData = verification.data;
-    const embedData = JSON.parse(callbackData.embed_data);
-    const transactionId = embedData.transactionId;
+    const embedData    = JSON.parse(callbackData.embed_data);
+
+    const userId              = embedData.userId;
+    const amount: number      = callbackData.amount;
+    const walletType: string  = embedData.walletType; // caller stamps this when creating the order
 
     this.logger.log(
-      `Processing ZaloPay callback for transaction ${transactionId}`,
+      `Processing ZaloPay callback — user ${userId}, amount ${amount}, type ${walletType}`,
     );
 
+    // ── 2. Validate embed payload ──────────────────────────────────────────
+    if (!userId || !amount || !walletType) {
+      this.logger.warn('ZaloPay callback missing required embed fields');
+      return { return_code: -2, return_message: 'Missing required embed data' };
+    }
+
+    if (!Object.values(WalletTransactionType).includes(walletType as WalletTransactionType)) {
+      this.logger.warn(`Unknown walletType "${walletType}" in ZaloPay callback`);
+      return { return_code: -3, return_message: 'Unsupported wallet transaction type' };
+    }
+
     try {
-      // ── 2. Load transaction ───────────────────────────────────────────────
-      const transaction = await this.transactionModel.findById(transactionId);
-      if (!transaction) {
-        return { return_code: -2, return_message: 'Transaction not found' };
-      }
-
-      const buyerId = transaction.buyerId.toString();
-      const amount = transaction.amount;
-
-      // ── 3. Map TransactionType → WalletTransactionType ───────────────────
-      const walletTypeMap: Record<TransactionType, WalletTransactionType> = {
-        [TransactionType.DEPOSIT]: WalletTransactionType.DEPOSIT,
-        [TransactionType.FULL_PAYMENT]: WalletTransactionType.PURCHASE,
-        [TransactionType.FEE]: WalletTransactionType.FEE,
-        [TransactionType.INSPECTION_FEE]: WalletTransactionType.INSPECTION_FEE,
-        [TransactionType.REFUND]: WalletTransactionType.REFUND,
-        [TransactionType.DISPUTE_REFUND]: WalletTransactionType.DISPUTE_REFUND,
-        [TransactionType.COMMISSION]: WalletTransactionType.COMMISSION,
-        [TransactionType.PENALTY]: WalletTransactionType.PENALTY,
-      };
-
-      if (!transaction.type) {
-        this.logger.warn(
-          `Transaction type is undefined for transaction ${transactionId}`,
-        );
-        return {
-          return_code: -3,
-          return_message: 'Transaction type is undefined',
-        };
-      }
-
-      const walletTransactionType = walletTypeMap[transaction.type];
-      if (!walletTransactionType) {
-        this.logger.warn(
-          `No wallet type mapping for transaction type "${transaction.type}" — skipping credit`,
-        );
-        return {
-          return_code: -3,
-          return_message: 'Unsupported transaction type',
-        };
-      }
-
-      // ── 4. Credit buyer's wallet — sole responsibility of this callback ───
+      // ── 3. Credit wallet — sole job of this callback ───────────────────
       await this.walletService.credit(
-        buyerId,
+        userId,
         amount,
-        walletTransactionType,
-        `ZaloPay top-up for ${transaction.type} — transaction ${transactionId}`,
-        { transactionId },
+        walletType as WalletTransactionType,
+        embedData.description ?? `ZaloPay top-up (${walletType})`,
+        { appTransId: callbackData.app_trans_id, ...embedData },
       );
 
       this.logger.log(
-        `ZaloPay callback: credited ${amount} (${walletTransactionType}) to wallet of user ${buyerId}`,
+        `Credited ${amount} (${walletType}) to wallet of user ${userId}`,
       );
 
       return { return_code: 1, return_message: 'success' };
     } catch (error) {
       this.logger.error(
-        `ZaloPay callback failed for transaction ${transactionId}: ${error.message}`,
+        `ZaloPay callback credit failed for user ${userId}: ${error.message}`,
         error.stack,
       );
       return { return_code: 0, return_message: error.message };
     }
   }
-
   // async handleZaloPayCallback(
   //   dataStr: string,
   //   mac: string,

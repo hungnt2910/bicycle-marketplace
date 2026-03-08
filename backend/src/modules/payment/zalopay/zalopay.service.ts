@@ -88,7 +88,7 @@ export class ZaloPayService {
 
       return response.data;
     } catch (error) {
-      this.logger.error(`ZaloPay payment creation failed: ${error.message}`);
+      this.logger.error(`ZaloPay payment creation failed: ${error}`);
       throw new BadRequestException('Failed to create ZaloPay payment');
     }
   }

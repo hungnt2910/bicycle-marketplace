@@ -24,6 +24,7 @@ export interface ZaloPayEmbedData {
   redirecturl: string;
   transactionId: string;
   bicycleId?: string;
+  userId?: string;
 }
 
 export interface ZaloPayCallbackData {
