@@ -48,23 +48,15 @@ export class TransactionsService {
   async createTransaction(
     buyerId: string,
     createDto: CreateTransactionDto,
-  ): Promise<any> {
+  ): Promise<TransactionDocument> {
     const { bicycleId, amount, type, paymentMethod } = createDto;
 
-    // 1. Verify bicycle exists and is available
     const bicycle = await this.bicycleModel.findById(bicycleId);
-
-    if (!bicycle) {
-      throw new BadRequestException('Bicycle not found');
-    }
-
+    if (!bicycle) throw new BadRequestException('Bicycle not found');
     if (bicycle.status !== 'active' && type !== TransactionType.FEE) {
       throw new BadRequestException('Bicycle is not available for sale');
     }
-
-    // 2. CRITICAL: Check if bicycle has valid inspection
     if (bicycle.inspection?.isInspected && type !== TransactionType.FEE) {
-      // Check if inspection is still valid
       const now = new Date();
       if (
         bicycle.inspection.expiryDate &&
@@ -74,12 +66,8 @@ export class TransactionsService {
           'Inspection report has expired. A new inspection is required.',
         );
       }
-      // throw new BadRequestException(
-      //   'This bicycle must be inspected before purchase. Please request inspection from seller.',
-      // );
     }
 
-    // 3. Check if bicycle is already reserved
     const existingTransaction = await this.transactionModel.findOne({
       bicycleId,
       status: {
@@ -91,17 +79,10 @@ export class TransactionsService {
         ],
       },
     });
-
     if (existingTransaction) {
       throw new BadRequestException('This bicycle is already reserved or sold');
     }
 
-    // 4. Calculate fees
-    const commissionRate =
-      this.configService.get<number>('COMMISSION_RATE') || 0.05;
-    const commissionAmount = amount * commissionRate;
-
-    // 5. Create transaction with escrow
     const autoReleaseDeadline = new Date();
     autoReleaseDeadline.setDate(
       autoReleaseDeadline.getDate() +
@@ -115,43 +96,75 @@ export class TransactionsService {
       type,
       amount,
       status: TransactionStatus.PENDING_PAYMENT,
-      escrow: {
-        heldAmount: amount,
-        autoReleaseDeadline,
-      },
-      payment: {
-        method: paymentMethod,
-      },
-      // fees: {
-      //   commissionRate,
-      //   commissionAmount,
-      //   platformFee: 0,
-      // },
-      buyerConfirmation: {
-        confirmed: false,
-      },
+      escrow: { heldAmount: amount, autoReleaseDeadline },
+      payment: { method: paymentMethod },
+      buyerConfirmation: { confirmed: false },
     });
 
-    // 6. Reserve bicycle
-
-    // 7. Send notifications
-    // await this.notificationsService.create({
-    //   userId: bicycle.sellerId,
-    //   type: 'payment_received',
-    //   title: 'New Order Received',
-    //   message: `Your bicycle "${bicycle.title}" has been ordered. Please prepare for shipping.`,
-    //   relatedEntity: {
-    //     entityType: 'transaction',
-    //     entityId: transaction._id,
-    //   },
-    // });
-
-    return this.paymentService.createZaloPayPayment(
-      transaction._id.toString(),
+    // Debit full amount from buyer's wallet and hold in escrow
+    await this.walletService.debit(
       buyerId,
+      amount,
+      WalletTransactionType.PURCHASE,
+      `Payment for bicycle ${bicycleId}`,
+      { transactionId: transaction._id.toString(), bicycleId },
     );
 
-    // return transaction;
+    await this.walletService.holdInEscrow(
+      buyerId,
+      amount,
+      transaction._id.toString(),
+    );
+
+    transaction.status = TransactionStatus.HELD_IN_ESCROW;
+    if (transaction.payment) {
+      transaction.payment.paidAt = new Date();
+    }
+    await transaction.save();
+
+    return transaction;
+  }
+
+  async payFee(
+    buyerId: string,
+    createDto: CreateTransactionDto,
+  ): Promise<TransactionDocument> {
+    const { bicycleId, amount, type, paymentMethod } = createDto;
+
+    const bicycle = await this.bicycleModel.findById(bicycleId);
+    if (!bicycle) throw new BadRequestException('Bicycle not found');
+
+    const transaction = await this.transactionModel.create({
+      buyerId,
+      sellerId: bicycle.sellerId,
+      bicycleId,
+      type,
+      amount,
+      status: TransactionStatus.PENDING_PAYMENT,
+      payment: { method: paymentMethod },
+      buyerConfirmation: { confirmed: false },
+    });
+
+    const txId = transaction._id.toString();
+
+    // Debit fee directly from buyer's wallet — no escrow
+    await this.walletService.debit(
+      buyerId,
+      amount,
+      type === TransactionType.FEE
+        ? WalletTransactionType.FEE
+        : WalletTransactionType.INSPECTION_FEE,
+      `${type === TransactionType.FEE ? 'Listing' : 'Inspection'} fee for bicycle ${bicycleId}`,
+      { transactionId: txId, bicycleId },
+    );
+
+    transaction.status = TransactionStatus.COMPLETED;
+    if (transaction.payment) {
+      transaction.payment.paidAt = new Date();
+    }
+    await transaction.save();
+
+    return transaction;
   }
 
   /**
@@ -978,17 +991,15 @@ export class TransactionsService {
   async createDepositTransaction(
     buyerId: string,
     dto: CreateDepositDto,
-  ): Promise<any> {
+  ): Promise<TransactionDocument> {
     const { bicycleId, depositRate = 0.2, paymentMethod } = dto;
 
-    // 1. Verify bicycle
     const bicycle = await this.bicycleModel.findById(bicycleId);
     if (!bicycle) throw new BadRequestException('Bicycle not found');
     if (bicycle.status !== 'active') {
       throw new BadRequestException('Bicycle is not available');
     }
 
-    // 2. Check no existing active transaction
     const existing = await this.transactionModel.findOne({
       bicycleId,
       status: {
@@ -1005,22 +1016,19 @@ export class TransactionsService {
       throw new BadRequestException('Bicycle is already reserved or sold');
     }
 
-    // 3. Calculate amounts
-    const bicyclePrice = bicycle.price; // or however price is stored
+    const bicyclePrice = bicycle.price;
     const depositAmount = Math.round(bicyclePrice * depositRate);
     const remainingAmount = bicyclePrice - depositAmount;
 
-    // 4. Set 3-day deadline
     const paymentDeadline = new Date();
     paymentDeadline.setDate(paymentDeadline.getDate() + 3);
 
-    // 5. Create transaction
     const transaction = await this.transactionModel.create({
       buyerId,
       sellerId: bicycle.sellerId,
       bicycleId,
       type: TransactionType.DEPOSIT,
-      amount: bicyclePrice, // total price of bike
+      amount: bicyclePrice,
       status: TransactionStatus.PENDING_PAYMENT,
       deposit: {
         amount: depositAmount,
@@ -1029,57 +1037,39 @@ export class TransactionsService {
         forfeited: false,
         remainingAmount,
       },
-      payment: {
-        method: paymentMethod,
-      },
+      payment: { method: paymentMethod },
       escrow: {
-        heldAmount: depositAmount, // only deposit in escrow initially
+        heldAmount: depositAmount,
         autoReleaseDeadline: paymentDeadline,
       },
       buyerConfirmation: { confirmed: false },
     });
 
-    // 7. Initiate payment for deposit amount only
-    return this.paymentService.createZaloPayPayment(
-      transaction._id.toString(),
+    // Debit deposit amount from buyer's wallet and hold in escrow
+    await this.walletService.debit(
       buyerId,
-      depositAmount, // pass the deposit amount, not full price
+      depositAmount,
+      WalletTransactionType.DEPOSIT,
+      `Deposit for bicycle ${bicycleId}`,
+      { transactionId: transaction._id.toString(), bicycleId },
     );
-  }
 
-  /**
-   * DEPOSIT STEP 2: Confirm deposit payment received
-   */
-  async confirmDepositPayment(
-    transactionId: string,
-    paymentData: { transactionId: string },
-  ): Promise<Transaction> {
-    const transaction: any =
-      await this.transactionModel.findById(transactionId);
-    if (!transaction) throw new BadRequestException('Transaction not found');
-    if (transaction.status !== TransactionStatus.PENDING_PAYMENT) {
-      throw new BadRequestException('Invalid transaction status');
-    }
+    await this.walletService.holdInEscrow(
+      buyerId,
+      depositAmount,
+      transaction._id.toString(),
+    );
 
     transaction.status = TransactionStatus.DEPOSIT_PAID;
-    transaction.deposit.paidAt = new Date();
-    transaction.payment.transactionId = paymentData.transactionId;
-    transaction.payment.paidAt = new Date();
-
-    transaction.markModified('deposit');
-    transaction.markModified('payment');
-
+    if (transaction.deposit) {
+      transaction.deposit.paidAt = new Date();
+      transaction.markModified('deposit');
+    }
+    if (transaction.payment) {
+      transaction.payment.paidAt = new Date();
+      transaction.markModified('payment');
+    }
     await transaction.save();
-
-    // Hold deposit in buyer's escrow
-    await this.walletService.holdInEscrow(
-      transaction.buyerId.toString(),
-      transaction.deposit.amount,
-      transactionId,
-    );
-
-    // Notify buyer of 3-day deadline
-    // await this.notificationsService.create({ ... });
 
     return transaction;
   }
@@ -1090,68 +1080,53 @@ export class TransactionsService {
   async payRemainingBalance(
     transactionId: string,
     buyerId: string,
-  ): Promise<any> {
-    const transaction = await this.transactionModel.findById(transactionId);
+  ): Promise<TransactionDocument> {
+    const transaction: any =
+      await this.transactionModel.findById(transactionId);
     if (!transaction) throw new BadRequestException('Transaction not found');
-
     if (transaction.buyerId.toString() !== buyerId) {
       throw new ForbiddenException('Only the buyer can pay remaining balance');
     }
-
     if (transaction.status !== TransactionStatus.DEPOSIT_PAID) {
       throw new BadRequestException(
         'Transaction must be in deposit_paid status',
       );
     }
 
-    // Check deadline hasn't passed
     const now = new Date();
     if (
       transaction.deposit?.paymentDeadline &&
       transaction.deposit.paymentDeadline < now
     ) {
-      // Trigger forfeiture if not already done
       await this.forfeitDeposit(transactionId);
       throw new BadRequestException(
         'Payment deadline has passed. Your deposit has been forfeited.',
       );
     }
 
-    // Initiate payment for remaining amount
-    return this.paymentService.createZaloPayPayment(
-      transactionId,
+    const remainingAmount = transaction.deposit.remainingAmount;
+
+    // Debit remaining balance from buyer's wallet, top up escrow to full amount
+    await this.walletService.debit(
       buyerId,
-      transaction.deposit!.remainingAmount,
+      remainingAmount,
+      WalletTransactionType.PURCHASE,
+      `Remaining balance for bicycle ${transaction.bicycleId}`,
+      { transactionId, bicycleId: transaction.bicycleId.toString() },
     );
-  }
 
-  /**
-   * DEPOSIT STEP 4: Confirm full payment - moves to standard escrow flow
-   */
-  async confirmFullPayment(
-    transactionId: string,
-    paymentData: { transactionId: string },
-  ): Promise<Transaction> {
-    const transaction: any =
-      await this.transactionModel.findById(transactionId);
-    if (!transaction) throw new BadRequestException('Transaction not found');
-    if (transaction.status !== TransactionStatus.DEPOSIT_PAID) {
-      throw new BadRequestException('Invalid transaction status');
-    }
+    await this.walletService.holdInEscrow(
+      buyerId,
+      remainingAmount,
+      transactionId,
+    );
 
-    // Update to full escrow (deposit + remaining)
     transaction.status = TransactionStatus.HELD_IN_ESCROW;
-    transaction.escrow.heldAmount = transaction.amount; // now full amount in escrow
-    transaction.payment.fullPaymentTransactionId = paymentData.transactionId;
+    transaction.escrow.heldAmount = transaction.amount; // now full amount
     transaction.payment.fullPaidAt = new Date();
-
     transaction.markModified('escrow');
     transaction.markModified('payment');
-
     await transaction.save();
-
-    // Notify seller to ship
-    // await this.notificationsService.create({ ... });
 
     return transaction;
   }
