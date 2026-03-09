@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,6 +30,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { CreateDepositDto } from './dto/create-deposit.dto';
 import { UpdateShippingDto } from './dto/update-shipping.dto';
 import { ConfirmDeliveryDto } from './dto/confirm-delivery.dto';
+import { TransactionType } from 'src/entities';
 
 @ApiTags('Transactions')
 @Controller('transactions')
@@ -64,6 +66,35 @@ export class TransactionsController {
     return {
       message: 'Transaction created successfully. Please proceed to payment.',
       data,
+    };
+  }
+
+  @Post('fee')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Pay listing or inspection fee for a bicycle' })
+  @ApiResponse({ status: 201, description: 'Fee paid successfully' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid transaction type, insufficient balance, or bicycle not found',
+  })
+  async payFee(@GetUser() user: User, @Body() body: CreateTransactionDto) {
+    if (
+      body.type !== TransactionType.FEE &&
+      body.type !== TransactionType.INSPECTION_FEE
+    ) {
+      throw new BadRequestException(
+        'type must be either "fee" or "inspection_fee"',
+      );
+    }
+
+    const result = await this.transactionsService.payFee(user._id.toString(), body);
+
+    return {
+      message: 'Fee paid successfully',
+      data: result,
     };
   }
 
