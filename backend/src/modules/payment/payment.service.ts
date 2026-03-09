@@ -44,18 +44,18 @@ export class PaymentService {
     amount: number,
   ): Promise<{ order_url: string; app_trans_id: string }> {
     // Get transaction
-    const transaction = await this.transactionModel.findById(transactionId);
+    // const transaction = await this.transactionModel.findById(transactionId);
 
-    if (!transaction) {
-      throw new BadRequestException('Transaction not found');
-    }
+    // if (!transaction) {
+    //   throw new BadRequestException('Transaction not found');
+    // }
 
     // Build items for ZaloPay
     const items = [
       {
-        itemid: transaction.bicycleId.toString(),
+        itemid: userId,
         itemname: 'Bicycle Purchase',
-        itemprice: transaction.amount,
+        itemprice: amount,
         itemquantity: 1,
       },
     ];
@@ -67,7 +67,7 @@ export class PaymentService {
       transactionId,
       items,
       {
-        bicycleId: transaction.bicycleId.toString(),
+        bicycleId: userId,
         userId
       },
     );
@@ -84,14 +84,6 @@ export class PaymentService {
         'ZaloPay response missing order_url or transaction token',
       );
     }
-
-    // Store ZaloPay transaction ID
-    transaction.payment = {
-      ...(transaction.payment || {}),
-      transactionId: zaloPayResponse.zp_trans_token,
-    };
-
-    await transaction.save();
 
     this.logger.log(`Created ZaloPay payment for transaction ${transactionId}`);
 

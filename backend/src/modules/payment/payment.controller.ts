@@ -24,17 +24,17 @@ export class PaymentController {
   /**
    * Create ZaloPay payment
    */
-  @Post('zalopay/create/:transactionId')
+  @Post('zalopay/create')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create ZaloPay payment order' })
   @ApiResponse({ status: 200, description: 'Payment URL created' })
   async createZaloPayPayment(
-    @Param('transactionId') transactionId: string,
+    // @Param('transactionId') transactionId: string,
     @GetUser() user: User,
   ) {
     const result = await this.paymentService.createZaloPayPayment(
-      transactionId,
+      "Payment for user " + user.email,
       user.email,
       user._id.toString(),
       1000000
