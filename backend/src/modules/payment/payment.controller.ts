@@ -37,8 +37,8 @@ export class PaymentController {
   ) {
     const result = await this.paymentService.createZaloPayPayment(
       "Payment for user " + user.email,
-      user.email,
       user._id.toString(),
+      user.email,
       body.amount
     );
 
