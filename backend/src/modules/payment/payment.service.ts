@@ -110,35 +110,25 @@ export class PaymentService {
 
     const userId              = embedData.userId;
     const amount: number      = callbackData.amount;
-    const walletType: string  = embedData.walletType; // caller stamps this when creating the order
+    // const walletType: string  = embedData.walletType; // caller stamps this when creating the order
 
     this.logger.log(
-      `Processing ZaloPay callback — user ${userId}, amount ${amount}, type ${walletType}`,
+      `Processing ZaloPay callback — user ${userId}, amount ${amount}`,
     );
 
-    // ── 2. Validate embed payload ──────────────────────────────────────────
-    if (!userId || !amount || !walletType) {
-      this.logger.warn('ZaloPay callback missing required embed fields');
-      return { return_code: -2, return_message: 'Missing required embed data' };
-    }
-
-    if (!Object.values(WalletTransactionType).includes(walletType as WalletTransactionType)) {
-      this.logger.warn(`Unknown walletType "${walletType}" in ZaloPay callback`);
-      return { return_code: -3, return_message: 'Unsupported wallet transaction type' };
-    }
 
     try {
       // ── 3. Credit wallet — sole job of this callback ───────────────────
       await this.walletService.credit(
         userId,
         amount,
-        walletType as WalletTransactionType,
-        embedData.description ?? `ZaloPay top-up (${walletType})`,
+        WalletTransactionType.SALE_PAYMENT,
+        embedData.description ,
         { appTransId: callbackData.app_trans_id, ...embedData },
       );
 
       this.logger.log(
-        `Credited ${amount} (${walletType}) to wallet of user ${userId}`,
+        `Credited ${amount} to wallet of user ${userId}`,
       );
 
       return { return_code: 1, return_message: 'success' };
