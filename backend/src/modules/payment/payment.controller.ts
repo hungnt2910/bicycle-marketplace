@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { User } from '../../entities/user.entity';
 import { Public } from '../../common/decorators/public.decorator';
+import { TopUpDto } from './dto/topup-dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -32,13 +33,13 @@ export class PaymentController {
   async createZaloPayPayment(
     // @Param('transactionId') transactionId: string,
     @GetUser() user: User,
-    @Body('amount') amount: number,
+    @Body('amount') body: TopUpDto,
   ) {
     const result = await this.paymentService.createZaloPayPayment(
       "Payment for user " + user.email,
       user.email,
       user._id.toString(),
-      amount
+      body.amount
     );
 
     return {
