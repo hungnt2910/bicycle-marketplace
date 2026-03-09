@@ -32,12 +32,13 @@ export class PaymentController {
   async createZaloPayPayment(
     // @Param('transactionId') transactionId: string,
     @GetUser() user: User,
+    @Body('amount') amount: number,
   ) {
     const result = await this.paymentService.createZaloPayPayment(
       "Payment for user " + user.email,
       user.email,
       user._id.toString(),
-      1000000
+      amount
     );
 
     return {
