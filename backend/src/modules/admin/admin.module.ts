@@ -11,6 +11,7 @@ import {
   SettingCategorySchema,
 } from 'src/entities/category-systemField-entity';
 import { User, UserSchema } from 'src/entities/user.entity';
+import { Transaction, TransactionSchema } from 'src/entities';
 
 @Module({
   imports: [
@@ -24,6 +25,8 @@ import { User, UserSchema } from 'src/entities/user.entity';
       },
     ]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: Transaction.name, schema: TransactionSchema }]),
+
   ],
   providers: [AdminService],
   controllers: [AdminController],

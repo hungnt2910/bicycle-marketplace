@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,13 +7,22 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { AdminService, SummaryPeriod } from './admin.service';
 import { ApiResponse } from '@nestjs/swagger/dist/decorators/api-response.decorator';
 import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
+import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserRole } from 'src/entities';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 @Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -171,6 +181,52 @@ export class AdminController {
         message: error.message,
       };
     }
+  }
+
+  // ─── admin.controller.ts ──────────────────────────────────────────────────────
+
+  @Get('revenue/summary')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get platform money in/out summary by period' })
+  @ApiQuery({
+    name: 'period',
+    enum: ['7d', '30d', '12m'],
+    required: true,
+    description: '7d = last 7 days, 30d = last 30 days, 12m = last 12 months',
+  })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      example: {
+        period: '30d',
+        from: '2024-11-01T00:00:00.000Z',
+        to: '2024-12-01T00:00:00.000Z',
+        totalIn: 50000000,
+        totalOut: 5000000,
+        net: 45000000,
+        breakdown: [
+          { type: 'full_payment', direction: 'in', total: 30000000, count: 10 },
+          { type: 'deposit', direction: 'in', total: 15000000, count: 8 },
+          { type: 'fee', direction: 'in', total: 3000000, count: 6 },
+          { type: 'inspection_fee', direction: 'in', total: 2000000, count: 4 },
+          { type: 'refund', direction: 'out', total: 4000000, count: 2 },
+          {
+            type: 'dispute_refund',
+            direction: 'out',
+            total: 1000000,
+            count: 1,
+          },
+        ],
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid period value' })
+  async getMoneyFlowSummary(@Query('period') period: string) {
+    if (!['7d', '30d', '12m'].includes(period)) {
+      throw new BadRequestException('period must be one of: 7d, 30d, 12m');
+    }
+
+    return this.adminService.getMoneyFlowSummary(period as SummaryPeriod);
   }
 }
 // kieerm soát user, bài đăng, kiểm doanh thu, cấp quyền.
