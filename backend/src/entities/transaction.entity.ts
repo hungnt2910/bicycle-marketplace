@@ -33,6 +33,7 @@ export enum TransactionStatus {
   CANCELLED = 'cancelled',
   DEPOSIT_PAID = 'deposit_paid',
   DEPOSIT_FORFEITED = 'deposit_forfeited',
+  BUYER_CONFIRMED = 'buyer_confirmed',
 }
 
 class Escrow {

@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Inject,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -30,6 +31,7 @@ import { CreateDepositDto } from './dto/create-deposit.dto';
 
 @Injectable()
 export class TransactionsService {
+  private readonly logger = new Logger(TransactionsService.name);
   constructor(
     @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
@@ -349,9 +351,7 @@ export class TransactionsService {
   ): Promise<Transaction> {
     const transaction = await this.transactionModel.findById(transactionId);
 
-    if (!transaction) {
-      throw new BadRequestException('Transaction not found');
-    }
+    if (!transaction) throw new BadRequestException('Transaction not found');
 
     if (transaction.buyerId.toString() !== buyerId) {
       throw new ForbiddenException('Only the buyer can confirm delivery');
@@ -362,63 +362,98 @@ export class TransactionsService {
     }
 
     if (!confirmationData.matchesReport) {
-      // Buyer reports bicycle doesn't match inspection - auto-create dispute
       throw new BadRequestException(
         'Please file a dispute if the bicycle does not match the inspection report',
       );
     }
 
-    // Update confirmation
+    // ── Set 3-day dispute window before funds release to seller ──────────────
+    const disputeWindowDeadline = new Date();
+    disputeWindowDeadline.setDate(disputeWindowDeadline.getDate() + 3);
+
     transaction.buyerConfirmation = {
       confirmed: true,
       confirmedAt: new Date(),
       notes: confirmationData.notes,
     };
 
-    // Release escrow to seller
-    await this.escrowService.releaseFunds(transaction);
-
-    transaction.status = TransactionStatus.COMPLETED;
-    transaction.completedAt = new Date();
+    // Funds stay in escrow during dispute window — status reflects buyer confirmed
+    // but money is NOT released yet
+    transaction.status = TransactionStatus.BUYER_CONFIRMED;
+    if (transaction.escrow) {
+      transaction.escrow.releaseDate = disputeWindowDeadline;
+    }
 
     await transaction.save();
 
-    // Update bicycle status
-    await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
-      status: 'sold',
-      soldAt: new Date(),
+    this.logger.log(
+      `Buyer confirmed delivery for transaction ${transactionId}. ` +
+        `Funds held in escrow until dispute window closes at ${disputeWindowDeadline.toISOString()}`,
+    );
+
+    return transaction;
+  }
+
+  /**
+   * SCHEDULER: Run every hour via cron.
+   * Releases funds to seller once the 3-day dispute window has passed
+   * and no dispute was raised.
+   */
+  async autoReleaseAfterDisputeWindow(): Promise<void> {
+    const now = new Date();
+
+    const readyToRelease = await this.transactionModel.find({
+      status: TransactionStatus.BUYER_CONFIRMED,
+      'escrow.releaseDate': { $lte: now },
+      'dispute.isDisputed': { $ne: true },
     });
+
+    for (const transaction of readyToRelease) {
+      try {
+        await this.releaseToSeller(transaction);
+        this.logger.log(
+          `Auto-released funds for transaction ${transaction._id} after dispute window`,
+        );
+      } catch (err) {
+        // this.logger.error(
+        //   `Failed to auto-release transaction ${transaction._id}: ${err.message}`,
+        // );
+      }
+    }
+  }
+
+  /**
+   * Shared release logic — used by scheduler and manual admin release.
+   */
+  async releaseToSeller(
+    transaction: TransactionDocument,
+  ): Promise<Transaction> {
+    // Guard: do not release if disputed
+    if (transaction.dispute?.isDisputed) {
+      throw new BadRequestException(
+        'Cannot release funds — transaction is under dispute',
+      );
+    }
+
+    await this.escrowService.releaseFunds(transaction);
 
     const commissionAmount = transaction.fees?.commissionAmount || 0;
     const sellerAmount = transaction.amount - commissionAmount;
 
-    // Credit seller's wallet
     await this.walletService.releaseFromEscrow(
       transaction.sellerId.toString(),
       sellerAmount,
-      transactionId,
+      transaction._id.toString(),
     );
 
-    // Credit platform wallet (commission)
-    // await this.walletService.credit(
-    //   'PLATFORM_USER_ID',
-    //   commissionAmount,
-    //   WalletTransactionType.COMMISSION,
-    //   `Commission from transaction ${transactionId}`,
-    //   { transactionId },
-    // );
+    transaction.status = TransactionStatus.COMPLETED;
+    transaction.completedAt = new Date();
+    await transaction.save();
 
-    // Notify seller
-    // await this.notificationsService.create({
-    //   userId: transaction.sellerId,
-    //   type: 'payment_received',
-    //   title: 'Payment Released',
-    //   message: 'Buyer confirmed delivery. Funds have been released to your account.',
-    //   relatedEntity: {
-    //     entityType: 'transaction',
-    //     entityId: transaction._id,
-    //   },
-    // });
+    await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
+      status: 'sold',
+      soldAt: new Date(),
+    });
 
     return transaction;
   }

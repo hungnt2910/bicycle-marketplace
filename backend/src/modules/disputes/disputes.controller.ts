@@ -197,8 +197,8 @@ export class DisputesController {
    * Get all disputes (Admin)
    */
   @Get('admin/all')
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all disputes (admin only)' })
+  @Roles(UserRole.ADMIN, UserRole.INSPECTOR)
+  @ApiOperation({ summary: 'Get all disputes (admin, inspector)' })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
