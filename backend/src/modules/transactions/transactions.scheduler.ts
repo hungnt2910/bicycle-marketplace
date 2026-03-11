@@ -10,12 +10,12 @@ export class TransactionsScheduler {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   // Run every hour to auto-forfeit expired deposits
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_HOUR)
   async handleExpiredDeposits() {
     await this.transactionsService.autoForfeitExpiredDeposits();
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_HOUR)
   async handleDisputeWindowRelease() {
     this.logger.log('Running dispute window release check...');
     await this.transactionsService.autoReleaseAfterDisputeWindow();
