@@ -21,7 +21,7 @@ export class UsersController {
   }
 
   @Public()
-  @Get(':id')
+  @Post(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({
     status: 200,
