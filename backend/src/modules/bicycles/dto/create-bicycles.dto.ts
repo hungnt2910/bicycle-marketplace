@@ -125,6 +125,16 @@ class InspectionDto {
   @IsOptional()
   @IsString()
   label?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  videos?: string[];
 }
 
 class LocationDto {

@@ -138,6 +138,8 @@ class Media {
   mainImage?: MediaItem;
 }
 
+
+
 class Inspection {
   @Prop({ default: false })
   isInspected?: boolean;
@@ -156,6 +158,12 @@ class Inspection {
 
   @Prop()
   label?: string;
+
+  @Prop({ type: [MediaItem] })
+  images?: MediaItem[];
+
+  @Prop({ type: [VideoItem] })
+  videos?: VideoItem[];
 }
 
 class Location {
