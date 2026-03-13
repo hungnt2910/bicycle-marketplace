@@ -22,6 +22,9 @@ import {
 import { WalletService, EscrowRole } from './wallet.service';
 import { WalletTransactionType } from '../../entities/wallet-transaction.entity';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { UserRole } from 'src/entities';
 
 class RequestWithdrawalDto {
   amount: number;
@@ -142,5 +145,16 @@ export class WalletController {
   ) {
     const { amount, ...bankDetails } = body;
     return this.walletService.requestWithdrawal(req.user.id, amount, bankDetails);
+  }
+
+  @Post('withdrawals/:id/accept')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin: accept a withdrawal request' })
+  @ApiParam({ name: 'id', description: 'Wallet transaction id' })
+  @ApiResponse({ status: 200, description: 'Withdrawal accepted' })
+  async acceptWithdrawal(@Param('id') id: string) {
+    return this.walletService.acceptWithdrawal(id);
   }
 }

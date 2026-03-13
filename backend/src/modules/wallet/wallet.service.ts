@@ -517,6 +517,39 @@ export class WalletService {
   }
 
   /**
+   * Admin accepts a pending withdrawal request (marks as completed)
+   */
+  async acceptWithdrawal(
+    transactionId: string,
+  ): Promise<WalletTransactionDocument> {
+    const walletTransaction = await this.walletTransactionModel.findById(
+      transactionId,
+    );
+
+    if (!walletTransaction) {
+      throw new NotFoundException('Withdrawal transaction not found');
+    }
+
+    if (walletTransaction.type !== WalletTransactionType.WITHDRAWAL) {
+      throw new BadRequestException('Transaction is not a withdrawal');
+    }
+
+    if (walletTransaction.status !== WalletTransactionStatus.PENDING) {
+      throw new BadRequestException('Withdrawal is not pending');
+    }
+
+    walletTransaction.status = WalletTransactionStatus.COMPLETED;
+    walletTransaction.withdrawalDetails = {
+      ...(walletTransaction.withdrawalDetails || {}),
+      processedAt: new Date(),
+    };
+
+    await walletTransaction.save();
+
+    return walletTransaction;
+  }
+
+  /**
    * Charge seller a listing fee when posting a bicycle
    */
   // async chargeListingFee(

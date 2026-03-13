@@ -71,9 +71,9 @@ export class WalletTransaction {
   // For withdrawals
   @Prop({ type: Object })
   withdrawalDetails?: {
-    bankName: string;
-    accountNumber: string;
-    accountHolder: string;
+    bankName?: string;
+    accountNumber?: string;
+    accountHolder?: string;
     processedAt?: Date;
   };
 
