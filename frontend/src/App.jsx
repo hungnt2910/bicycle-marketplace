@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CompareProvider } from './contexts/CompareContext';
+import { ChatProvider } from './contexts/ChatContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -27,6 +28,7 @@ import Favourites from './pages/buyer/Favourites';
 import ZaloPayReturn from './pages/payment/ZaloPayReturn';
 import TransactionDetail from './pages/buyer/TransactionDetail';
 import Wallet from './pages/buyer/Wallet';
+import ChatPage from './pages/buyer/ChatPage';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -102,6 +104,8 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
       return '/seller/inspection';
     case 'messages':
       return '/seller/messages';
+    case 'chat':
+      return '/chat';
     default:
       return '/';
   }
@@ -258,6 +262,14 @@ const AppRoutes = () => {
         path="/buyer/wallet"
         element={
           <PrivateRoute allowedRoles={['buyer']}>{buyerShell('wallet', <Wallet />)}</PrivateRoute>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <PrivateRoute allowedRoles={['buyer', 'seller']}>
+            <ChatPage />
+          </PrivateRoute>
         }
       />
 
@@ -666,21 +678,23 @@ const AppRoutes = () => {
 const App = () => (
   <AuthProvider>
     <CompareProvider>
-      <BrowserRouter>
-        <AppRoutes />
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
-      </BrowserRouter>
+      <ChatProvider>
+        <BrowserRouter>
+          <AppRoutes />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+        </BrowserRouter>
+      </ChatProvider>
     </CompareProvider>
   </AuthProvider>
 );
