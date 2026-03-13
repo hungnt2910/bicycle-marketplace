@@ -164,7 +164,7 @@ export class TransactionsService {
     );
 
     await this.walletService.credit(
-      "69a99cf15fed8cceac0458cf", // Platform wallet userId
+      "698300f7b43cf17f281d0d20", // Platform wallet userId
       amount,
       type === TransactionType.FEE
         ? WalletTransactionType.FEE
