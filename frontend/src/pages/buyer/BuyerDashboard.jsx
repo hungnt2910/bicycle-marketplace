@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button, Input, Pagination } from '../../components/ui';
 import { toast } from 'react-toastify';
 import bicycleApi from '../../api/postNewsApi';
-import paymentApi from '../../api/paymentApi';
 import transactionApi from '../../api/transactionApi';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -42,31 +41,6 @@ const BuyerDashboard = () => {
       return 'warning';
     if (['refunded', 'disputed', 'cancelled', 'canceled'].includes(normalized)) return 'danger';
     return 'primary';
-  };
-
-  const pollPaymentStatus = async (txId) => {
-    const MAX_ATTEMPTS = 6;
-    const DELAY_MS = 3000;
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-      try {
-        const res = await paymentApi.getPaymentStatus(txId);
-        const rawStatus =
-          res?.data?.data?.status || res?.data?.status || res?.data?.data?.paymentStatus;
-        const status = (rawStatus || '').toLowerCase();
-        if (
-          ['paid', 'success', 'completed', 'payment_received', 'held_in_escrow'].includes(status)
-        ) {
-          return 'paid';
-        }
-        if (['failed', 'cancelled', 'canceled', 'payment_failed'].includes(status)) {
-          return 'failed';
-        }
-      } catch (err) {
-        console.error('Poll payment status error:', err);
-      }
-    }
-    return 'pending';
   };
 
   const fetchMyTransactions = async () => {
@@ -124,45 +98,16 @@ const BuyerDashboard = () => {
         return;
       }
 
-      setLoadingCheckout(true);
-      setPaymentStatus('');
-      setPaymentUrl('');
-      setTransactionId('');
-
-      const transactionPayload = {
-        bicycleId: bikeId,
-        amount,
+      // Chuyển sang trang xác nhận thanh toán ví
+      const params = new URLSearchParams({
         type: 'full_payment',
-        paymentMethod: 'e_wallet',
-      };
-
-      const txRes = await transactionApi.create(transactionPayload);
-      const txData = txRes?.data?.data || txRes?.data;
-      const txId = txData?._id || txData?.id || txData?.transactionId;
-      if (!txId) {
-        throw new Error('Không lấy được transactionId');
-      }
-      setTransactionId(txId);
-      if (txId) localStorage.setItem('pendingTransactionId', txId);
-
-      const zaloRes = await paymentApi.createZaloPayOrder(txId);
-      const zaloData = zaloRes?.data?.data || zaloRes?.data;
-      const payUrl = zaloData?.orderUrl || zaloData?.payUrl || zaloData?.deeplink;
-      if (!payUrl) {
-        throw new Error('Không lấy được link thanh toán');
-      }
-      setPaymentUrl(payUrl);
-      window.open(payUrl, '_blank', 'noopener');
-
-      const status = await pollPaymentStatus(txId);
-      setPaymentStatus(status);
-      if (status === 'paid') {
-        toast.success('Thanh toán thành công');
-      } else if (status === 'failed') {
-        toast.error('Thanh toán thất bại hoặc bị hủy');
-      } else {
-        toast.info('Thanh toán đang chờ xác nhận');
-      }
+        amount: String(amount),
+        bicycleId: bikeId,
+        title: bicycleDetail?.title || 'Xe đạp',
+        returnUrl: '/buyer/dashboard',
+      });
+      navigate(`/wallet-payment?${params.toString()}`);
+      return;
     } catch (err) {
       console.error('Checkout error:', err);
       toast.error(err.response?.data?.message || err.message || 'Không tạo được giao dịch');

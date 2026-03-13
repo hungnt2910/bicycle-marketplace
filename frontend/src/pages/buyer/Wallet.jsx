@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import walletApi from '../../api/walletApi';
+import paymentApi from '../../api/paymentApi';
 import { Badge, Button, Card, Input, Pagination, Select } from '../../components/ui';
+import { useAuth } from '../../contexts/AuthContext';
 
-const MIN_WITHDRAW = 50000;
-const DEFAULT_ESCROW_ROLE = 'seller';
+const MIN_WITHDRAW = 100000;
 
 const numberOrZero = (value) => Number(value || 0);
 
 const Wallet = () => {
+  const { role } = useAuth();
+  const escrowRole = (role || '').toLowerCase() === 'seller' ? 'seller' : 'buyer';
+
   const [summary, setSummary] = useState(null);
   const [walletSummary, setWalletSummary] = useState(null);
   const [totals, setTotals] = useState(null);
@@ -16,6 +20,8 @@ const Wallet = () => {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingTx, setLoadingTx] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [toppingUp, setToppingUp] = useState(false);
   const [filters, setFilters] = useState({ type: '', status: '' });
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -64,11 +70,13 @@ const Wallet = () => {
 
   const fetchSummary = async () => {
     setLoadingSummary(true);
+    // Also reuse summary payload to hydrate recent transactions when dedicated API is disabled
+    setLoadingTx(true);
     try {
       const [walletRes, summaryRes, totalsRes] = await Promise.all([
         walletApi.getWallet(),
         walletApi.getSummary(),
-        walletApi.getTotals({ role: DEFAULT_ESCROW_ROLE }),
+        walletApi.getTotals({ role: escrowRole }),
       ]);
 
       const walletData = walletRes?.data?.data || walletRes?.data || {};
@@ -78,15 +86,31 @@ const Wallet = () => {
       setSummary(walletData);
       setWalletSummary(summaryData);
       setTotals(totalsData);
+
+      const txPayload =
+        summaryData?.transactions || summaryData?.recentTransactions || summaryData?.items || [];
+      const txList = Array.isArray(txPayload) ? txPayload : [];
+      setTransactions(txList);
+      setPagination({
+        total: txList.length,
+        pages: txList.length ? 1 : 0,
+      });
+      setPage(1);
     } catch (err) {
       console.error('Load wallet summary error:', err);
       toast.error(err?.response?.data?.message || 'Không lấy được số dư ví');
     } finally {
       setLoadingSummary(false);
+      setLoadingTx(false);
     }
   };
 
   const fetchTransactions = async (pageParam = page, typeParam = filters.type) => {
+    if (!walletApi.getTransactions) {
+      // Dedicated transaction API is disabled; keep using data from getSummary
+      setLoadingTx(false);
+      return;
+    }
     setLoadingTx(true);
     try {
       const res = await walletApi.getTransactions({
@@ -118,12 +142,14 @@ const Wallet = () => {
 
   const refreshAll = () => {
     fetchSummary();
-    fetchTransactions(1);
+    if (walletApi.getTransactions) {
+      fetchTransactions(1);
+    }
   };
 
   useEffect(() => {
     refreshAll();
-  }, []);
+  }, [escrowRole]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
@@ -180,6 +206,51 @@ const Wallet = () => {
       toast.error(err?.response?.data?.message || 'Không gửi được yêu cầu rút tiền');
     } finally {
       setWithdrawing(false);
+    }
+  };
+
+  const handleTopUp = async () => {
+    const amount = Number(topUpAmount || 0);
+    if (!amount || amount <= 0) {
+      toast.error('Vui lòng nhập số tiền muốn nạp');
+      return;
+    }
+    if (amount < 10000) {
+      toast.error('Số tiền nạp tối thiểu là 10,000 VND');
+      return;
+    }
+    if (amount > 50000000) {
+      toast.error('Số tiền nạp tối đa là 50,000,000 VND');
+      return;
+    }
+
+    setToppingUp(true);
+    try {
+      const res = await paymentApi.createZaloPayOrder(amount);
+      const data = res?.data?.data || res?.data;
+      const orderUrl = data?.order_url || data?.orderUrl || data?.payUrl;
+
+      if (!orderUrl) {
+        throw new Error('Không lấy được link thanh toán từ ZaloPay');
+      }
+
+      // Lưu thông tin để kiểm tra sau khi quay lại
+      const appTransId = data?.app_trans_id || data?.appTransId;
+      if (appTransId) {
+        localStorage.setItem('pendingTopUpTransId', appTransId);
+      }
+
+      toast.success('Đang chuyển đến ZaloPay...', { autoClose: 1500 });
+
+      // Redirect to ZaloPay payment page
+      setTimeout(() => {
+        window.location.href = orderUrl;
+      }, 1000);
+    } catch (err) {
+      console.error('Top-up error:', err);
+      toast.error(err?.response?.data?.message || err.message || 'Không thể tạo lệnh nạp tiền');
+    } finally {
+      setToppingUp(false);
     }
   };
 
@@ -445,6 +516,108 @@ const Wallet = () => {
           </div>
 
           <div className="space-y-4">
+            {/* ── Nạp tiền vào ví ── */}
+            <Card className="shadow-soft bg-white border border-slate-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  Nạp tiền vào ví
+                </h3>
+                <p className="text-sm text-emerald-50 mt-1">
+                  Nạp tiền qua ZaloPay để mua xe hoặc thanh toán phí
+                </p>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Preset amounts */}
+                <div>
+                  <p className="text-sm font-medium text-slate-700 mb-2">Chọn nhanh</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[100000, 200000, 500000, 1000000, 2000000, 5000000].map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => setTopUpAmount(String(preset))}
+                        className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${
+                          Number(topUpAmount) === preset
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'
+                        }`}
+                      >
+                        {preset >= 1000000
+                          ? `${(preset / 1000000).toFixed(preset % 1000000 === 0 ? 0 : 1)}tr`
+                          : `${(preset / 1000).toFixed(0)}k`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom amount */}
+                <Input
+                  label="Hoặc nhập số tiền"
+                  type="number"
+                  min="10000"
+                  max="50000000"
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  placeholder="Nhập số tiền (VND)"
+                />
+
+                {/* Amount preview */}
+                {Number(topUpAmount) > 0 && (
+                  <div className="flex items-center justify-between text-sm bg-emerald-50 rounded-[16px] px-4 py-3 border border-emerald-100">
+                    <span className="text-emerald-700 font-medium">Số tiền nạp</span>
+                    <span className="text-emerald-800 font-bold text-lg">
+                      {Number(topUpAmount).toLocaleString('vi-VN')} {currency}
+                    </span>
+                  </div>
+                )}
+
+                <Button
+                  variant="primary"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none"
+                  onClick={handleTopUp}
+                  disabled={toppingUp || !topUpAmount || Number(topUpAmount) <= 0}
+                >
+                  {toppingUp ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Đang xử lý...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                      </svg>
+                      Nạp tiền qua ZaloPay
+                    </span>
+                  )}
+                </Button>
+
+                <p className="text-xs text-slate-500">
+                  Bạn sẽ được chuyển đến trang thanh toán ZaloPay. Sau khi thanh toán thành công, số
+                  dư ví sẽ được cập nhật tự động.
+                </p>
+              </div>
+            </Card>
+
+            {/* ── Rút tiền ── */}
             <Card className="p-6 shadow-soft bg-white border border-slate-100">
               <h3 className="text-lg font-bold text-slate-900 mb-3">Rút tiền về ngân hàng</h3>
               <p className="text-sm text-slate-500 mb-4">

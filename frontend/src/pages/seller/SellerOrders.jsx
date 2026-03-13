@@ -11,6 +11,7 @@ const statusLabels = {
   held_in_escrow: 'Đang giữ escrow',
   awaiting_delivery: 'Chờ giao',
   delivered: 'Đã giao',
+  buyer_confirmed: 'Người mua đã xác nhận',
   completed: 'Hoàn tất',
   refunded: 'Đã hoàn tiền',
   disputed: 'Tranh chấp',
@@ -23,6 +24,7 @@ const statusVariants = {
   held_in_escrow: 'info',
   awaiting_delivery: 'warning',
   delivered: 'primary',
+  buyer_confirmed: 'success',
   completed: 'success',
   refunded: 'default',
   disputed: 'danger',
@@ -225,10 +227,29 @@ const SellerOrders = () => {
                     <Button
                       variant="success"
                       size="sm"
-                      disabled={actionLoading === 'shipping'}
+                      disabled={
+                        actionLoading === 'shipping' ||
+                        [
+                          'buyer_confirmed',
+                          'completed',
+                          'refunded',
+                          'cancelled',
+                          'disputed',
+                        ].includes(order.status)
+                      }
                       onClick={() => handleUpdateShipping(order)}
                     >
-                      {actionLoading === 'shipping' ? 'Đang cập nhật...' : 'Cập nhật vận chuyển'}
+                      {actionLoading === 'shipping'
+                        ? 'Đang cập nhật...'
+                        : [
+                              'buyer_confirmed',
+                              'completed',
+                              'refunded',
+                              'cancelled',
+                              'disputed',
+                            ].includes(order.status)
+                          ? 'Đã xong'
+                          : 'Cập nhật vận chuyển'}
                     </Button>
                   </div>
                 </div>

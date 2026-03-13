@@ -148,8 +148,20 @@ const Marketplace = ({ onNavigate }) => {
         const response = await bicycleApi.getAllBicycles();
         const apiData = response?.data?.data || response?.data || [];
         const mapped = apiData
-          // Chỉ hiển thị xe đang hoạt động; bỏ qua xe đã cọc/đang giữ/đang thanh toán
-          .filter((bike) => (bike?.status || '').toLowerCase() === 'active')
+          // Chỉ hiển thị xe còn bán: trạng thái active và không thuộc các trạng thái đã cọc/đang giao dich
+          .filter((bike) => {
+            const statusRaw = (bike?.status || '').toLowerCase();
+            const reservedStatuses = [
+              'reserved',
+              'pending_payment',
+              'payment_received',
+              'held_in_escrow',
+              'awaiting_delivery',
+              'buyer_confirmed',
+              'completed',
+            ];
+            return statusRaw === 'active' && !reservedStatuses.includes(statusRaw);
+          })
           .map((bike) => {
             const location = [bike?.location?.district, bike?.location?.city]
               .filter(Boolean)
@@ -162,6 +174,8 @@ const Marketplace = ({ onNavigate }) => {
               'payment_received',
               'held_in_escrow',
               'awaiting_delivery',
+              'buyer_confirmed',
+              'completed',
             ];
 
             return {

@@ -7,9 +7,12 @@ const transactionApi = {
   // Buyer: đặt cọc
   createDeposit: (payload) => axiosClient.post('/api/v1/transactions/deposit', payload),
 
-  // Buyer: thanh toán phần còn lại sau cọc
-  payRemainingBalance: (transactionId, payload = {}) =>
-    axiosClient.post(`/api/v1/transactions/${transactionId}/pay-balance`, payload),
+  // Buyer: thanh toán phần còn lại sau cọc (backend không nhận body)
+  payRemainingBalance: (transactionId) =>
+    axiosClient.post(`/api/v1/transactions/${transactionId}/pay-balance`),
+
+  // Seller: thanh toán phí đăng tin / kiểm định
+  payFee: (payload) => axiosClient.post('/api/v1/transactions/fee', payload),
 
   getMyTransactions: (params = {}) =>
     axiosClient.get('/api/v1/transactions/my-transactions', { params }),

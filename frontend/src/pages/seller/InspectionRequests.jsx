@@ -134,65 +134,23 @@ const InspectionRequests = () => {
 
       const requestData = {
         bicycleId: bicycleId,
-        inspectionType: 'online', // hoặc 'onsite' tùy theo yêu cầu
+        inspectionType: 'online',
       };
       await inspectorApi.requestInspection(requestData);
-      toast.info('Đang tạo giao dịch thanh toán...', { autoClose: 1500 });
 
-      // Tạo transaction cho phí kiểm định
-      const transactionPayload = {
-        bicycleId: bicycleId,
-        amount: INSPECTION_FEE,
+      // Chuyển sang trang xác nhận thanh toán ví
+      const params = new URLSearchParams({
         type: 'inspection_fee',
-        paymentMethod: 'e_wallet',
-      };
+        amount: String(INSPECTION_FEE),
+        bicycleId: bicycleId,
+        title: title || 'Phí kiểm định',
+        returnUrl: '/seller/inspection',
+      });
 
-      const transactionRes = await transactionApi.create(transactionPayload);
-      const transactionData = transactionRes?.data?.data || transactionRes?.data;
-
-      const paymentUrl = transactionData?.order_url;
-      const appTransId = transactionData?.app_trans_id;
-
-      if (!paymentUrl) {
-        throw new Error('Không lấy được link thanh toán từ server.');
-      }
-
-      if (!appTransId) {
-        throw new Error('Không lấy được mã giao dịch từ server.');
-      }
-
-      // Lấy transaction ID
-      let transactionId = null;
-      try {
-        const myTransactionsRes = await transactionApi.getMyTransactions();
-        const transactions = myTransactionsRes?.data?.data || myTransactionsRes?.data || [];
-
-        const foundTransaction = transactions.find(
-          (tx) => tx.payment?.transactionId === appTransId
-        );
-
-        if (foundTransaction) {
-          transactionId = foundTransaction._id;
-        } else {
-          transactionId = appTransId;
-        }
-      } catch (error) {
-        transactionId = appTransId;
-      }
-
-      // Lưu thông tin để xử lý sau khi thanh toán
-      localStorage.setItem('pendingTransactionId', transactionId);
       localStorage.setItem('pendingBicycleId', bicycleId);
       localStorage.setItem('pendingAction', 'inspection');
 
-      // Chuyển hướng sang trang thanh toán ZaloPay
-      toast.success('Đang chuyển đến trang thanh toán...', {
-        autoClose: 1500,
-      });
-
-      setTimeout(() => {
-        window.location.href = paymentUrl;
-      }, 1500);
+      navigate(`/wallet-payment?${params.toString()}`);
     } catch (error) {
       console.error('Error requesting inspection:', error);
       toast.error(error.response?.data?.message || 'Không thể gửi yêu cầu kiểm định');

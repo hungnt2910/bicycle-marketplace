@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import transactionApi from '../../api/transactionApi';
-import paymentApi from '../../api/paymentApi';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -17,11 +16,13 @@ const statusLabelMap = {
   disputed: 'Đang tranh chấp',
   cancelled: 'Đã hủy',
   deposit_paid: 'Đã đặt cọc',
+  buyer_confirmed: 'Người mua đã xác nhận',
 };
 
 const statusBadgeVariant = (status) => {
   const normalized = (status || '').toLowerCase();
-  if (['completed', 'delivered', 'payment_received'].includes(normalized)) return 'success';
+  if (['completed', 'delivered', 'payment_received', 'buyer_confirmed'].includes(normalized))
+    return 'success';
   if (['pending_payment', 'held_in_escrow', 'awaiting_delivery'].includes(normalized))
     return 'warning';
   if (['refunded', 'disputed', 'cancelled', 'canceled'].includes(normalized)) return 'danger';
@@ -40,26 +41,6 @@ const formatDateTime = (value) =>
       })
     : '--';
 
-const pollPaymentStatus = async (txId) => {
-  const MAX_ATTEMPTS = 6;
-  const DELAY_MS = 3000;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-    try {
-      const res = await paymentApi.getPaymentStatus(txId);
-      const rawStatus =
-        res?.data?.data?.status || res?.data?.status || res?.data?.data?.paymentStatus;
-      const status = (rawStatus || '').toLowerCase();
-      if (['paid', 'success', 'completed', 'payment_received', 'held_in_escrow'].includes(status))
-        return 'paid';
-      if (['failed', 'cancelled', 'canceled', 'payment_failed'].includes(status)) return 'failed';
-    } catch (err) {
-      console.error('Poll payment status error:', err);
-    }
-  }
-  return 'pending';
-};
-
 const TransactionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -67,8 +48,6 @@ const TransactionDetail = () => {
   const [tx, setTx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState('');
-  const [autoConfirming, setAutoConfirming] = useState(false);
-  const [autoConfirmAttempted, setAutoConfirmAttempted] = useState(false);
 
   const fetchDetail = async () => {
     if (!id) return;
@@ -88,37 +67,6 @@ const TransactionDetail = () => {
   useEffect(() => {
     fetchDetail();
   }, [id]);
-
-  useEffect(() => {
-    // Reset auto-confirm flag khi đổi giao dịch
-    setAutoConfirmAttempted(false);
-  }, [id]);
-
-  // Nếu giao dịch đã nhận thanh toán nhưng chưa giữ escrow, tự gọi confirm-payment một lần
-  useEffect(() => {
-    const shouldAutoConfirm =
-      !autoConfirming &&
-      !autoConfirmAttempted &&
-      tx?.status === 'pending_payment' &&
-      (!tx?.escrow?.heldAmount || !tx?.escrow?.heldAt);
-
-    if (!id || !shouldAutoConfirm) return;
-
-    const runAutoConfirm = async () => {
-      setAutoConfirming(true);
-      setAutoConfirmAttempted(true);
-      try {
-        await transactionApi.confirmPayment(id, { transactionId: tx?.payment?.transactionId });
-        await fetchDetail();
-      } catch (err) {
-        console.error('auto-confirm-payment error:', err);
-      } finally {
-        setAutoConfirming(false);
-      }
-    };
-
-    runAutoConfirm();
-  }, [id, tx, autoConfirming, autoConfirmAttempted]);
 
   if (loading) {
     return (
@@ -155,10 +103,17 @@ const TransactionDetail = () => {
     'held_in_escrow',
     'awaiting_delivery',
     'delivered',
+    'buyer_confirmed',
     'completed',
     'deposit_paid',
   ];
-  const escrowStatuses = ['held_in_escrow', 'awaiting_delivery', 'delivered', 'completed'];
+  const escrowStatuses = [
+    'held_in_escrow',
+    'awaiting_delivery',
+    'delivered',
+    'buyer_confirmed',
+    'completed',
+  ];
 
   /* ── buyer actions ── */
   const isDeposit = (tx.type || '').toLowerCase() === 'deposit';
@@ -166,15 +121,11 @@ const TransactionDetail = () => {
   const canPayBalance = isBuyer && isDeposit && ['deposit_paid'].includes(normalizedStatus);
   const canConfirmDelivery =
     isBuyer && ['awaiting_delivery', 'delivered'].includes(normalizedStatus);
-  const canCancel =
+  const canDispute =
     isBuyer &&
-    [
-      'pending_payment',
-      'payment_received',
-      'deposit_paid',
-      'held_in_escrow',
-      'awaiting_delivery',
-    ].includes(normalizedStatus);
+    ['delivered', 'buyer_confirmed', 'completed'].includes(normalizedStatus) &&
+    !tx.dispute &&
+    new Date() - new Date(tx.shipping?.deliveredAt || tx.updatedAt) < 3 * 24 * 60 * 60 * 1000;
 
   const runAction = async (label, fn) => {
     if (!id) return;
@@ -191,82 +142,24 @@ const TransactionDetail = () => {
     }
   };
 
-  const handlePayBalance = async () => {
+  const handlePayBalance = () => {
     if (!id) return;
-    setActionLoading('pay-balance');
-    try {
-      const payRes = await transactionApi.payRemainingBalance(id);
-      const txId =
-        payRes?.data?.data?.transactionId ||
-        payRes?.data?.data?._id ||
-        payRes?.data?.data?.id ||
-        payRes?.data?.transactionId ||
-        id;
-
-      // Ưu tiên URL trả về ngay từ pay-balance; fallback gọi createZaloPayOrder
-      let payUrl =
-        payRes?.data?.data?.order_url ||
-        payRes?.data?.data?.orderUrl ||
-        payRes?.data?.data?.payUrl ||
-        payRes?.data?.data?.paymentUrl ||
-        payRes?.data?.data?.deeplink ||
-        payRes?.data?.data?.deep_link;
-
-      if (!payUrl && txId) {
-        const zaloRes = await paymentApi.createZaloPayOrder(txId);
-        payUrl =
-          zaloRes?.data?.data?.orderUrl ||
-          zaloRes?.data?.data?.payUrl ||
-          zaloRes?.data?.data?.paymentUrl ||
-          zaloRes?.data?.data?.deeplink ||
-          zaloRes?.data?.data?.deep_link ||
-          zaloRes?.data?.orderUrl ||
-          zaloRes?.data?.payUrl ||
-          zaloRes?.data?.paymentUrl ||
-          zaloRes?.data?.deeplink;
-      }
-
-      if (payUrl) {
-        window.open(payUrl, '_blank', 'noopener');
-        toast.success('Đã mở trang thanh toán phần còn lại');
-      } else {
-        const rawMessage =
-          zaloRes?.data?.message ||
-          zaloRes?.data?.msg ||
-          zaloRes?.data?.error ||
-          'Không nhận được link thanh toán từ ZaloPay';
-        toast.error(rawMessage);
-      }
-
-      if (txId) {
-        const status = await pollPaymentStatus(txId);
-        if (status === 'paid') {
-          toast.success('Thanh toán phần còn lại thành công, chờ hệ thống cập nhật trạng thái');
-        } else if (status === 'failed') {
-          toast.error('Thanh toán thất bại hoặc bị hủy');
-        } else {
-          toast.info('Thanh toán đang chờ xác nhận');
-        }
-      }
-
-      await fetchDetail();
-    } catch (err) {
-      console.error('pay-balance error:', err);
-      toast.error(err?.response?.data?.message || 'Không tạo được thanh toán phần còn lại');
-    } finally {
-      setActionLoading('');
-    }
+    const remainingAmount = tx?.deposit?.remainingAmount || 0;
+    const title = tx?.bicycleId?.title || 'Xe đạp';
+    const params = new URLSearchParams({
+      type: 'pay_balance',
+      amount: String(remainingAmount),
+      transactionId: id,
+      title,
+      returnUrl: `/buyer/transactions/${id}`,
+    });
+    navigate(`/wallet-payment?${params.toString()}`);
   };
 
   const handleConfirmDelivery = () => {
     // Backend yêu cầu matchesReport là boolean; mặc định true khi buyer xác nhận đã nhận hàng
     const payload = { matchesReport: true };
     runAction('confirm', () => transactionApi.confirmDelivery(id, payload));
-  };
-
-  const handleCancel = () => {
-    const reason = window.prompt('Lý do hủy (tùy chọn)');
-    runAction('cancel', () => transactionApi.cancel(id, reason));
   };
 
   /* ── timeline steps derived from transaction state ── */
@@ -383,13 +276,12 @@ const TransactionDetail = () => {
                     {actionLoading === 'confirm' ? 'Đang xác nhận...' : 'Xác nhận đã nhận hàng'}
                   </Button>
                 )}
-                {canCancel && (
+                {canDispute && (
                   <Button
-                    variant="outline"
-                    disabled={actionLoading === 'cancel'}
-                    onClick={handleCancel}
+                    variant="danger"
+                    onClick={() => navigate(`/buyer/disputes/create?transactionId=${tx._id}`)}
                   >
-                    {actionLoading === 'cancel' ? 'Đang hủy...' : 'Hủy giao dịch'}
+                    Mở tranh chấp
                   </Button>
                 )}
               </div>

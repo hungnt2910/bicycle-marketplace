@@ -27,6 +27,10 @@ import Favourites from './pages/buyer/Favourites';
 import ZaloPayReturn from './pages/payment/ZaloPayReturn';
 import TransactionDetail from './pages/buyer/TransactionDetail';
 import Wallet from './pages/buyer/Wallet';
+import WalletPayment from './pages/buyer/WalletPayment';
+import CreateDispute from './pages/buyer/CreateDispute';
+import MyDisputes from './pages/buyer/MyDisputes';
+import DisputeDetail from './pages/buyer/DisputeDetail';
 
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
@@ -96,6 +100,8 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
       if (role === 'seller') return '/seller/wallet';
       if (role === 'admin') return '/admin/wallet';
       return '/buyer/wallet';
+    case 'disputes':
+      return '/buyer/disputes';
     case 'reputation':
       return '/seller/reputation';
     case 'inspection':
@@ -258,6 +264,38 @@ const AppRoutes = () => {
         path="/buyer/wallet"
         element={
           <PrivateRoute allowedRoles={['buyer']}>{buyerShell('wallet', <Wallet />)}</PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/disputes"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('disputes', <MyDisputes />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/disputes/create"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('disputes', <CreateDispute />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/disputes/:id"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('disputes', <DisputeDetail />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/wallet-payment"
+        element={
+          <PrivateRoute allowedRoles={['buyer', 'seller']}>
+            <WalletPayment />
+          </PrivateRoute>
         }
       />
 
