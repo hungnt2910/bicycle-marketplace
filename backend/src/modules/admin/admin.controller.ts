@@ -14,14 +14,14 @@ import { AdminService, SummaryPeriod } from './admin.service';
 import { ApiResponse } from '@nestjs/swagger/dist/decorators/api-response.decorator';
 import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
-import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/entities';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, RolesGuard)
+// @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
@@ -108,8 +108,20 @@ export class AdminController {
   //-------------------------------------------
   // sửa thông số hê thống
   @Public()
-  @Post('system-setting')
+  @Post('create-system-setting')
   @ApiOperation({ summary: 'Create system setting' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        key: { type: 'string' },
+        value: { type: 'any' },
+        description: { type: 'string' },
+        updatedBy: { type: 'string' },
+      },
+      required: ['key', 'value'],
+    },
+  })
   @ApiResponse({ status: 201, description: 'The setting has been created.' })
   @ApiResponse({ status: 400, description: 'Cannot create setting.' })
   async createSystemSetting(@Body() data: any) {
@@ -128,6 +140,18 @@ export class AdminController {
 
   @Public()
   @Patch('system-setting-update')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        key: { type: 'string' },
+        value: { type: 'any' },
+        description: { type: 'string' },
+        updatedBy: { type: 'string' },
+      },
+      required: ['key', 'value'],
+    },
+  })
   @ApiOperation({ summary: 'Update system setting' })
   @ApiResponse({ status: 200, description: 'The setting has been updated.' })
   @ApiResponse({ status: 400, description: 'Cannot update setting.' })
@@ -155,7 +179,7 @@ export class AdminController {
       const result = await this.adminService.getAllSystemSettings();
       return {
         message: 'System settings retrieved successfully',
-        data: result,
+        data: result.map((setting) => setting.name_value),
       };
     } catch (error) {
       return {

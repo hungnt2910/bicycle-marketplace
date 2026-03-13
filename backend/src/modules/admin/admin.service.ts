@@ -77,7 +77,7 @@ export class AdminService {
   // sửa thông số hê thống
   async createSystemSetting(data: SystemSetting): Promise<SystemSetting> {
     const existedSetting = await this.systemSettingModel.findOne({
-      key: data.key,
+      key: data.name_value,
     });
     if (existedSetting) {
       throw new Error('Key already exists');
@@ -95,7 +95,7 @@ export class AdminService {
   }
 
   async getAllSystemSettings(): Promise<SystemSetting[]> {
-    return await this.systemSettingModel.find().populate('category').exec();
+    return await this.systemSettingModel.find().exec();
   }
 
   async deleteSystemSetting(key: string): Promise<SystemSetting | null> {

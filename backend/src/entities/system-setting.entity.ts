@@ -1,22 +1,19 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { SettingCategory } from './category-systemField-entity';
 
 export type SystemSettingDocument = SystemSetting & Document;
+
+//bộ mô tả setting: mô tả 1 giá trị setting
+class bo_gia_tri_setting {
+  key: string;
+  value: any;
+  description?: string;
+}
 
 @Schema({ timestamps: true })
 export class SystemSetting {
   @Prop({ required: true, unique: true })
-  key: string;
-
-  @Prop({ required: true, type: Object })
-  value: any;
-
-  @Prop()
-  description?: string;
-
-  @Prop({ type: SettingCategory })
-  category?: SettingCategory;
+  name_value: [bo_gia_tri_setting];
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   updatedBy?: Types.ObjectId;
