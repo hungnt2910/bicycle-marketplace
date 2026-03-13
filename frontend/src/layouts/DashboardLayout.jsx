@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Avatar } from '../components/ui';
 import { Footer } from '../components/common';
 
@@ -9,11 +10,25 @@ const DashboardLayout = ({
   user,
   onLogout,
   isAuthenticated = false,
-  currentPage = 'dashboard',
+  currentPage,
 }) => {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auto-detect currentPage from URL if not provided
+  const detectedPage = currentPage || (() => {
+    const path = location.pathname;
+    // Extract page from path like /seller/messages -> messages
+    const match = path.match(/\/(seller|inspector|admin)\/([^/]+)/);
+    return match ? match[2] : 'dashboard';
+  })();
+
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname]);
 
   const menuItems = {
     seller: [
@@ -443,9 +458,11 @@ const DashboardLayout = ({
 
   const handleNavigateItem = (path) => {
     if (onNavigate) {
-      // Construct full path based on role
-      const fullPath =
-        role === 'seller'
+      // Nếu path bắt đầu với '/', dùng path đó trực tiếp (absolute path)
+      // Nếu không, construct path theo role
+      const fullPath = path.startsWith('/') 
+        ? path 
+        : role === 'seller'
           ? `/seller/${path}`
           : role === 'inspector'
             ? `/inspector/${path}`
@@ -458,7 +475,7 @@ const DashboardLayout = ({
   };
 
   return (
-    <div className="min-h-screen bg-warmgray-100/50 flex">
+    <div className="h-screen bg-warmgray-100/50 flex overflow-hidden">
       {/* Sidebar - Desktop — Dark matte */}
       <aside
         className={`hidden lg:flex flex-col bg-primary-900 transition-all duration-300 ${
@@ -473,7 +490,7 @@ const DashboardLayout = ({
         >
           {sidebarOpen && <div className="flex items-center gap-2"></div>}
           {!sidebarOpen && (
-            <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex flex-col items-center gap-1.5 w-full cursor-pointer" onClick={() => setSidebarOpen(true)} title="Mở rộng sidebar">
               <div className="w-9 h-9 rounded-[14px] bg-gradient-to-br from-gold to-gold-light p-1.5 shadow-md">
                 <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-primary-900">
                   <path
@@ -564,7 +581,7 @@ const DashboardLayout = ({
         {/* Menu Items — generous spacing */}
         <nav className="flex-1 px-4 py-3 space-y-2 overflow-y-auto">
           {menuItems[role].map((item, index) => {
-            const isActive = currentPage === item.path;
+            const isActive = detectedPage === item.path;
             return (
               <button
                 key={index}
@@ -639,7 +656,7 @@ const DashboardLayout = ({
             </button>
 
             {showProfile && sidebarOpen && (
-              <div className="absolute bottom-full mb-2 left-0 right-0 bg-primary-900 rounded-[14px] shadow-elevated border border-white/10 overflow-hidden z-50">
+              <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-[14px] shadow-elevated border border-white/10 overflow-hidden z-50">
                 <button
                   className="w-full px-4 py-3 text-left text-sm text-warmgray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
                   onClick={() => {
@@ -757,7 +774,7 @@ const DashboardLayout = ({
 
               <nav className="space-y-1">
                 {menuItems[role].map((item, index) => {
-                  const isActive = currentPage === item.path;
+                  const isActive = detectedPage === item.path;
                   return (
                     <button
                       key={index}
@@ -787,7 +804,7 @@ const DashboardLayout = ({
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col h-screen">
         {/* Mobile Header Bar */}
         <div className="lg:hidden sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-warmgray-200/60 h-16 flex items-center justify-between px-4">
           <button

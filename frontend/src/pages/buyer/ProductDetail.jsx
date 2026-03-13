@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Badge, Rating, Button, ImageGallery, Avatar, Modal } from '../../components/ui';
+import ChatWithSellerButton from '../../components/chat/ChatWithSellerButton';
 import bicycleApi from '../../api/postNewsApi';
 import authApi from '../../api/authApi';
 import favouriteApi from '../../api/favouriteApi';
@@ -209,6 +210,13 @@ const ProductDetail = ({ productId }) => {
         return;
       }
 
+      // Debug: Log toàn bộ bike data để xem cấu trúc
+      console.log('🚲 Full Bike Data:', bike);
+      console.log('🚲 bike.sellerId:', bike?.sellerId);
+      console.log('🚲 bike.seller:', bike?.seller);
+      console.log('🚲 bike.userId:', bike?.userId);
+      console.log('🚲 bike.createdBy:', bike?.createdBy);
+
       const location = [bike?.location?.district, bike?.location?.city].filter(Boolean).join(', ');
 
       const images = bike?.media?.images?.length
@@ -225,6 +233,22 @@ const ProductDetail = ({ productId }) => {
       const sellerIdName = sellerFromId
         ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
         : '';
+
+      // Tìm sellerId từ nhiều nguồn có thể
+      const extractedSellerId = 
+        bike?.sellerId?._id || 
+        bike?.sellerId?.id || 
+        bike?.sellerId ||
+        bike?.seller?._id || 
+        bike?.seller?.id ||
+        bike?.userId?._id ||
+        bike?.userId?.id ||
+        bike?.userId ||
+        bike?.createdBy?._id ||
+        bike?.createdBy?.id ||
+        bike?.createdBy;
+
+      console.log('✅ Extracted Seller ID:', extractedSellerId);
 
       const statusRaw = (bike?.status || '').toLowerCase();
       const mappedProduct = {
@@ -245,6 +269,7 @@ const ProductDetail = ({ productId }) => {
           statusRaw
         ),
         isSold: ['sold', 'inactive', 'deactivated'].includes(statusRaw),
+        sellerId: extractedSellerId,
         seller: {
           name:
             sellerIdName ||
@@ -289,6 +314,9 @@ const ProductDetail = ({ productId }) => {
           : null,
         rawType: bike?.specifications?.type || '',
       };
+
+      console.log('📦 Mapped Product with sellerId:', mappedProduct.sellerId);
+      console.log('📦 Full Mapped Product:', mappedProduct);
 
       setProduct(mappedProduct);
 
@@ -749,9 +777,11 @@ const ProductDetail = ({ productId }) => {
                     Đặt cọc
                   </button>
 
-                  <button className="w-full px-6 py-4 bg-white border-2 border-primary-800 text-primary-800 font-bold rounded-[16px] hover:bg-primary-800/5 transition-all duration-200">
-                    Chat với người bán
-                  </button>
+                  <ChatWithSellerButton
+                    sellerId={product.sellerId}
+                    productId={product.id}
+                    sellerName={product.seller.name}
+                  />
 
                   <Button
                     variant="primary"

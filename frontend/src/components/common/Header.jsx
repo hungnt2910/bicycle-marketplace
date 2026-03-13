@@ -344,6 +344,28 @@ const Header = ({
                             Ví của tôi
                           </button>
                         )}
+                        {role === 'buyer' && (
+                          <button
+                            className="w-full px-4 py-2.5 flex items-center gap-2 text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors"
+                            onClick={() => handleNavigate('chat')}
+                            title="Tin nhắn"
+                          >
+                            <svg
+                              className="w-5 h-5 text-primary-800"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                              />
+                            </svg>
+                            Tin nhắn
+                          </button>
+                        )}
                       </div>
 
                       <div className="border-t border-warmgray-100">
