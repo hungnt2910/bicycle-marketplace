@@ -550,6 +550,47 @@ export class WalletService {
   }
 
   /**
+   * List withdrawal requests (admin)
+   */
+  async getWithdrawalRequests(filters?: {
+    status?: WalletTransactionStatus;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    transactions: WalletTransactionDocument[];
+    total: number;
+    page: number;
+    pages: number;
+  }> {
+    const query: any = { type: WalletTransactionType.WITHDRAWAL };
+
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [transactions, total] = await Promise.all([
+      this.walletTransactionModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.walletTransactionModel.countDocuments(query),
+    ]);
+
+    return {
+      transactions,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
    * Charge seller a listing fee when posting a bicycle
    */
   // async chargeListingFee(

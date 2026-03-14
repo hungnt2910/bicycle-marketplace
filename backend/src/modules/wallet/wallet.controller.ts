@@ -21,7 +21,10 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { WalletService, EscrowRole } from './wallet.service';
-import { WalletTransactionType } from '../../entities/wallet-transaction.entity';
+import {
+  WalletTransactionType,
+  WalletTransactionStatus,
+} from '../../entities/wallet-transaction.entity';
 import { IsNumber, Min, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -188,6 +191,25 @@ export class WalletController {
       amount,
       { bankName, accountNumber, accountHolder },
     );
+  }
+
+  @Get('withdrawals')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin: list withdrawal requests' })
+  @ApiQuery({ name: 'status', enum: WalletTransactionStatus, required: false })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'limit', type: Number, required: false })
+  async getWithdrawalRequests(
+    @Query('status') status?: WalletTransactionStatus,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.walletService.getWithdrawalRequests({
+      status: status as WalletTransactionStatus,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Post('withdrawals/:id/accept')
