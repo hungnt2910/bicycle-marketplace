@@ -70,6 +70,9 @@ export class TransactionsService {
       }
     }
 
+    bicycle.status = BicycleStatus.RESERVED;
+    await bicycle.save();
+
     const existingTransaction = await this.transactionModel.findOne({
       bicycleId,
       status: {
@@ -152,6 +155,16 @@ export class TransactionsService {
     // Debit fee directly from buyer's wallet — no escrow
     await this.walletService.debit(
       buyerId,
+      amount,
+      type === TransactionType.FEE
+        ? WalletTransactionType.FEE
+        : WalletTransactionType.INSPECTION_FEE,
+      `${type === TransactionType.FEE ? 'Listing' : 'Inspection'} fee for bicycle ${bicycleId}`,
+      { transactionId: txId, bicycleId },
+    );
+
+    await this.walletService.credit(
+      "69a99cf15fed8cceac0458cf", // Platform wallet userId
       amount,
       type === TransactionType.FEE
         ? WalletTransactionType.FEE
@@ -350,6 +363,14 @@ export class TransactionsService {
     confirmationData: { matchesReport: boolean; notes?: string },
   ): Promise<Transaction> {
     const transaction = await this.transactionModel.findById(transactionId);
+
+    const bicycle = await this.bicycleModel.findById(transaction?.bicycleId);
+    if(!bicycle) {
+      throw new BadRequestException('Bicycle not found');
+    }
+    bicycle.status = BicycleStatus.SOLD;
+    await bicycle.save();
+
 
     if (!transaction) throw new BadRequestException('Transaction not found');
 

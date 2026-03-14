@@ -175,45 +175,31 @@ const TransactionManagement = () => {
       </div>
 
       {/* Transaction List */}
-      <div className="lux-panel">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-warmgray-50 border-b border-warmgray-200">
+      <div className="lux-panel p-0 overflow-hidden w-full">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-warmgray-50 border-b border-warmgray-200 text-warmgray-700 divide-x divide-warmgray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
-                  Mã GD
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
-                  Loại
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
-                  Thông tin
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
-                  Số tiền
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
-                  Trạng thái
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
-                  Ngày GD
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-warmgray-500 uppercase">
-                  Thao tác
-                </th>
+                <th className="py-3 px-3 font-semibold text-xs whitespace-nowrap">Mã GD</th>
+                <th className="py-3 px-3 font-semibold text-xs whitespace-nowrap">Loại</th>
+                <th className="py-3 px-3 font-semibold text-xs">Thông tin</th>
+                <th className="py-3 px-3 font-semibold text-xs whitespace-nowrap">Số tiền</th>
+                <th className="py-3 px-3 font-semibold text-xs whitespace-nowrap">Trạng thái</th>
+                <th className="py-3 px-3 font-semibold text-xs">Ngày GD</th>
+                <th className="py-3 px-3 font-semibold text-xs text-center whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-warmgray-200">
               {loading && (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-warmgray-600">
+                  <td colSpan="7" className="py-8 px-4 text-center text-warmgray-500">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               )}
               {!loading && filteredTransactions.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-warmgray-600">
+                  <td colSpan="7" className="py-8 px-4 text-center text-warmgray-500">
                     Chưa có giao dịch escrow nào
                   </td>
                 </tr>
@@ -229,15 +215,20 @@ const TransactionManagement = () => {
                   const seller = txn?.sellerId?.email || 'Người bán';
                   const bikeName = txn?.bicycleId?.title || 'Xe đạp';
                   const amount = Number(txn?.amount || 0);
+                  const displayId = txn._id || txn.id || '';
                   return (
-                    <tr key={txn._id || txn.id} className="hover:bg-warmgray-50">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="font-medium text-primary-900">{txn._id || txn.id}</div>
-                          <div className="text-xs text-warmgray-500">{txn?.orderId || '—'}</div>
+                    <tr key={displayId} className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200">
+                      <td className="py-3 px-3 align-middle whitespace-nowrap">
+                        <div className="font-medium text-primary-900 font-mono text-sm" title={displayId}>
+                          {displayId.length > 6 ? `${displayId.slice(0, 6)}...` : displayId}
                         </div>
+                        {txn?.orderId && (
+                           <div className="text-xs text-warmgray-500 mt-1" title={txn.orderId}>
+                             Ord: {txn.orderId.length > 6 ? `${txn.orderId.slice(0, 6)}...` : txn.orderId}
+                           </div>
+                        )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="py-3 px-3 align-middle whitespace-nowrap">
                         <Badge
                           variant={
                             type === 'deposit'
@@ -250,29 +241,25 @@ const TransactionManagement = () => {
                           {typeLabels[type] || type || 'Khác'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-primary-900">{bikeName}</div>
-                          <div className="text-xs text-warmgray-600">Người mua: {buyer}</div>
-                          <div className="text-xs text-warmgray-600">Người bán: {seller}</div>
-                          <div className="text-xs text-warmgray-500 mt-1">
-                            {paymentMethodLabels[txn.paymentMethod] || txn.paymentMethod || '—'}
-                          </div>
+                      <td className="py-3 px-3 align-middle">
+                        <div className="text-sm font-medium text-primary-900 mb-1 leading-tight line-clamp-2" title={bikeName}>{bikeName}</div>
+                        <div className="text-xs text-warmgray-600 truncate max-w-[150px] sm:max-w-[200px]" title={buyer}><span className="font-medium text-warmgray-800">Mua:</span> {buyer}</div>
+                        <div className="text-xs text-warmgray-600 truncate max-w-[150px] sm:max-w-[200px]" title={seller}><span className="font-medium text-warmgray-800">Bán:</span> {seller}</div>
+                        <div className="text-[11px] text-warmgray-500 mt-1 uppercase tracking-wider font-semibold">
+                          {paymentMethodLabels[txn.paymentMethod] || txn.paymentMethod || '—'}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-lg font-bold text-primary-900">
-                            {(amount / 1000000).toFixed(2)}M ₫
-                          </div>
-                          {txn.escrow?.heldAmount && (
-                            <div className="text-xs text-warmgray-500">
-                              Escrow: {(Number(txn.escrow.heldAmount) / 1000000).toFixed(2)}M ₫
-                            </div>
-                          )}
+                      <td className="py-3 px-3 align-middle whitespace-nowrap">
+                        <div className="text-sm font-bold text-primary-700">
+                          {(amount / 1000000).toFixed(2)}M ₫
                         </div>
+                        {txn.escrow?.heldAmount && (
+                          <div className="text-[11px] text-warmgray-500 mt-0.5" title={`${txn.escrow.heldAmount} ₫`}>
+                            Giữ: {(Number(txn.escrow.heldAmount) / 1000000).toFixed(2)}M ₫
+                          </div>
+                        )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="py-3 px-3 align-middle whitespace-nowrap">
                         <Badge
                           variant={
                             status === 'completed'
@@ -287,26 +274,25 @@ const TransactionManagement = () => {
                           {statusLabels[status] || status || '—'}
                         </Badge>
                         {txn.escrow?.autoReleaseDeadline && (
-                          <div className="text-xs text-warmgray-500 mt-1">
-                            Ký quỹ đến {txn.escrow.autoReleaseDeadline?.slice(0, 10)}
+                          <div className="text-[11px] text-warmgray-500 mt-1 whitespace-nowrap">
+                            Ký quỹ đến:<br/>{txn.escrow.autoReleaseDeadline?.slice(0, 10)}
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-primary-900">
-                          {txn.createdAt ? new Date(txn.createdAt).toLocaleString('vi-VN') : '—'}
+                      <td className="py-3 px-3 align-middle whitespace-nowrap">
+                        <div className="text-xs text-warmgray-800">
+                          {txn.createdAt ? new Date(txn.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
                         </div>
                         {txn.shipping?.deliveredAt && (
-                          <div className="text-xs text-success">
+                          <div className="text-[11px] text-success-700 font-medium whitespace-nowrap mt-1">
                             Giao: {new Date(txn.shipping.deliveredAt).toLocaleDateString('vi-VN')}
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="success"
+                      <td className="py-3 px-3 align-middle text-center">
+                        <div className="flex flex-col gap-1.5 w-[80px] mx-auto">
+                          <button
+                            className="w-full px-2 py-1 bg-success text-white rounded-[6px] hover:bg-green-700 text-xs font-medium transition-colors disabled:opacity-50 text-center tracking-wide"
                             disabled={actionLoading === `release-${txn._id || txn.id}`}
                             onClick={() =>
                               runAction(`release-${txn._id || txn.id}`, () =>
@@ -315,12 +301,11 @@ const TransactionManagement = () => {
                             }
                           >
                             {actionLoading === `release-${txn._id || txn.id}`
-                              ? 'Đang giải ngân...'
-                              : 'Release escrow'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
+                              ? 'Đang...'
+                              : 'Release'}
+                          </button>
+                          <button
+                            className="w-full px-2 py-1 border border-red-300 bg-white text-danger rounded-[6px] hover:bg-danger/5 text-xs font-medium transition-colors disabled:opacity-50 text-center tracking-wide"
                             disabled={actionLoading === `refund-${txn._id || txn.id}`}
                             onClick={() => {
                               const confirmRefund = window.confirm('Hoàn escrow về buyer?');
@@ -331,9 +316,9 @@ const TransactionManagement = () => {
                             }}
                           >
                             {actionLoading === `refund-${txn._id || txn.id}`
-                              ? 'Đang hoàn...'
-                              : 'Refund escrow'}
-                          </Button>
+                              ? 'Đang...'
+                              : 'Refund'}
+                          </button>
                         </div>
                       </td>
                     </tr>

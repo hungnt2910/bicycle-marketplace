@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CompareProvider } from './contexts/CompareContext';
+import { ChatProvider } from './contexts/ChatContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -32,6 +33,8 @@ import CreateDispute from './pages/buyer/CreateDispute';
 import MyDisputes from './pages/buyer/MyDisputes';
 import DisputeDetail from './pages/buyer/DisputeDetail';
 
+import ChatPage from './pages/buyer/ChatPage';
+
 // Seller Pages
 import SellerDashboard from './pages/seller/SellerDashboard';
 import CreateListing from './pages/seller/CreateListing';
@@ -39,6 +42,7 @@ import EditListing from './pages/seller/EditListing';
 // import CreateListingEnhanced from './pages/seller/CreateListingEnhanced';
 import ManageListings from './pages/seller/ManageListings';
 import SellerOrders from './pages/seller/SellerOrders';
+import SellerFees from './pages/seller/SellerFees';
 import Reputation from './pages/seller/Reputation';
 import InspectionRequests from './pages/seller/InspectionRequests';
 import Messages from './pages/seller/Messages';
@@ -55,6 +59,7 @@ import TransactionManagement from './pages/admin/TransactionManagement';
 import SystemReports from './pages/admin/SystemReports';
 import SystemSettings from './pages/admin/SystemSettings';
 import UserManagement from './pages/admin/UserManagement';
+import WithdrawalApprovals from './pages/admin/WithdrawalApprovals';
 
 // Route Guard
 import PrivateRoute from './routes/PrivateRoute';
@@ -108,6 +113,8 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
       return '/seller/inspection';
     case 'messages':
       return '/seller/messages';
+    case 'chat':
+      return '/chat';
     default:
       return '/';
   }
@@ -298,6 +305,14 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/chat"
+        element={
+          <PrivateRoute allowedRoles={['buyer', 'seller']}>
+            <ChatPage />
+          </PrivateRoute>
+        }
+      />
 
       {/* Seller protected */}
       <Route
@@ -403,6 +418,22 @@ const AppRoutes = () => {
               isAuthenticated={isAuthenticated}
             >
               <SellerOrders />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/fees"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <SellerFees />
             </DashboardLayout>
           </PrivateRoute>
         }
@@ -537,6 +568,23 @@ const AppRoutes = () => {
               isAuthenticated={isAuthenticated}
             >
               <Wallet />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/withdrawals"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              currentPage="withdrawals"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <WithdrawalApprovals />
             </DashboardLayout>
           </PrivateRoute>
         }
@@ -704,21 +752,23 @@ const AppRoutes = () => {
 const App = () => (
   <AuthProvider>
     <CompareProvider>
-      <BrowserRouter>
-        <AppRoutes />
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
-      </BrowserRouter>
+      <ChatProvider>
+        <BrowserRouter>
+          <AppRoutes />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+        </BrowserRouter>
+      </ChatProvider>
     </CompareProvider>
   </AuthProvider>
 );

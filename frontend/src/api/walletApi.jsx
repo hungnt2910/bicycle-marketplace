@@ -15,6 +15,12 @@ const walletApi = {
 
   // Withdraw to bank
   requestWithdrawal: (payload) => axiosClient.post('/api/v1/wallet/withdraw', payload),
+
+  // Admin: list withdrawal requests
+  getWithdrawals: (params = {}) => axiosClient.get('/api/v1/wallet/withdrawals', { params }),
+
+  // Admin: accept a pending withdrawal request
+  acceptWithdrawal: (id) => axiosClient.post(`/api/v1/wallet/withdrawals/${id}/accept`),
 };
 
 export default walletApi;

@@ -30,6 +30,10 @@ class RequestWithdrawalDto {
   accountHolder: string;
 }
 
+class CreateWalletDto {
+  userId?: string;
+}
+
 @ApiTags('Wallet')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)

@@ -416,121 +416,167 @@ const BuyerDashboard = () => {
                   </Button>
                 </div>
               ) : (
-                <>
-                  {/* Table header */}
-                  <div
-                    className="grid grid-cols-12 px-6 py-3 text-xs font-bold uppercase tracking-wider"
-                    style={{
-                      color: 'var(--lux-gray-400)',
-                      borderBottom: '1px solid var(--lux-gray-100)',
-                      backgroundColor: 'var(--lux-gray-50)',
-                    }}
-                  >
-                    <span className="col-span-5">Sản phẩm</span>
-                    <span className="col-span-2 text-center">Ngày</span>
-                    <span className="col-span-2 text-center">Mã GD</span>
-                    <span className="col-span-2 text-right">Số tiền</span>
-                    <span className="col-span-1"></span>
-                  </div>
-
-                  {recentOrders.map((order, idx) => (
-                    <div
-                      key={order.id}
-                      className="group grid grid-cols-12 items-center px-6 py-4 cursor-pointer transition-colors duration-150"
-                      style={{
-                        borderBottom:
-                          idx < recentOrders.length - 1 ? '1px solid var(--lux-gray-100)' : 'none',
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)')
-                      }
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      onClick={() => goToTransaction(order.id)}
-                    >
-                      {/* Product */}
-                      <div className="col-span-5 flex items-center gap-3 min-w-0">
-                        <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: 'var(--lux-gray-100)' }}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse" style={{ minWidth: '700px' }}>
+                    <thead>
+                      <tr
+                        className="text-xs font-bold uppercase tracking-wider"
+                        style={{
+                          color: 'var(--lux-gray-400)',
+                          backgroundColor: 'var(--lux-gray-50)',
+                        }}
+                      >
+                        <th
+                          className="px-5 py-4 font-bold border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
                         >
-                          <svg
-                            className="w-4 h-4"
-                            style={{ color: 'var(--lux-gray-400)' }}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                          Sản phẩm
+                        </th>
+                        <th
+                          className="px-5 py-4 font-bold text-center border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Ngày
+                        </th>
+                        <th
+                          className="px-5 py-4 font-bold text-center border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Mã GD
+                        </th>
+                        <th
+                          className="px-5 py-4 font-bold text-right border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Số tiền
+                        </th>
+                        <th
+                          className="px-5 py-4 border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        ></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentOrders.map((order, idx) => (
+                        <tr
+                          key={order.id}
+                          className="group cursor-pointer transition-colors duration-150"
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                          onClick={() => goToTransaction(order.id)}
+                        >
+                          {/* Product */}
+                          <td
+                            className="px-5 py-4 align-middle border"
+                            style={{ borderColor: 'var(--lux-gray-100)', minWidth: '300px' }}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                            />
-                          </svg>
-                        </div>
-                        <div className="min-w-0">
-                          <p
-                            className="text-sm font-semibold truncate"
-                            style={{ color: 'var(--lux-primary-900)' }}
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: 'var(--lux-gray-100)' }}
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  style={{ color: 'var(--lux-gray-400)' }}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                                  />
+                                </svg>
+                              </div>
+                              <div>
+                                <p
+                                  className="text-sm font-semibold whitespace-normal break-words"
+                                  style={{ color: 'var(--lux-primary-900)' }}
+                                >
+                                  {order.bike}
+                                </p>
+                                <Badge
+                                  variant={statusBadgeVariant(order.rawStatus)}
+                                  className="mt-0.5"
+                                >
+                                  {order.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Date */}
+                          <td
+                            className="px-5 py-4 align-middle text-center whitespace-nowrap border"
+                            style={{ borderColor: 'var(--lux-gray-100)' }}
                           >
-                            {order.bike}
-                          </p>
-                          <Badge variant={statusBadgeVariant(order.rawStatus)} className="mt-0.5">
-                            {order.status}
-                          </Badge>
-                        </div>
-                      </div>
+                            <p className="text-xs" style={{ color: 'var(--lux-gray-500)' }}>
+                              {order.date}
+                            </p>
+                          </td>
 
-                      {/* Date */}
-                      <div className="col-span-2 text-center">
-                        <p className="text-xs" style={{ color: 'var(--lux-gray-500)' }}>
-                          {order.date}
-                        </p>
-                      </div>
+                          {/* ID */}
+                          <td
+                            className="px-5 py-4 align-middle text-center whitespace-nowrap border"
+                            style={{ borderColor: 'var(--lux-gray-100)' }}
+                          >
+                            <span
+                              className="text-xs font-mono px-2 py-0.5 rounded-lg"
+                              style={{
+                                backgroundColor: 'var(--lux-gray-100)',
+                                color: 'var(--lux-gray-500)',
+                              }}
+                            >
+                              #{order.id.slice(-6).toUpperCase()}
+                            </span>
+                          </td>
 
-                      {/* ID */}
-                      <div className="col-span-2 text-center">
-                        <span
-                          className="text-xs font-mono px-2 py-0.5 rounded-lg"
-                          style={{
-                            backgroundColor: 'var(--lux-gray-100)',
-                            color: 'var(--lux-gray-500)',
-                          }}
-                        >
-                          #{order.id.slice(-6).toUpperCase()}
-                        </span>
-                      </div>
+                          {/* Amount */}
+                          <td
+                            className="px-5 py-4 align-middle text-right whitespace-nowrap border"
+                            style={{ borderColor: 'var(--lux-gray-100)' }}
+                          >
+                            <p
+                              className="text-sm font-bold"
+                              style={{ color: 'var(--lux-primary-800)' }}
+                            >
+                              {formatCurrency(order.price)} ₫
+                            </p>
+                          </td>
 
-                      {/* Amount */}
-                      <div className="col-span-2 text-right">
-                        <p
-                          className="text-sm font-bold"
-                          style={{ color: 'var(--lux-primary-800)' }}
-                        >
-                          {formatCurrency(order.price)} ₫
-                        </p>
-                      </div>
-
-                      {/* Arrow */}
-                      <div className="col-span-1 flex justify-end">
-                        <svg
-                          className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
-                          style={{ color: 'var(--lux-gray-300)' }}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  ))}
-                </>
+                          {/* Arrow */}
+                          <td
+                            className="px-5 py-4 align-middle border"
+                            style={{ borderColor: 'var(--lux-gray-100)', width: '48px' }}
+                          >
+                            <div className="flex justify-end">
+                              <svg
+                                className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+                                style={{ color: 'var(--lux-gray-300)' }}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
 
               {/* Pagination footer */}
@@ -559,15 +605,6 @@ const BuyerDashboard = () => {
                       {filteredTransactions.length} giao dịch
                     </p>
                   )}
-                  <button
-                    onClick={() => navigate('/buyer/transactions')}
-                    className="text-xs font-semibold transition-colors"
-                    style={{ color: 'var(--lux-primary-700)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--lux-primary-900)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--lux-primary-700)')}
-                  >
-                    Xem toàn bộ lịch sử →
-                  </button>
                 </div>
               )}
             </div>
@@ -707,62 +744,6 @@ const BuyerDashboard = () => {
                   >
                     {completedOrders}
                   </span>
-                </div>
-              </div>
-
-              {/* Quick actions */}
-              <div className="px-5 pb-5" style={{ backgroundColor: 'white' }}>
-                <div className="pt-4 mb-4" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
-                  <p
-                    className="text-xs font-bold uppercase tracking-widest mb-3"
-                    style={{ color: 'var(--lux-gray-400)' }}
-                  >
-                    Hành động nhanh
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                      style={{
-                        border: '1.5px solid var(--lux-gray-200)',
-                        color: 'var(--lux-gray-700)',
-                        backgroundColor: 'var(--lux-gray-50)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--lux-primary-800)';
-                        e.currentTarget.style.color = 'var(--lux-primary-800)';
-                        e.currentTarget.style.backgroundColor = 'white';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--lux-gray-200)';
-                        e.currentTarget.style.color = 'var(--lux-gray-700)';
-                        e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)';
-                      }}
-                      onClick={() => navigate('/market')}
-                    >
-                      🛒 Mua xe
-                    </button>
-                    <button
-                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                      style={{
-                        border: '1.5px solid var(--lux-gray-200)',
-                        color: 'var(--lux-gray-700)',
-                        backgroundColor: 'var(--lux-gray-50)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--lux-primary-800)';
-                        e.currentTarget.style.color = 'var(--lux-primary-800)';
-                        e.currentTarget.style.backgroundColor = 'white';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--lux-gray-200)';
-                        e.currentTarget.style.color = 'var(--lux-gray-700)';
-                        e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)';
-                      }}
-                      onClick={() => navigate('/buyer/profile')}
-                    >
-                      👤 Hồ sơ
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
