@@ -47,4 +47,12 @@ export class ResolveDisputeDto {
   })
   @IsString()
   notes: string;
+
+  @ApiProperty({
+    example: true,
+    required: false,
+    description: 'Whether buyer must return the bicycle before refund'
+  })
+  @IsOptional()
+  readonly requireReturn?: boolean;
 }

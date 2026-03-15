@@ -20,6 +20,9 @@ export enum DisputeStatus {
   RESOLVED_BUYER_FAVOR = 'resolved_buyer_favor',
   RESOLVED_SELLER_FAVOR = 'resolved_seller_favor',
   RESOLVED_PARTIAL_REFUND = 'resolved_partial_refund',
+  RETURN_REQUESTED = 'return_requested',
+  AWAITING_SELLER_CONFIRMATION = 'awaiting_seller_confirmation',
+  RETURN_RECEIVED = 'return_received',
   CLOSED = 'closed',
 }
 
@@ -62,7 +65,24 @@ class Resolution {
   notes?: string;
 
   @Prop()
+  requireReturn?: boolean;
+
+  @Prop()
   resolvedAt?: Date;
+}
+
+class ReturnInfo {
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  sentByBuyerId?: Types.ObjectId;
+
+  @Prop()
+  trackingInfo?: string;
+
+  @Prop()
+  sentAt?: Date;
+
+  @Prop()
+  sellerConfirmedAt?: Date;
 }
 
 class TimelineEntry {
@@ -110,6 +130,9 @@ export class Dispute {
 
   @Prop({ type: Resolution })
   resolution?: Resolution;
+
+  @Prop({ type: ReturnInfo })
+  returnInfo?: ReturnInfo;
 
   @Prop({ type: [TimelineEntry], default: [] })
   timeline?: TimelineEntry[];
