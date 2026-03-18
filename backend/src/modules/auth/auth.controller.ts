@@ -1,13 +1,19 @@
-import { 
-  Controller, 
-  Post, 
-  Body, 
-  Get, 
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
   UseGuards,
   HttpCode,
-  HttpStatus 
+  HttpStatus,
+  Param,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { GetUser } from '../../common/decorators/get-user.decorator';
@@ -73,6 +79,23 @@ export class AuthController {
     return {
       message: 'Profile retrieved successfully',
       data: profile,
+    };
+  }
+
+  @Public()
+  @Post('verify-seller/:id')
+  @ApiOperation({ summary: 'Verify seller role' })
+  @ApiResponse({
+    status: 200,
+    description: 'Seller role verified successfully',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async verifySellerRole(@Param('id') userId: string) {
+    const updatedUser = await this.authService.verifySellerRole(userId);
+    return {
+      message: 'Seller role verified successfully',
+      data: updatedUser,
     };
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -13,29 +17,64 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<{ user: User; accessToken: string }> {
-    // Create new user
-    const user = await this.usersService.create(registerDto);
+  async register(
+    registerDto: RegisterDto,
+  ): Promise<{ user: User; accessToken: string }> {
+    const { role, ...newData } = registerDto;
+    if (registerDto.role !== 'seller') {
+      // Create new user
+
+      const newDataToSave = {
+        ...newData,
+        role: 'buyer', // Thay đổi/ghi đè giá trị role ở đây
+      };
+      const user = await this.usersService.create(newDataToSave);
+
+      // Generate JWT token
+      const payload: JwtPayload = {
+        id: user._id.toString(),
+        email: user.email,
+        role: 'buyer',
+      };
+
+      const accessToken = this.jwtService.sign(payload);
+
+      // Remove password from response
+      const userObject = this.sanitizeUser(user);
+      return {
+        user: userObject,
+        accessToken,
+      };
+    }
+
+    const newDataToSave = {
+      ...newData,
+      role: 'buyer', // Thay đổi/ghi đè giá trị role ở đây
+    };
+    const user = await this.usersService.create(newDataToSave);
 
     // Generate JWT token
     const payload: JwtPayload = {
       id: user._id.toString(),
       email: user.email,
-      role: user.role,
+      role: 'buyer',
     };
 
     const accessToken = this.jwtService.sign(payload);
 
     // Remove password from response
     const userObject = this.sanitizeUser(user);
-
     return {
       user: userObject,
       accessToken,
     };
   }
 
-  async signIn(signInDto: SignInDto): Promise<{ user: User; accessToken: string }> {
+  // check tài khoản được tạo là buyer hay seller, để verify cccd được làm hay không
+
+  async signIn(
+    signInDto: SignInDto,
+  ): Promise<{ user: User; accessToken: string }> {
     const { email, password } = signInDto;
 
     // Find user by email
@@ -80,7 +119,7 @@ export class AuthService {
 
   async validateUser(payload: JwtPayload): Promise<User> {
     const user = await this.usersService.findById(payload.id);
-    
+
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
@@ -94,9 +133,25 @@ export class AuthService {
     return userObject;
   }
 
+  // verify role seller nếu là buyer thì update thành seller, và verifiedRoleSeller = true
+  async verifySellerRole(userId: string): Promise<User> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Update user role to seller
+    const updatedUser = await this.usersService.findAndUpdate(userId, 'seller');
+
+    return updatedUser;
+  }
+
   private sanitizeUser(user: any) {
     if (!user) return user;
-    const obj = typeof user.toObject === 'function' ? user.toObject() : JSON.parse(JSON.stringify(user));
+    const obj =
+      typeof user.toObject === 'function'
+        ? user.toObject()
+        : JSON.parse(JSON.stringify(user));
     delete obj.password;
     return obj;
   }

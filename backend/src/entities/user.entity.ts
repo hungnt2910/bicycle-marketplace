@@ -51,6 +51,9 @@ export class User {
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
 
+  @Prop({ default: false })
+  verifiedRoleSeller?: boolean;
+
   @Prop()
   firstName?: string;
 
