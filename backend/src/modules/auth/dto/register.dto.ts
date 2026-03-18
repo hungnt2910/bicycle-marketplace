@@ -75,11 +75,14 @@ export class RegisterDto {
   lastName?: string;
 
   @ApiProperty({
-    example: 'https://example.com/avatar.jpg',
+    example:
+      '"https://example.com/avatar.jpg","https://example.com/avatar.jpg"',
     description: 'Avatar URL (optional)',
     required: false,
   })
   @IsOptional()
-  @IsString()
-  cccd?: [];
+  CCCD?: Array<{
+    frontImage: string;
+    backImage: string;
+  }>;
 }

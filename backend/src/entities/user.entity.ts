@@ -88,6 +88,12 @@ export class User {
   verifiedEmail?: boolean;
 
   @Prop()
+  CCCD?: Array<{
+    frontImage: string;
+    backImage: string;
+  }>;
+
+  @Prop()
   createdAt?: Date;
 
   @Prop()
