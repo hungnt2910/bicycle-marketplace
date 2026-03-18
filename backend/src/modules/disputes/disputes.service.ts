@@ -189,8 +189,14 @@ export class DisputesService {
       throw new BadRequestException('Transaction not found');
     }
 
-    const { decision, refundAmount, penaltyToSeller, penaltyToBuyer, notes } =
-      resolveDto;
+    const {
+      decision,
+      refundAmount,
+      penaltyToSeller,
+      penaltyToBuyer,
+      notes,
+      requireReturn,
+    } = resolveDto;
 
     // Update dispute resolution
     dispute.resolution = {
@@ -204,14 +210,27 @@ export class DisputesService {
 
     // Update status based on decision
     if (decision === 'buyer_favor') {
-      dispute.status = DisputeStatus.RESOLVED_BUYER_FAVOR;
+      // If admin requires the buyer to return the bicycle first,
+      // set the dispute to a return-requested state and wait for the
+      // buyer to ship and seller to confirm before refunding.
+      if (requireReturn) {
+        dispute.status = DisputeStatus.RETURN_REQUESTED;
+        // if (!dispute.resolution) dispute.resolution = {} as any;
+        dispute.resolution.requireReturn = true;
 
-      // Refund buyer
-      await this.escrowService.refundFunds(transaction);
-      transaction.status = TransactionStatus.REFUNDED;
+        disputeTimeline.push({
+          action: 'Return requested by admin',
+          performedBy: adminId as any,
+          notes: 'Buyer must return bicycle to seller before refund',
+          timestamp: new Date(),
+        } as any);
+      } else {
+        dispute.status = DisputeStatus.RESOLVED_BUYER_FAVOR;
 
-      // Optional: Ban/suspend seller if fraud detected
-      // await this.usersService.suspendUser(transaction.sellerId);
+        // Refund buyer immediately
+        await this.escrowService.refundFunds(transaction);
+        transaction.status = TransactionStatus.REFUNDED;
+      }
     } else if (decision === 'seller_favor') {
       dispute.status = DisputeStatus.RESOLVED_SELLER_FAVOR;
 
@@ -258,6 +277,80 @@ export class DisputesService {
     //     entityId: dispute._id,
     //   },
     // });
+
+    return dispute;
+  }
+
+  // Buyer marks bicycle as sent back to seller (with optional tracking info)
+  async markReturnSent(
+    disputeId: string,
+    buyerId: string,
+    trackingInfo?: string,
+  ): Promise<Dispute> {
+    const dispute = await this.disputeModel.findById(disputeId);
+    if (!dispute) throw new BadRequestException('Dispute not found');
+
+    if (dispute.status !== DisputeStatus.RETURN_REQUESTED) {
+      throw new BadRequestException('Return not requested for this dispute');
+    }
+
+    if (dispute.reporterId.toString() !== buyerId) {
+      throw new ForbiddenException('Only reporting buyer can mark return sent');
+    }
+
+    dispute.returnInfo = {
+      sentByBuyerId: buyerId as any,
+      trackingInfo,
+      sentAt: new Date(),
+    } as any;
+
+    dispute.status = DisputeStatus.AWAITING_SELLER_CONFIRMATION;
+    dispute.timeline = dispute.timeline || [];
+    dispute.timeline.push({
+      action: 'Buyer marked return sent',
+      performedBy: buyerId as any,
+      notes: trackingInfo,
+      timestamp: new Date(),
+    } as any);
+
+    await dispute.save();
+    return dispute;
+  }
+
+  // Seller confirms they have received the returned bicycle — release refund
+  async sellerConfirmReceived(disputeId: string, sellerId: string): Promise<Dispute> {
+    const dispute = await this.disputeModel.findById(disputeId);
+    if (!dispute) throw new BadRequestException('Dispute not found');
+
+    if (dispute.status !== DisputeStatus.AWAITING_SELLER_CONFIRMATION) {
+      throw new BadRequestException('Return not awaiting seller confirmation');
+    }
+
+    if (!dispute.reportedUserId || dispute.reportedUserId.toString() !== sellerId) {
+      throw new ForbiddenException('Only the seller can confirm receipt');
+    }
+
+    dispute.returnInfo = dispute.returnInfo || ({} as any);
+    (dispute.returnInfo as any).sellerConfirmedAt = new Date();
+    dispute.status = DisputeStatus.RETURN_RECEIVED;
+
+    const transaction = await this.transactionModel.findById(dispute.transactionId);
+    if (!transaction) throw new BadRequestException('Transaction not found');
+
+    // Refund buyer now that seller confirmed receipt
+    await this.escrowService.refundFunds(transaction);
+    transaction.status = TransactionStatus.REFUNDED;
+
+    dispute.timeline = dispute.timeline || [];
+    dispute.timeline.push({
+      action: 'Seller confirmed return received',
+      performedBy: sellerId as any,
+      notes: 'Refund issued to buyer',
+      timestamp: new Date(),
+    } as any);
+
+    await dispute.save();
+    await transaction.save();
 
     return dispute;
   }

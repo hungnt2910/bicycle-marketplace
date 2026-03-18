@@ -194,6 +194,52 @@ export class DisputesController {
   }
 
   /**
+   * Buyer marks returned bicycle as sent (with optional tracking)
+   */
+  @Patch(':id/mark-return-sent')
+  @Roles(UserRole.BUYER)
+  @ApiOperation({ summary: 'Buyer marks bicycle return as sent' })
+  @ApiResponse({ status: 200, description: 'Return marked as sent' })
+  async markReturnSent(
+    @Param('id') id: string,
+    @GetUser() user: User,
+    @Body('trackingInfo') trackingInfo?: string,
+  ) {
+    const dispute = await this.disputesService.markReturnSent(
+      id,
+      user._id.toString(),
+      trackingInfo,
+    );
+
+    return {
+      message: 'Return marked as sent',
+      data: dispute,
+    };
+  }
+
+  /**
+   * Seller confirms receipt of returned bicycle
+   */
+  @Patch(':id/seller-confirm')
+  @Roles(UserRole.SELLER)
+  @ApiOperation({ summary: 'Seller confirms receipt of returned bicycle' })
+  @ApiResponse({ status: 200, description: 'Seller confirmed receipt and refund issued' })
+  async sellerConfirm(
+    @Param('id') id: string,
+    @GetUser() user: User,
+  ) {
+    const dispute = await this.disputesService.sellerConfirmReceived(
+      id,
+      user._id.toString(),
+    );
+
+    return {
+      message: 'Seller confirmed receipt, refund issued to buyer',
+      data: dispute,
+    };
+  }
+
+  /**
    * Get all disputes (Admin)
    */
   @Get('admin/all')

@@ -517,6 +517,80 @@ export class WalletService {
   }
 
   /**
+   * Admin accepts a pending withdrawal request (marks as completed)
+   */
+  async acceptWithdrawal(
+    transactionId: string,
+  ): Promise<WalletTransactionDocument> {
+    const walletTransaction = await this.walletTransactionModel.findById(
+      transactionId,
+    );
+
+    if (!walletTransaction) {
+      throw new NotFoundException('Withdrawal transaction not found');
+    }
+
+    if (walletTransaction.type !== WalletTransactionType.WITHDRAWAL) {
+      throw new BadRequestException('Transaction is not a withdrawal');
+    }
+
+    if (walletTransaction.status !== WalletTransactionStatus.PENDING) {
+      throw new BadRequestException('Withdrawal is not pending');
+    }
+
+    walletTransaction.status = WalletTransactionStatus.COMPLETED;
+    walletTransaction.withdrawalDetails = {
+      ...(walletTransaction.withdrawalDetails || {}),
+      processedAt: new Date(),
+    };
+
+    await walletTransaction.save();
+
+    return walletTransaction;
+  }
+
+  /**
+   * List withdrawal requests (admin)
+   */
+  async getWithdrawalRequests(filters?: {
+    status?: WalletTransactionStatus;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    transactions: WalletTransactionDocument[];
+    total: number;
+    page: number;
+    pages: number;
+  }> {
+    const query: any = { type: WalletTransactionType.WITHDRAWAL };
+
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [transactions, total] = await Promise.all([
+      this.walletTransactionModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.walletTransactionModel.countDocuments(query),
+    ]);
+
+    return {
+      transactions,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
    * Charge seller a listing fee when posting a bicycle
    */
   // async chargeListingFee(
