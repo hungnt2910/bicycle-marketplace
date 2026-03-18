@@ -84,6 +84,7 @@ export class AuthController {
 
   @Public()
   @Post('verify-seller/:id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Verify seller role' })
   @ApiResponse({
     status: 200,
