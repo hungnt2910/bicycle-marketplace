@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
-import authApi from '../../api/authApi';
+import React, { useState } from "react";
+import authApi from "../../api/authApi";
+import { Eye, EyeOff } from "lucide-react";
 // import { useAuth } from '../../contexts/AuthContext';
 
 const Login = ({ onLoginSuccess, onNavigate }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   // const { login } = useAuth();
-
+  const [showPassword, setShowPassword] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const result = await authApi.signin({ email, password });
@@ -21,9 +22,10 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
         const apiUser = result.data.data.user;
         const { accessToken } = result.data.data;
 
-        localStorage.setItem('accessToken', accessToken);
-        const fullName = `${apiUser.firstName || ''} ${apiUser.lastName || ''}`.trim();
-        const roleName = apiUser.role ? apiUser.role.toLowerCase() : 'buyer';
+        localStorage.setItem("accessToken", accessToken);
+        const fullName =
+          `${apiUser.firstName || ""} ${apiUser.lastName || ""}`.trim();
+        const roleName = apiUser.role ? apiUser.role.toLowerCase() : "buyer";
 
         const user = {
           userId: apiUser._id || apiUser.email,
@@ -33,7 +35,7 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
           roleName: roleName,
         };
 
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem("user", JSON.stringify(user));
 
         if (onLoginSuccess) {
           onLoginSuccess(user);
@@ -41,10 +43,10 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
           window.location.reload();
         }
       } else {
-        setError(result.data.message || 'Đăng nhập thất bại');
+        setError(result.data.message || "Đăng nhập thất bại");
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra');
+      setError(err.response?.data?.message || "Có lỗi xảy ra");
     } finally {
       setLoading(false);
     }
@@ -57,11 +59,11 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary-600/10 rounded-full blur-3xl animate-float"></div>
         <div
           className="absolute bottom-20 right-10 w-96 h-96 bg-gold/10 rounded-full blur-3xl animate-float"
-          style={{ animationDelay: '1s' }}
+          style={{ animationDelay: "1s" }}
         ></div>
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary-400/10 rounded-full blur-3xl animate-float"
-          style={{ animationDelay: '2s' }}
+          style={{ animationDelay: "2s" }}
         ></div>
       </div>
 
@@ -72,15 +74,21 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-[20px] bg-primary-800 shadow-soft mb-5">
             <span className="text-white font-black text-3xl"></span>
           </div>
-          <h1 className="text-4xl font-black text-gradient mb-2">BICYCLE-MARKETPLACE</h1>
-          <p className="text-warmgray-600 font-medium">Chợ xe đạp uy tín & an toàn</p>
+          <h1 className="text-4xl font-black text-gradient mb-2">
+            BICYCLE-MARKETPLACE
+          </h1>
+          <p className="text-warmgray-600 font-medium">
+            Chợ xe đạp uy tín & an toàn
+          </p>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Email Input */}
           <div>
-            <label className="block text-sm font-bold text-warmgray-700 mb-2">Email</label>
+            <label className="block text-sm font-bold text-warmgray-700 mb-2">
+              Email
+            </label>
             <input
               type="email"
               value={email}
@@ -93,15 +101,29 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
 
           {/* Password Input */}
           <div>
-            <label className="block text-sm font-bold text-warmgray-700 mb-2">Mật khẩu</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu"
-              className="input"
-              required
-            />
+            <label className="block text-sm font-bold text-warmgray-700 mb-2">
+              Mật khẩu
+            </label>
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Nhập mật khẩu"
+                className="input pr-10"
+                required
+              />
+
+              {/* Icon mắt */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           {/* Error Message */}
@@ -114,7 +136,10 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
           {/* Remember Me & Forgot Password */}
           <div className="flex justify-between items-center text-sm">
             <label className="flex items-center gap-2 cursor-pointer group">
-              <input type="checkbox" className="w-4 h-4 rounded text-primary-500" />
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded text-primary-500"
+              />
               <span className="text-warmgray-700 group-hover:text-primary-600 transition-colors">
                 Nhớ đăng nhập
               </span>
@@ -139,7 +164,7 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
                 <span>Đang đăng nhập...</span>
               </div>
             ) : (
-              'Đăng nhập'
+              "Đăng nhập"
             )}
           </button>
         </form>
@@ -147,9 +172,9 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
         {/* Sign Up Link */}
         <div className="mt-8">
           <p className="text-center text-warmgray-600 text-sm">
-            Chưa có tài khoản?{' '}
+            Chưa có tài khoản?{" "}
             <button
-              onClick={() => onNavigate && onNavigate('register')}
+              onClick={() => onNavigate && onNavigate("register")}
               className="text-gradient-pink font-bold hover:underline"
             >
               Đăng ký ngay
