@@ -143,33 +143,83 @@ export class AdminService {
   }
 
   async updateSystemSetting(
-    dataUpdate: Partial<SystemSetting> & { key: string },
+    dataUpdate: Partial<SystemSetting> & {
+      key?: string;
+      _id?: string;
+      groupId?: string;
+      originalKey?: string;
+    },
   ): Promise<SystemSetting | null> {
-    const { key, ...updateData } = dataUpdate;
+    const {
+      key,
+      _id,
+      groupId,
+      originalKey,
+      ...updateData
+    } = dataUpdate as any;
+
+    const keyCandidates = [key, originalKey]
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean);
+
     const normalizedUpdateData = {
       ...updateData,
       value:
         (updateData as any).value !== undefined
           ? this.parseSettingValue((updateData as any).value)
           : (updateData as any).value,
+      category:
+        (updateData as any).category === '' ? null : (updateData as any).category,
     };
 
-    const updatedFlat = await this.systemSettingModel
-      .findOneAndUpdate({ key }, normalizedUpdateData, { new: true })
-      .exec();
+    const targetDocId = (_id || groupId || '').toString().trim();
 
-    if (updatedFlat) return updatedFlat;
+    if (targetDocId) {
+      const updatedById = await this.systemSettingModel
+        .findByIdAndUpdate(targetDocId, normalizedUpdateData, { new: true })
+        .exec();
 
-    const legacyContainer = await this.systemSettingModel.findOne({
-      'name_value.key': key,
-    } as any);
+      if (updatedById && updatedById.key) {
+        return updatedById;
+      }
+    }
+
+    for (const candidateKey of keyCandidates) {
+      const updatedFlat = await this.systemSettingModel
+        .findOneAndUpdate({ key: candidateKey }, normalizedUpdateData, { new: true })
+        .exec();
+
+      if (updatedFlat) return updatedFlat;
+    }
+
+    const legacyContainer =
+      keyCandidates.length > 0
+        ? await this.systemSettingModel.findOne({
+            'name_value.key': { $in: keyCandidates },
+          } as any)
+        : targetDocId
+          ? await this.systemSettingModel.findById(targetDocId)
+          : null;
 
     if (!legacyContainer) {
       return null;
     }
 
+    const matchedLegacy = ((legacyContainer as any)?.name_value || []).find(
+      (item: any) => keyCandidates.includes((item?.key || '').toString().trim()),
+    );
+
+    const legacyKeyToUpdate = matchedLegacy?.key;
+
+    if (!legacyKeyToUpdate) {
+      return null;
+    }
+
     await this.systemSettingModel.updateOne(
-      { _id: (legacyContainer as any)._id, 'name_value.key': key } as any,
+      {
+        _id: (legacyContainer as any)._id,
+        'name_value.key': legacyKeyToUpdate,
+      } as any,
       {
         $set: {
           ...(normalizedUpdateData.value !== undefined
@@ -190,7 +240,7 @@ export class AdminService {
     } as any);
 
     const matchedSetting = (refreshedLegacy as any)?.name_value?.find(
-      (item: any) => item?.key === key,
+      (item: any) => item?.key === legacyKeyToUpdate,
     );
 
     if (!matchedSetting) {
