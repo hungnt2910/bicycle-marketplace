@@ -90,5 +90,19 @@ export class UsersService {
     return await this.userModel.find().exec();
   }
 
+  async findAndUpdate(userId: string, role: string): Promise<User> {
+    const user = await this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { $set: { role, verifiedRoleSeller: true } },
+        { new: true },
+      )
+      .exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
   //CRUD user by admin
 }
