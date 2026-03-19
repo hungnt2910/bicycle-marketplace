@@ -6,6 +6,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import {
   AuditLog,
   AuditLogSchema,
+  Bicycle,
+  BicycleSchema,
   Dispute,
   DisputeSchema,
   InspectionReport,
@@ -30,6 +32,7 @@ import { WalletService } from '../wallet/wallet.service';
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: Wallet.name, schema: WalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
+      {name : Bicycle.name, schema: BicycleSchema}
     ]),
   ],
   providers: [DisputesService, EscrowService, NotificationsService, WalletService],
