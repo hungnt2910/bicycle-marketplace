@@ -51,24 +51,34 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
 
     try {
       const formDataUpload = new FormData();
-      formDataUpload.append("files", file);
+      // Phải chính xác là "file" (không có "s" ở cuối) vì Backend yêu cầu thế
+      formDataUpload.append("file", file);
 
+      // Gọi API tải ảnh
       const uploadResponse =
         await cloudinaryApi.uploadCCCDImage(formDataUpload);
+
+      console.log("Response upload ảnh:", uploadResponse.data);
+
+      // Backend NestJS trả về obj chứa { message, data: { ...Thông_tin_Cloudinary } }
+      // Lấy link secure_url của Cloudinary (HTTPS)
       const imageUrl =
-        uploadResponse?.data?.data?.[0]?.url || uploadResponse?.data?.[0]?.url;
+        uploadResponse?.data?.data?.secure_url ||
+        uploadResponse?.data?.data?.url;
 
       if (imageUrl) {
         setFormData((prev) => ({
           ...prev,
-          [name]: imageUrl, // Lưu URL trả về từ server
+          [name]: imageUrl, // Lưu URL HTTPS này vào biến formData
         }));
       } else {
-        alert("Tải ảnh thất bại, không nhận được URL");
+        alert("Upload thành công nhưng không lấy được link ảnh!");
       }
     } catch (error) {
       console.error(`Upload ${name} error:`, error);
-      alert("Tải ảnh thất bại, vui lòng thử lại");
+      alert(
+        error?.response?.data?.message || "Tải ảnh thất bại, vui lòng thử lại",
+      );
     } finally {
       // Tắt trạng thái đang upload
       setUploadingImages((prev) => ({ ...prev, [name]: false }));
@@ -290,7 +300,7 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
                   ) : (
                     <div className="relative group w-full">
                       <img
-                        src={URL.createObjectURL(formData.cccdFront)}
+                        src={formData.cccdFront}
                         alt="CCCD mặt trước"
                         className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200 bg-white"
                       />
@@ -335,7 +345,7 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
                   ) : (
                     <div className="relative group w-full">
                       <img
-                        src={URL.createObjectURL(formData.cccdBack)}
+                        src={formData.cccdBack}
                         alt="CCCD mặt sau"
                         className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200 bg-white"
                       />
