@@ -51,6 +51,9 @@ export class User {
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
 
+  @Prop({ default: false })
+  verifiedRoleSeller?: boolean;
+
   @Prop()
   firstName?: string;
 
@@ -83,6 +86,12 @@ export class User {
 
   @Prop({ default: false })
   verifiedEmail?: boolean;
+
+  @Prop()
+  CCCD?: Array<{
+    frontImage: string;
+    backImage: string;
+  }>;
 
   @Prop()
   createdAt?: Date;
