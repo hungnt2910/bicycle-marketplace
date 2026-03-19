@@ -126,6 +126,7 @@ export class AdminService {
             },
           },
         } as any,
+        { strict: false },
       );
 
       return {
@@ -183,6 +184,7 @@ export class AdminService {
             : {}),
         },
       } as any,
+      { strict: false },
     );
 
     const refreshedLegacy = await this.systemSettingModel.findOne({
@@ -232,6 +234,7 @@ export class AdminService {
           name_value: { key },
         },
       } as any,
+      { strict: false },
     );
 
     if (!target) return null;
