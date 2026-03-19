@@ -134,6 +134,11 @@ export class AdminController {
   async updateSystemSetting(@Body() dataUpdate: any) {
     try {
       const result = await this.adminService.updateSystemSetting(dataUpdate);
+      if (!result) {
+        return {
+          message: 'System setting not found',
+        };
+      }
       return {
         message: 'System setting updated successfully',
         data: result,
@@ -172,6 +177,11 @@ export class AdminController {
   async deleteSystemSetting(@Param('key') key: string) {
     try {
       const result = await this.adminService.deleteSystemSetting(key);
+      if (!result) {
+        return {
+          message: 'System setting not found',
+        };
+      }
       return {
         message: 'System setting deleted successfully',
         data: result,
