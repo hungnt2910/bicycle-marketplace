@@ -1,34 +1,77 @@
-import React, { useState } from 'react';
-import { Button, Input, Card, Select } from '../../components/ui';
-import authApi from '../../api/authApi';
+import React, { useState } from "react";
+import { Button, Input, Card, Select } from "../../components/ui";
+import authApi from "../../api/authApi";
+import cloudinaryApi from "../../api/cloudinaryApi";
 
 const Register = ({ onRegisterSuccess, onNavigate }) => {
   const [formData, setFormData] = useState({
-    email: '',
-    phone: '',
-    password: '',
-    role: 'buyer',
-    firstName: '',
-    lastName: '',
+    email: "",
+    phone: "",
+    password: "",
+    role: "buyer",
+    firstName: "",
+    lastName: "",
+    cccdFront: "",
+    cccdBack: "",
+  });
+
+  const [uploadingImages, setUploadingImages] = useState({
+    cccdFront: false,
+    cccdBack: false,
   });
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
   const roleOptions = [
-    { value: 'buyer', label: 'Người mua ' },
-    { value: 'seller', label: 'Người bán - Đăng bán xe đạp' },
+    { value: "buyer", label: "Người mua " },
+    { value: "seller", label: "Người bán - Đăng bán xe đạp" },
   ];
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
     // Clear error when user types
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const { name, files } = e.target;
+    const file = files[0];
+
+    if (!file) return;
+
+    // Cập nhật trạng thái đang upload
+    setUploadingImages((prev) => ({ ...prev, [name]: true }));
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("files", file);
+
+      const uploadResponse =
+        await cloudinaryApi.uploadCCCDImage(formDataUpload);
+      const imageUrl =
+        uploadResponse?.data?.data?.[0]?.url || uploadResponse?.data?.[0]?.url;
+
+      if (imageUrl) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: imageUrl, // Lưu URL trả về từ server
+        }));
+      } else {
+        alert("Tải ảnh thất bại, không nhận được URL");
+      }
+    } catch (error) {
+      console.error(`Upload ${name} error:`, error);
+      alert("Tải ảnh thất bại, vui lòng thử lại");
+    } finally {
+      // Tắt trạng thái đang upload
+      setUploadingImages((prev) => ({ ...prev, [name]: false }));
     }
   };
 
@@ -36,29 +79,29 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
     const newErrors = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Vui lòng nhập email';
+      newErrors.email = "Vui lòng nhập email";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
+      newErrors.email = "Email không hợp lệ";
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Vui lòng nhập số điện thoại';
-    } else if (!/^[0-9]{10}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Số điện thoại không hợp lệ';
+      newErrors.phone = "Vui lòng nhập số điện thoại";
+    } else if (!/^[0-9]{10}$/.test(formData.phone.replace(/\s/g, ""))) {
+      newErrors.phone = "Số điện thoại không hợp lệ";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
+      newErrors.password = "Vui lòng nhập mật khẩu";
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
     }
 
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      newErrors.firstName = 'Vui lòng nhập họ và tên đệm';
-      newErrors.lastName = 'Vui lòng nhập tên';
+      newErrors.firstName = "Vui lòng nhập họ và tên đệm";
+      newErrors.lastName = "Vui lòng nhập tên";
     }
     if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Vui lòng nhập tên';
+      newErrors.lastName = "Vui lòng nhập tên";
     }
 
     setErrors(newErrors);
@@ -79,23 +122,23 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
         lastName: formData.lastName,
       });
 
-      console.log('Register success:', response.data);
+      console.log("Register success:", response.data);
 
       // Show success message and navigate to login page
-      alert('Đăng ký thành công! Vui lòng đăng nhập.');
+      alert("Đăng ký thành công! Vui lòng đăng nhập.");
 
       // Navigate to login page
       if (onNavigate) {
-        onNavigate('login');
+        onNavigate("login");
       }
     } catch (error) {
-      console.error('Register failed:', error.response?.data);
+      console.error("Register failed:", error.response?.data);
 
       // Hiển thị lỗi từ backend (ví dụ)
       if (error.response?.data?.message) {
         alert(error.response.data.message);
       } else {
-        alert('Đăng ký thất bại');
+        alert("Đăng ký thất bại");
       }
     } finally {
       setIsLoading(false);
@@ -109,7 +152,9 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
         <div className="text-center mb-10 animate-slide-down">
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-5xl">🚴</span>
-            <h1 className="text-4xl font-bold gradient-text">Bicycle-Marketplace</h1>
+            <h1 className="text-4xl font-bold gradient-text">
+              Bicycle-Marketplace
+            </h1>
           </div>
           <p className="text-warmgray-600">Tạo tài khoản mới</p>
         </div>
@@ -118,6 +163,7 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
         <Card className="p-10 animate-scale-in">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection */}
+
             <div>
               <label className="block text-sm font-medium text-warmgray-700 mb-2">
                 Bạn muốn <span className="text-danger-500">*</span>
@@ -125,36 +171,40 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div
                   onClick={() => {
-                    setFormData((prev) => ({ ...prev, role: 'buyer' }));
+                    setFormData((prev) => ({ ...prev, role: "buyer" }));
                   }}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  style={{ cursor: "pointer", userSelect: "none" }}
                   className={`p-4 rounded-[16px] border-2 transition-all text-left ${
-                    formData.role === 'buyer'
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-warmgray-200 hover:border-warmgray-300'
+                    formData.role === "buyer"
+                      ? "border-primary-500 bg-primary-50"
+                      : "border-warmgray-200 hover:border-warmgray-300"
                   }`}
                 >
                   <div className="text-2xl mb-2">🛒</div>
                   <div className="text-sm font-medium">Người mua</div>
-                  {formData.role === 'buyer' && (
-                    <div className="text-xs text-success mt-1 font-bold">✓ Đã chọn</div>
+                  {formData.role === "buyer" && (
+                    <div className="text-xs text-success mt-1 font-bold">
+                      ✓ Đã chọn
+                    </div>
                   )}
                 </div>
                 <div
                   onClick={() => {
-                    setFormData((prev) => ({ ...prev, role: 'seller' }));
+                    setFormData((prev) => ({ ...prev, role: "seller" }));
                   }}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  style={{ cursor: "pointer", userSelect: "none" }}
                   className={`p-4 rounded-[16px] border-2 transition-all text-left ${
-                    formData.role === 'seller'
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-warmgray-200 hover:border-warmgray-300'
+                    formData.role === "seller"
+                      ? "border-primary-500 bg-primary-50"
+                      : "border-warmgray-200 hover:border-warmgray-300"
                   }`}
                 >
                   <div className="text-2xl mb-2">🏪</div>
                   <div className="text-sm font-medium">Người bán</div>
-                  {formData.role === 'seller' && (
-                    <div className="text-xs text-success mt-1 font-bold">✓ Đã chọn</div>
+                  {formData.role === "seller" && (
+                    <div className="text-xs text-success mt-1 font-bold">
+                      ✓ Đã chọn
+                    </div>
                   )}
                 </div>
               </div>
@@ -215,11 +265,110 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
               required
             />
 
+            {formData.role === "seller" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* CCCD mặt trước */}
+                <div>
+                  <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                    CCCD mặt trước *
+                  </label>
+                  {!formData.cccdFront ? (
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-warmgray-300 rounded-[16px] p-6 text-center hover:border-primary-800 transition-colors cursor-pointer bg-neutral-offwhite hover:bg-primary-800/5 h-32">
+                      <input
+                        type="file"
+                        name="cccdFront"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <div className="text-3xl mb-1">📷</div>
+                      <p className="text-sm font-semibold text-primary-900 mb-1">
+                        Click để upload
+                      </p>
+                      <p className="text-xs text-warmgray-500">Tối đa 5MB</p>
+                    </label>
+                  ) : (
+                    <div className="relative group w-full">
+                      <img
+                        src={URL.createObjectURL(formData.cccdFront)}
+                        alt="CCCD mặt trước"
+                        className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200 bg-white"
+                      />
+                      <div className="absolute inset-0 bg-primary-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all rounded-[16px] flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              cccdFront: null,
+                            }))
+                          }
+                          className="px-3 py-1.5 bg-danger/80 text-white text-xs font-semibold rounded hover:bg-danger shadow-lg transition-colors"
+                        >
+                          Xóa ảnh
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* CCCD mặt sau */}
+                <div>
+                  <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                    CCCD mặt sau *
+                  </label>
+                  {!formData.cccdBack ? (
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-warmgray-300 rounded-[16px] p-6 text-center hover:border-primary-800 transition-colors cursor-pointer bg-neutral-offwhite hover:bg-primary-800/5 h-32">
+                      <input
+                        type="file"
+                        name="cccdBack"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <div className="text-3xl mb-1">📷</div>
+                      <p className="text-sm font-semibold text-primary-900 mb-1">
+                        Click để upload
+                      </p>
+                      <p className="text-xs text-warmgray-500">Tối đa 5MB</p>
+                    </label>
+                  ) : (
+                    <div className="relative group w-full">
+                      <img
+                        src={URL.createObjectURL(formData.cccdBack)}
+                        alt="CCCD mặt sau"
+                        className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200 bg-white"
+                      />
+                      <div className="absolute inset-0 bg-primary-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all rounded-[16px] flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({ ...prev, cccdBack: null }))
+                          }
+                          className="px-3 py-1.5 bg-danger/80 text-white text-xs font-semibold rounded hover:bg-danger shadow-lg transition-colors"
+                        >
+                          Xóa ảnh
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {/* Submit Button */}
-            <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -237,7 +386,7 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
                   Đang xử lý...
                 </>
               ) : (
-                'Đăng ký'
+                "Đăng ký"
               )}
             </Button>
           </form>
@@ -245,12 +394,12 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
           {/* Login Link */}
           <div className="mt-8 text-center">
             <p className="text-sm text-warmgray-600">
-              Đã có tài khoản?{' '}
+              Đã có tài khoản?{" "}
               <a
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  onNavigate && onNavigate('login');
+                  onNavigate && onNavigate("login");
                 }}
                 className="text-primary-600 hover:underline font-medium"
               >
@@ -266,7 +415,9 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
                 <div className="w-full border-t border-warmgray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-warmgray-500">Hoặc đăng ký với</span>
+                <span className="px-2 bg-white text-warmgray-500">
+                  Hoặc đăng ký với
+                </span>
               </div>
             </div>
 
@@ -308,7 +459,7 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
             href="#"
             onClick={(e) => {
               e.preventDefault();
-              onNavigate && onNavigate('landing');
+              onNavigate && onNavigate("landing");
             }}
             className="text-sm text-warmgray-600 hover:text-primary-900"
           >
