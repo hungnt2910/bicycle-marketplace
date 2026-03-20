@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
-import inspectorApi from '../../api/inspectorApi';
+import userApi from '../../api/userApi';
 
 const InspectorManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,21 +18,33 @@ const InspectorManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await inspectorApi.getAllInspector();
+      const response = await userApi.getAllUsers();
+      const users = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data || [];
 
-      // Transform API data to match UI structure
-      const transformedData = response.data.data.map((inspector) => ({
-        id: inspector.id || inspector.inspectorId,
-        fullName: inspector.fullName || inspector.name || 'N/A',
-        email: inspector.email || 'N/A',
-        phone: inspector.phone || inspector.phoneNumber || 'N/A',
-        role: 'inspector',
-        status: inspector.status || 'active',
-        joinDate: inspector.joinDate || inspector.createdAt || 'N/A',
-        lastLogin: inspector.lastLogin || inspector.updatedAt || 'N/A',
-        totalInspections: inspector.totalInspections || 0,
-        rating: inspector.rating || 0,
-      }));
+      const transformedData = users
+        .filter((u) => String(u?.role || '').toLowerCase() === 'inspector')
+        .map((inspector) => ({
+          id: inspector?._id || inspector?.id,
+          fullName:
+            `${inspector?.firstName || ''} ${inspector?.lastName || ''}`.trim() ||
+            inspector?.profile?.fullName ||
+            inspector?.fullName ||
+            'N/A',
+          email: inspector?.email || 'N/A',
+          phone: inspector?.phone || inspector?.profile?.phone || 'N/A',
+          role: 'inspector',
+          status: String(inspector?.status || 'active').toLowerCase(),
+          joinDate: inspector?.createdAt
+            ? new Date(inspector.createdAt).toLocaleDateString('vi-VN')
+            : '--',
+          lastLogin: inspector?.updatedAt
+            ? new Date(inspector.updatedAt).toLocaleDateString('vi-VN')
+            : '--',
+          totalInspections: inspector?.reputation?.totalInspections || 0,
+          rating: inspector?.reputation?.rating || 0,
+        }));
 
       setUsers(transformedData);
     } catch (err) {

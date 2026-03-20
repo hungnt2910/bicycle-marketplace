@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Badge } from '../../components/ui';
-import adminApi from '../../api/adminApi';
+import userApi from '../../api/userApi';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -15,40 +14,6 @@ const UserManagement = () => {
   const [newRole, setNewRole] = useState('');
   const [newStatus, setNewStatus] = useState('');
 
-  // Mock data - thay thế bằng API call thực tế khi có
-  const mockUsers = [
-    {
-      id: '1',
-      fullName: 'Nguyễn Văn A',
-      email: 'nguyenvana@example.com',
-      phone: '0123456789',
-      role: 'BUYER',
-      status: 'active',
-      joinDate: '2024-01-15',
-      lastLogin: '2024-02-20',
-    },
-    {
-      id: '2',
-      fullName: 'Trần Thị B',
-      email: 'tranthib@example.com',
-      phone: '0987654321',
-      role: 'SELLER',
-      status: 'active',
-      joinDate: '2024-01-20',
-      lastLogin: '2024-02-22',
-    },
-    {
-      id: '3',
-      fullName: 'Lê Văn C',
-      email: 'levanc@example.com',
-      phone: '0369852147',
-      role: 'INSPECTOR',
-      status: 'active',
-      joinDate: '2024-02-01',
-      lastLogin: '2024-02-23',
-    },
-  ];
-
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -57,35 +22,48 @@ const UserManagement = () => {
     setLoading(true);
     setError('');
     try {
-      // TODO: Thay bằng API call thực tế
-      // const response = await adminApi.getAllUsers();
-      // setUsers(response?.data?.data || []);
-      
-      // Tạm thời dùng mock data
-      setTimeout(() => {
-        setUsers(mockUsers);
-        setLoading(false);
-      }, 500);
+      const response = await userApi.getAllUsers();
+      const data = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data || [];
+
+      const mappedUsers = data.map((item) => ({
+        id: item?._id || item?.id,
+        fullName:
+          `${item?.firstName || ''} ${item?.lastName || ''}`.trim() ||
+          item?.profile?.fullName ||
+          item?.fullName ||
+          'N/A',
+        email: item?.email || 'N/A',
+        phone: item?.phone || item?.profile?.phone || 'N/A',
+        role: String(item?.role || '').toLowerCase(),
+        status: String(item?.status || 'active').toLowerCase(),
+        joinDate: item?.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : '--',
+        lastLogin: item?.updatedAt ? new Date(item.updatedAt).toLocaleDateString('vi-VN') : '--',
+      }));
+
+      setUsers(mappedUsers);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Không thể tải danh sách người dùng');
-      setUsers(mockUsers); // Fallback to mock data
+      setUsers([]);
+    } finally {
       setLoading(false);
     }
   };
 
   const roleLabels = {
-    BUYER: 'Người mua',
-    SELLER: 'Người bán',
-    INSPECTOR: 'Kiểm định viên',
-    ADMIN: 'Quản trị viên',
+    buyer: 'Người mua',
+    seller: 'Người bán',
+    inspector: 'Kiểm định viên',
+    admin: 'Quản trị viên',
   };
 
   const roleColors = {
-    BUYER: 'blue',
-    SELLER: 'green',
-    INSPECTOR: 'purple',
-    ADMIN: 'red',
+    buyer: 'blue',
+    seller: 'green',
+    inspector: 'purple',
+    admin: 'red',
   };
 
   const statusLabels = {
@@ -116,7 +94,7 @@ const UserManagement = () => {
     if (!selectedUser || !newRole) return;
 
     try {
-      await adminApi.changeUserRole(selectedUser.id, newRole);
+      await userApi.updateUser(selectedUser.id, { role: newRole });
       setUsers((prev) =>
         prev.map((user) => (user.id === selectedUser.id ? { ...user, role: newRole } : user))
       );
@@ -133,7 +111,7 @@ const UserManagement = () => {
     if (!selectedUser || !newStatus) return;
 
     try {
-      await adminApi.changeUserStatus(selectedUser.id, newStatus);
+      await userApi.updateUser(selectedUser.id, { status: newStatus });
       setUsers((prev) =>
         prev.map((user) => (user.id === selectedUser.id ? { ...user, status: newStatus } : user))
       );
@@ -185,13 +163,13 @@ const UserManagement = () => {
         <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Người bán</p>
           <p className="text-2xl font-bold text-primary-900">
-            {users.filter((u) => u.role === 'SELLER').length}
+            {users.filter((u) => u.role === 'seller').length}
           </p>
         </div>
         <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Kiểm định viên</p>
           <p className="text-2xl font-bold text-primary-900">
-            {users.filter((u) => u.role === 'INSPECTOR').length}
+            {users.filter((u) => u.role === 'inspector').length}
           </p>
         </div>
       </div>
@@ -315,14 +293,14 @@ const UserManagement = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => openRoleModal(user)}
-                        disabled={user.role === 'ADMIN'}
+                        disabled={user.role === 'admin'}
                         className="px-3 py-1 text-primary-700 hover:bg-primary-800/5 rounded font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Đổi vai trò
                       </button>
                       <button
                         onClick={() => openStatusModal(user)}
-                        disabled={user.role === 'ADMIN'}
+                        disabled={user.role === 'admin'}
                         className="px-3 py-1 text-gold hover:bg-gold/5 rounded font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Đổi trạng thái
@@ -357,7 +335,7 @@ const UserManagement = () => {
                 className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
               >
                 {Object.keys(roleLabels)
-                  .filter((role) => role !== 'ADMIN')
+                  .filter((role) => role !== 'admin')
                   .map((role) => (
                     <option key={role} value={role}>
                       {roleLabels[role]}

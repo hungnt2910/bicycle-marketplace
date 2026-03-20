@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Badge } from '../../components/ui';
 import adminApi from '../../api/adminApi';
 
 const SystemSettings = () => {
@@ -22,13 +21,43 @@ const SystemSettings = () => {
     fetchCategories();
   }, []);
 
+  const normalizeSettings = (apiData) => {
+    if (!Array.isArray(apiData)) return [];
+
+    return apiData.flatMap((item) => {
+      const nested = Array.isArray(item?.name_value)
+        ? item.name_value.map((nestedItem) => ({
+            key: nestedItem?.key || '',
+            value: nestedItem?.value ?? '',
+            description: nestedItem?.description || '',
+            category: nestedItem?.category || null,
+            _groupId: item?._id,
+          }))
+        : [];
+
+      const flat = item?.key
+        ? [
+            {
+              key: item?.key || '',
+              value: item?.value ?? '',
+              description: item?.description || '',
+              category: item?.category || null,
+              _id: item?._id,
+            },
+          ]
+        : [];
+
+      return [...nested, ...flat];
+    });
+  };
+
   const fetchSettings = async () => {
     setLoading(true);
     setError('');
     try {
       const response = await adminApi.getSystemSettings();
       const data = response?.data?.data || response?.data || [];
-      setSettings(data);
+      setSettings(normalizeSettings(data));
     } catch (err) {
       console.error('Error fetching settings:', err);
       setError(err.response?.data?.message || 'Không thể tải cài đặt hệ thống');
@@ -67,7 +96,7 @@ const SystemSettings = () => {
     setEditingSetting(setting);
     setFormData({
       key: setting.key || '',
-      value: setting.value || '',
+      value: setting.value !== undefined && setting.value !== null ? String(setting.value) : '',
       description: setting.description || '',
       category: setting.category?._id || setting.category || '',
     });
@@ -82,32 +111,123 @@ const SystemSettings = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.key.trim() || !formData.value.trim()) {
+    const keyValue = String(formData.key || '').trim();
+    const settingValue = String(formData.value || '').trim();
+
+    if (!keyValue || !settingValue) {
       setError('Key và Value là bắt buộc');
       return;
     }
 
     const payload = {
-      key: formData.key.trim(),
-      value: formData.value.trim(),
-      description: formData.description.trim(),
+      key: keyValue,
+      originalKey: editingSetting?.key || keyValue,
+      _id: editingSetting?._id || null,
+      groupId: editingSetting?._groupId || null,
+      value: settingValue,
+      description: String(formData.description || '').trim(),
       category: formData.category || null,
+    };
+
+    const isNotFoundMessage = (response) =>
+      response?.data?.message === 'System setting not found';
+
+    const saveByUpdateWithRetry = async () => {
+      const baseUpdateData = {
+        key: keyValue,
+        originalKey: editingSetting?.key || keyValue,
+        value: settingValue,
+        description: String(formData.description || '').trim(),
+        category: formData.category || null,
+      };
+
+      const attempts = [
+        {
+          ...baseUpdateData,
+          _id: editingSetting?._id || null,
+          groupId: editingSetting?._groupId || null,
+        },
+        {
+          ...baseUpdateData,
+          _id: null,
+          groupId: null,
+        },
+        {
+          ...baseUpdateData,
+          key: editingSetting?.key || keyValue,
+          originalKey: editingSetting?.key || keyValue,
+          _id: null,
+          groupId: null,
+        },
+      ];
+
+      for (const attempt of attempts) {
+        const response = await adminApi.updateSystemSetting(attempt);
+        if (!isNotFoundMessage(response)) {
+          return response;
+        }
+      }
+
+      // FE-only fallback for legacy grouped settings:
+      // if update API cannot resolve target, recreate the setting with new values.
+      const fallbackKey = editingSetting?.key || keyValue;
+      if (fallbackKey) {
+        const deleteCandidates = [fallbackKey, String(fallbackKey).trim(), editingSetting?.key]
+          .map((item) => (item === undefined || item === null ? '' : String(item)))
+          .filter(Boolean)
+          .filter((item, index, arr) => arr.indexOf(item) === index);
+
+        let removed = false;
+
+        for (const deleteKey of deleteCandidates) {
+          await adminApi.deleteSystemSetting(deleteKey);
+
+          const verifyResponse = await adminApi.getSystemSettings();
+          const verifyData = verifyResponse?.data?.data || verifyResponse?.data || [];
+          const verifySettings = normalizeSettings(verifyData);
+
+          const stillExists = verifySettings.some(
+            (item) => String(item?.key || '').trim() === String(fallbackKey).trim(),
+          );
+
+          if (!stillExists) {
+            removed = true;
+            break;
+          }
+        }
+
+        if (!removed) {
+          throw new Error('Không thể cập nhật cài đặt lúc này, vui lòng thử lại');
+        }
+
+        const recreated = await adminApi.createSystemSetting({
+          key: fallbackKey,
+          value: settingValue,
+          description: String(formData.description || '').trim(),
+          category: formData.category || null,
+        });
+
+        if (recreated?.data?.message === 'Key already exists') {
+          throw new Error('Key đã tồn tại');
+        }
+
+        return recreated;
+      }
+
+      throw new Error('Không tìm thấy cài đặt để cập nhật');
     };
 
     try {
       if (editingSetting) {
-        const response = await adminApi.updateSystemSetting(payload);
-        const updated = response?.data?.data || response?.data || payload;
-        setSettings((prev) =>
-          prev.map((setting) =>
-            setting.key === editingSetting.key ? { ...setting, ...updated } : setting
-          )
-        );
+        await saveByUpdateWithRetry();
       } else {
         const response = await adminApi.createSystemSetting(payload);
-        const created = response?.data?.data || response?.data || payload;
-        setSettings((prev) => [created, ...prev]);
+        if (response?.data?.message === 'Key already exists') {
+          throw new Error('Key đã tồn tại');
+        }
       }
+
+      await fetchSettings();
 
       setShowModal(false);
       setEditingSetting(null);
@@ -115,7 +235,7 @@ const SystemSettings = () => {
       setError('');
     } catch (err) {
       console.error('Error saving setting:', err);
-      setError(err.response?.data?.message || 'Không thể lưu cài đặt');
+      setError(err.response?.data?.message || err.message || 'Không thể lưu cài đặt');
     }
   };
 
@@ -124,22 +244,22 @@ const SystemSettings = () => {
 
     try {
       await adminApi.deleteSystemSetting(key);
-      setSettings((prev) => prev.filter((setting) => setting.key !== key));
+      await fetchSettings();
     } catch (err) {
       console.error('Error deleting setting:', err);
       setError(err.response?.data?.message || 'Không thể xóa cài đặt');
     }
   };
 
-  // Group settings by category
-  const groupedSettings = settings.reduce((acc, setting) => {
-    const categoryName = setting.category?.title || 'Không có danh mục';
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
-    }
-    acc[categoryName].push(setting);
-    return acc;
-  }, {});
+  const uncategorizedCount = settings.filter((item) => !item?.category?.title).length;
+
+  const formatValue = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number') return value.toLocaleString('vi-VN');
+    return String(value);
+  };
+
+  const sortedSettings = [...settings].sort((a, b) => (a.key || '').localeCompare(b.key || ''));
 
   return (
     <div className="dash-content">
@@ -172,12 +292,12 @@ const SystemSettings = () => {
           <p className="text-2xl font-bold text-primary-900">{settings.length}</p>
         </div>
         <div className="lux-panel">
-          <p className="text-warmgray-600 text-sm">Danh mục</p>
-          <p className="text-2xl font-bold text-primary-900">{Object.keys(groupedSettings).length}</p>
+          <p className="text-warmgray-600 text-sm">Cài đặt đã gán danh mục</p>
+          <p className="text-2xl font-bold text-primary-900">{settings.length - uncategorizedCount}</p>
         </div>
         <div className="lux-panel">
-          <p className="text-warmgray-600 text-sm">Cài đặt danh mục</p>
-          <p className="text-2xl font-bold text-primary-900">{categories.length}</p>
+          <p className="text-warmgray-600 text-sm">Chưa gán danh mục</p>
+          <p className="text-2xl font-bold text-primary-900">{uncategorizedCount}</p>
         </div>
       </div>
 
@@ -188,50 +308,78 @@ const SystemSettings = () => {
         </div>
       )}
 
-      {/* Settings List by Category */}
+      {/* Settings Table */}
       {!loading && (
-        <div className="space-y-6">
-          {Object.entries(groupedSettings).map(([categoryName, categorySettings]) => (
-            <div key={categoryName} className="lux-panel">
-              <div className="p-4 bg-warmgray-50 border-b border-warmgray-200">
-                <h3 className="text-lg font-bold text-primary-900">{categoryName}</h3>
-                <p className="text-sm text-warmgray-600">{categorySettings.length} cài đặt</p>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {categorySettings.map((setting) => (
-                  <div key={setting.key} className="p-4 hover:bg-warmgray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <code className="px-2 py-1 bg-primary-800/5 text-primary-800 rounded text-sm font-mono">
-                            {setting.key}
-                          </code>
+        <div className="lux-panel overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-warmgray-50 border-b border-warmgray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                    Key
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                    Value
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                    Mô tả
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                    Danh mục
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-warmgray-200 bg-white">
+                {sortedSettings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-warmgray-500">
+                      Chưa có cài đặt nào
+                    </td>
+                  </tr>
+                ) : (
+                  sortedSettings.map((setting, index) => (
+                    <tr key={`${setting.key}-${index}`} className="hover:bg-warmgray-50/60">
+                      <td className="px-4 py-4 align-top">
+                        <code className="px-2 py-1 bg-primary-800/5 text-primary-800 rounded text-sm font-mono">
+                          {setting.key}
+                        </code>
+                      </td>
+                      <td className="px-4 py-4 align-top text-primary-900 font-semibold whitespace-nowrap">
+                        {formatValue(setting.value)}
+                      </td>
+                      <td className="px-4 py-4 align-top text-warmgray-700 max-w-[420px]">
+                        <p className="line-clamp-2" title={setting.description || ''}>
+                          {setting.description || '--'}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4 align-top text-warmgray-700 whitespace-nowrap">
+                        {setting.category?.title || 'Không có danh mục'}
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(setting)}
+                            className="px-3 py-2 text-primary-700 hover:bg-primary-800/5 rounded-[12px] font-medium"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDelete(setting.key)}
+                            className="px-3 py-2 text-danger hover:bg-danger/5 rounded-[12px] font-medium"
+                          >
+                            Xóa
+                          </button>
                         </div>
-                        <p className="text-primary-900 font-medium mb-1">{setting.value}</p>
-                        {setting.description && (
-                          <p className="text-sm text-warmgray-600">{setting.description}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        <button
-                          onClick={() => openEditModal(setting)}
-                          className="px-4 py-2 text-primary-700 hover:bg-primary-800/5 rounded-[16px] font-medium"
-                        >
-                          Sửa
-                        </button>
-                        <button
-                          onClick={() => handleDelete(setting.key)}
-                          className="px-4 py-2 text-danger hover:bg-danger/5 rounded-[16px] font-medium"
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
             </div>
-          ))}
         </div>
       )}
 
@@ -309,9 +457,9 @@ const SystemSettings = () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-primary-700 text-white py-2 rounded-[16px] hover:bg-primary-800 font-medium"
+                  className="flex-1 bg-emerald-600 text-white py-2.5 rounded-[12px] hover:bg-emerald-700 font-semibold"
                 >
-                  {editingSetting ? 'Cập nhật' : 'Tạo mới'}
+                  {editingSetting ? 'OK - Lưu thay đổi' : 'OK - Tạo mới'}
                 </button>
                 <button
                   type="button"
@@ -321,7 +469,7 @@ const SystemSettings = () => {
                     resetForm();
                     setError('');
                   }}
-                  className="flex-1 bg-warmgray-200 text-warmgray-700 py-2 rounded-[16px] hover:bg-warmgray-300 font-medium"
+                  className="flex-1 bg-warmgray-200 text-warmgray-700 py-2.5 rounded-[12px] hover:bg-warmgray-300 font-semibold"
                 >
                   Hủy
                 </button>

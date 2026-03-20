@@ -52,6 +52,13 @@ const adminApi = {
   // Thống kê tổng quan escrow
   getEscrowStatistics: () => axiosClient.get('/api/v1/escrow/statistics'),
 
+  // ==================== REPORTING ====================
+  // Tổng hợp dòng tiền vào/ra theo kỳ
+  getRevenueSummary: (period = '7d') =>
+    axiosClient.get('/api/v1/admin/revenue/summary', {
+      params: { period },
+    }),
+
   // ==================== LEGACY METHODS (backward compatibility) ====================
   createCategoryPostNews: (data) => axiosClient.post('/api/v1/admin/create-field-category', data),
 
