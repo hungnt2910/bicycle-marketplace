@@ -134,65 +134,23 @@ const InspectionRequests = () => {
 
       const requestData = {
         bicycleId: bicycleId,
-        inspectionType: 'online', // hoặc 'onsite' tùy theo yêu cầu
+        inspectionType: 'online',
       };
       await inspectorApi.requestInspection(requestData);
-      toast.info('Đang tạo giao dịch thanh toán...', { autoClose: 1500 });
 
-      // Tạo transaction cho phí kiểm định
-      const transactionPayload = {
-        bicycleId: bicycleId,
-        amount: INSPECTION_FEE,
+      // Chuyển sang trang xác nhận thanh toán ví
+      const params = new URLSearchParams({
         type: 'inspection_fee',
-        paymentMethod: 'e_wallet',
-      };
+        amount: String(INSPECTION_FEE),
+        bicycleId: bicycleId,
+        title: title || 'Phí kiểm định',
+        returnUrl: '/seller/inspection',
+      });
 
-      const transactionRes = await transactionApi.create(transactionPayload);
-      const transactionData = transactionRes?.data?.data || transactionRes?.data;
-
-      const paymentUrl = transactionData?.order_url;
-      const appTransId = transactionData?.app_trans_id;
-
-      if (!paymentUrl) {
-        throw new Error('Không lấy được link thanh toán từ server.');
-      }
-
-      if (!appTransId) {
-        throw new Error('Không lấy được mã giao dịch từ server.');
-      }
-
-      // Lấy transaction ID
-      let transactionId = null;
-      try {
-        const myTransactionsRes = await transactionApi.getMyTransactions();
-        const transactions = myTransactionsRes?.data?.data || myTransactionsRes?.data || [];
-
-        const foundTransaction = transactions.find(
-          (tx) => tx.payment?.transactionId === appTransId
-        );
-
-        if (foundTransaction) {
-          transactionId = foundTransaction._id;
-        } else {
-          transactionId = appTransId;
-        }
-      } catch (error) {
-        transactionId = appTransId;
-      }
-
-      // Lưu thông tin để xử lý sau khi thanh toán
-      localStorage.setItem('pendingTransactionId', transactionId);
       localStorage.setItem('pendingBicycleId', bicycleId);
       localStorage.setItem('pendingAction', 'inspection');
 
-      // Chuyển hướng sang trang thanh toán ZaloPay
-      toast.success('Đang chuyển đến trang thanh toán...', {
-        autoClose: 1500,
-      });
-
-      setTimeout(() => {
-        window.location.href = paymentUrl;
-      }, 1500);
+      navigate(`/wallet-payment?${params.toString()}`);
     } catch (error) {
       console.error('Error requesting inspection:', error);
       toast.error(error.response?.data?.message || 'Không thể gửi yêu cầu kiểm định');
@@ -273,89 +231,97 @@ const InspectionRequests = () => {
               <p className="text-warmgray-600">Đang tải dữ liệu...</p>
             </Card>
           ) : inspectionRequests.length > 0 ? (
-            <div className="space-y-4">
-              {inspectionRequests.map((bike) => (
-                <Card key={bike._id || bike.id} className="p-6">
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    <img
-                      src={bike.media?.mainImage || bike.media?.images?.[0] || '/placeholder.png'}
-                      alt={bike.title}
-                      className="w-full lg:w-48 h-36 object-cover rounded-[16px]"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-lg mb-1">{bike.title}</h3>
-                          <p className="text-sm text-warmgray-600">
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[800px]">
+                  <thead className="bg-warmgray-50 border-b border-warmgray-200 text-warmgray-700 divide-x divide-warmgray-200">
+                    <tr>
+                      <th className="py-4 px-6 font-semibold text-sm">Hình ảnh</th>
+                      <th className="py-4 px-6 font-semibold text-sm">Thông tin xe</th>
+                      <th className="py-4 px-6 font-semibold text-sm">Thông tin kiểm định</th>
+                      <th className="py-4 px-6 font-semibold text-sm">Trạng thái</th>
+                      <th className="py-4 px-6 font-semibold text-sm">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-warmgray-200">
+                    {inspectionRequests.map((bike) => (
+                      <tr key={bike._id || bike.id} className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200">
+                        <td className="py-4 px-6 align-middle">
+                          <img
+                            src={bike.media?.mainImage || bike.media?.images?.[0] || '/placeholder.png'}
+                            alt={bike.title}
+                            className="w-20 h-16 object-cover rounded-[8px]"
+                          />
+                        </td>
+                        <td className="py-4 px-6 align-middle">
+                          <div className="font-medium text-lg text-primary-900 line-clamp-2">
+                            {bike.title}
+                          </div>
+                          <div className="text-sm text-warmgray-600 mt-1 whitespace-nowrap">
                             Giá: {bike.price?.toLocaleString()}₫
-                          </p>
-                        </div>
-                        {getStatusBadge(bike)}
-                      </div>
-
-                      {bike.inspection?.isInspected && (
-                        <div className="bg-success-50 border border-success-200 rounded-[16px] p-4 mb-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm text-success-800 mb-1">
-                                <strong>✓ Đã kiểm định thành công</strong>
-                              </p>
-                              <p className="text-sm text-success-700">
-                                Ngày kiểm định: {formatDate(bike.inspection?.inspectionDate)}
-                              </p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 align-middle min-w-[250px]">
+                          {bike.inspection?.isInspected && (
+                            <div className="flex flex-col">
+                              <span className="text-sm text-success-800 font-semibold mb-1">
+                                ✓ Đã kiểm định thành công
+                              </span>
+                              <span className="text-xs text-success-700">
+                                Ngày: {formatDate(bike.inspection?.inspectionDate)}
+                              </span>
                               {bike.inspection?.expiryDate && (
-                                <p className="text-sm text-success-700">
-                                  Có giá trị đến: {formatDate(bike.inspection?.expiryDate)}
-                                </p>
+                                <span className="text-xs text-success-700 mt-0.5">
+                                  Hết hạn: {formatDate(bike.inspection?.expiryDate)}
+                                </span>
                               )}
                             </div>
-                            <div className="text-center bg-success-100 rounded-[16px] px-4 py-2">
-                              <div className="text-2xl font-bold text-success-600">✓</div>
-                              <p className="text-xs text-success-700 font-medium">Verified</p>
+                          )}
+
+                          {bike.status === 'pending_review' && !bike.inspection?.isInspected && (
+                            <div className="flex flex-col">
+                              <span className="text-sm text-warning-800 font-semibold mb-1">
+                                🔍 Đang kiểm định...
+                              </span>
+                              <span className="text-xs text-warning-700 whitespace-nowrap">
+                                Kiểm định viên đang xử lý
+                              </span>
                             </div>
+                          )}
+
+                          {bike.inspection?.label &&
+                            !bike.inspection?.isInspected &&
+                            bike.status !== 'pending_review' && (
+                              <div className="flex flex-col">
+                                <span className="text-sm text-info-800 font-semibold mb-1">
+                                  Đang xử lý...
+                                </span>
+                                <span className="text-xs text-info-700 whitespace-nowrap">
+                                  Yêu cầu của bạn đang xử lý
+                                </span>
+                              </div>
+                            )}
+                        </td>
+                        <td className="py-4 px-6 align-middle whitespace-nowrap">
+                          {getStatusBadge(bike)}
+                        </td>
+                        <td className="py-4 px-6 align-middle">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/product/${bike._id || bike.id}`)}
+                            >
+                              Xem chi tiết
+                            </Button>
                           </div>
-                        </div>
-                      )}
-
-                      {bike.status === 'pending_review' && !bike.inspection?.isInspected && (
-                        <div className="bg-warning-50 border border-warning-200 rounded-[16px] p-4 mb-4">
-                          <p className="text-sm text-warning-800">
-                            <strong>🔍 Đang kiểm định...</strong>
-                          </p>
-                          <p className="text-sm text-warning-700 mt-1">
-                            Kiểm định viên đang xử lý yêu cầu của bạn. Bạn sẽ nhận được thông báo
-                            khi hoàn tất.
-                          </p>
-                        </div>
-                      )}
-
-                      {bike.inspection?.label &&
-                        !bike.inspection?.isInspected &&
-                        bike.status !== 'pending_review' && (
-                          <div className="bg-info-50 border border-info-200 rounded-[16px] p-4 mb-4">
-                            <p className="text-sm text-info-800">
-                              <strong>Đang xử lý...</strong>
-                            </p>
-                            <p className="text-sm text-info-700 mt-1">
-                              Yêu cầu của bạn đang được xử lý.
-                            </p>
-                          </div>
-                        )}
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/product/${bike._id || bike.id}`)}
-                        >
-                          Xem chi tiết
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           ) : (
             <Card className="p-12 text-center">
               <div className="text-6xl mb-4">📋</div>

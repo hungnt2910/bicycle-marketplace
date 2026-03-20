@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import walletApi from '../../api/walletApi';
+import paymentApi from '../../api/paymentApi';
 import { Badge, Button, Card, Input, Pagination, Select } from '../../components/ui';
+import { useAuth } from '../../contexts/AuthContext';
 
-const MIN_WITHDRAW = 50000;
-const DEFAULT_ESCROW_ROLE = 'seller';
+const MIN_WITHDRAW = 100000;
 
 const numberOrZero = (value) => Number(value || 0);
 
 const Wallet = () => {
+  const { role } = useAuth();
+  const escrowRole = (role || '').toLowerCase() === 'seller' ? 'seller' : 'buyer';
+
   const [summary, setSummary] = useState(null);
   const [walletSummary, setWalletSummary] = useState(null);
   const [totals, setTotals] = useState(null);
@@ -16,6 +20,8 @@ const Wallet = () => {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingTx, setLoadingTx] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [toppingUp, setToppingUp] = useState(false);
   const [filters, setFilters] = useState({ type: '', status: '' });
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -64,11 +70,12 @@ const Wallet = () => {
 
   const fetchSummary = async () => {
     setLoadingSummary(true);
+    setLoadingTx(true);
     try {
       const [walletRes, summaryRes, totalsRes] = await Promise.all([
         walletApi.getWallet(),
         walletApi.getSummary(),
-        walletApi.getTotals({ role: DEFAULT_ESCROW_ROLE }),
+        walletApi.getTotals({ role: escrowRole }),
       ]);
 
       const walletData = walletRes?.data?.data || walletRes?.data || {};
@@ -78,15 +85,30 @@ const Wallet = () => {
       setSummary(walletData);
       setWalletSummary(summaryData);
       setTotals(totalsData);
+
+      const txPayload =
+        summaryData?.transactions || summaryData?.recentTransactions || summaryData?.items || [];
+      const txList = Array.isArray(txPayload) ? txPayload : [];
+      setTransactions(txList);
+      setPagination({
+        total: txList.length,
+        pages: txList.length ? 1 : 0,
+      });
+      setPage(1);
     } catch (err) {
       console.error('Load wallet summary error:', err);
       toast.error(err?.response?.data?.message || 'Không lấy được số dư ví');
     } finally {
       setLoadingSummary(false);
+      setLoadingTx(false);
     }
   };
 
   const fetchTransactions = async (pageParam = page, typeParam = filters.type) => {
+    if (!walletApi.getTransactions) {
+      setLoadingTx(false);
+      return;
+    }
     setLoadingTx(true);
     try {
       const res = await walletApi.getTransactions({
@@ -118,12 +140,14 @@ const Wallet = () => {
 
   const refreshAll = () => {
     fetchSummary();
-    fetchTransactions(1);
+    if (walletApi.getTransactions) {
+      fetchTransactions(1);
+    }
   };
 
   useEffect(() => {
     refreshAll();
-  }, []);
+  }, [escrowRole]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
@@ -165,11 +189,9 @@ const Wallet = () => {
     try {
       const payload = {
         amount: amountNumber,
-        bankDetails: {
-          bankName: withdrawForm.bankName,
-          accountNumber: withdrawForm.bankAccount,
-          accountHolder: withdrawForm.accountHolder,
-        },
+        bankName: withdrawForm.bankName,
+        accountNumber: withdrawForm.bankAccount,
+        accountHolder: withdrawForm.accountHolder,
       };
       await walletApi.requestWithdrawal(payload);
       toast.success('Yêu cầu rút tiền đã được tạo');
@@ -180,6 +202,49 @@ const Wallet = () => {
       toast.error(err?.response?.data?.message || 'Không gửi được yêu cầu rút tiền');
     } finally {
       setWithdrawing(false);
+    }
+  };
+
+  const handleTopUp = async () => {
+    const amount = Number(topUpAmount || 0);
+    if (!amount || amount <= 0) {
+      toast.error('Vui lòng nhập số tiền muốn nạp');
+      return;
+    }
+    if (amount < 10000) {
+      toast.error('Số tiền nạp tối thiểu là 10,000 VND');
+      return;
+    }
+    if (amount > 50000000) {
+      toast.error('Số tiền nạp tối đa là 50,000,000 VND');
+      return;
+    }
+
+    setToppingUp(true);
+    try {
+      const res = await paymentApi.createZaloPayOrder(amount);
+      const data = res?.data?.data || res?.data;
+      const orderUrl = data?.order_url || data?.orderUrl || data?.payUrl;
+
+      if (!orderUrl) {
+        throw new Error('Không lấy được link thanh toán từ ZaloPay');
+      }
+
+      const appTransId = data?.app_trans_id || data?.appTransId;
+      if (appTransId) {
+        localStorage.setItem('pendingTopUpTransId', appTransId);
+      }
+
+      toast.success('Đang chuyển đến ZaloPay...', { autoClose: 1500 });
+
+      setTimeout(() => {
+        window.location.href = orderUrl;
+      }, 1000);
+    } catch (err) {
+      console.error('Top-up error:', err);
+      toast.error(err?.response?.data?.message || err.message || 'Không thể tạo lệnh nạp tiền');
+    } finally {
+      setToppingUp(false);
     }
   };
 
@@ -226,10 +291,11 @@ const Wallet = () => {
 
   const typeLabel = (type) => {
     const normalized = (type || '').toLowerCase();
+
     const labels = {
-      deposit: 'Nạp tiền',
+      deposit: 'đặt cọc',
+      sale_payment: 'Nạp ví',
       refund: 'Hoàn tiền',
-      sale_payment: 'Tiền bán xe',
       dispute_refund: 'Hoàn tranh chấp',
       purchase: 'Thanh toán mua',
       withdrawal: 'Rút tiền',
@@ -243,216 +309,633 @@ const Wallet = () => {
     return labels[normalized] || 'Khác';
   };
 
+  const walletStats = [
+    {
+      label: 'Khả dụng',
+      value: loadingSummary ? '...' : formatMoney(availableBalance),
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+        />
+      ),
+    },
+    {
+      label: 'Escrow',
+      value: loadingSummary ? '...' : formatMoney(escrowHold),
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        />
+      ),
+    },
+    {
+      label: 'Đã rút',
+      value: loadingSummary ? '...' : formatMoney(totalWithdrawn),
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
+        />
+      ),
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      <div className="relative bg-gradient-to-br from-sky-50 via-indigo-50 to-white border-b border-indigo-100 rounded-b-[28px] shadow-soft">
-        <div className="container-custom px-4 py-10 relative z-10">
-          <div className="max-w-4xl">
-            <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-2">
-              Ví của bạn
-            </p>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-3">
-              Kiểm soát dòng tiền và rút nhanh về ngân hàng
-            </h1>
-            <p className="text-slate-600 text-base md:text-lg max-w-3xl">
-              Xem số dư khả dụng, tiền đang giữ trong escrow và lịch sử giao dịch. Khi cần rút tiền,
-              hãy tạo yêu cầu và hệ thống sẽ cập nhật trạng thái ngay khi xử lý.
-            </p>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--lux-gray-50)' }}>
+      {/* ── Hero Header ── */}
+      <div
+        className="relative overflow-hidden"
+        style={{ backgroundColor: 'var(--lux-primary-900)' }}
+      >
+        {/* Ambient glows */}
+        <div
+          className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-10 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, var(--lux-gold) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute bottom-0 left-0 w-80 h-40 opacity-15 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse, var(--lux-primary-500) 0%, transparent 70%)',
+          }}
+        />
+
+        <div className="container-custom py-10 relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            {/* Greeting */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <span
+                  className="text-xs font-bold uppercase tracking-[0.25em]"
+                  style={{ color: 'var(--lux-gold)' }}
+                >
+                  Ví của bạn
+                </span>
+              </div>
+              <h1
+                className="text-3xl lg:text-4xl font-bold mb-2 leading-tight"
+                style={{ color: 'white', fontFamily: "'Playfair Display', serif" }}
+              >
+                Kiểm soát <span style={{ color: 'var(--lux-gold)' }}>dòng tiền</span>
+              </h1>
+              <p className="text-sm max-w-md" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Xem số dư khả dụng, tiền đang giữ trong escrow và lịch sử giao dịch. Rút tiền nhanh
+                chóng về ngân hàng của bạn.
+              </p>
+            </div>
+
+            {/* Inline stat pills */}
+            <div className="flex flex-wrap gap-3">
+              {walletStats.map((stat, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+                  style={{
+                    background: 'rgba(255,255,255,0.07)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      style={{ color: 'var(--lux-gold)' }}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {stat.icon}
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-none" style={{ color: 'white' }}>
+                      {stat.value}
+                    </p>
+                    <p
+                      className="text-xs mt-0.5 uppercase tracking-wide"
+                      style={{ color: 'rgba(255,255,255,0.45)' }}
+                    >
+                      {stat.label}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button
-              variant="primary"
-              size="sm"
+
+          {/* Refresh button */}
+          <div className="mt-6 flex items-center gap-3">
+            <button
               onClick={refreshAll}
               disabled={loadingSummary || loadingTx}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                color: 'white',
+                border: '1px solid rgba(255,255,255,0.15)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+              }}
             >
+              <svg
+                className={`w-4 h-4 ${loadingSummary || loadingTx ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
               {loadingSummary || loadingTx ? 'Đang cập nhật...' : 'Làm mới số dư'}
-            </Button>
-            <span className="text-sm text-slate-500">
+            </button>
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
               Số liệu được đồng bộ sau các sự kiện giao dịch/escrow.
             </span>
           </div>
         </div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
+
+        {/* Bottom edge fade */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{
+            background: 'linear-gradient(to right, transparent, rgba(198,167,94,0.3), transparent)',
+          }}
+        />
       </div>
 
-      <div className="container-custom px-4 mt-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            {
-              title: 'Số dư khả dụng',
-              value: formatMoney(availableBalance),
-              sub: 'Có thể rút hoặc thanh toán ngay',
-              accent: 'from-emerald-500 to-teal-500',
-            },
-            {
-              title: 'Đang giữ trong escrow',
-              value: formatMoney(escrowHold),
-              sub: 'Sẽ được giải phóng khi giao dịch hoàn tất',
-              accent: 'from-amber-500 to-orange-500',
-            },
-            {
-              title: 'Tổng đã rút',
-              value: formatMoney(totalWithdrawn),
-              sub: 'Tích lũy các yêu cầu rút thành công',
-              accent: 'from-indigo-500 to-blue-500',
-            },
-          ].map((item) => (
-            <Card
-              key={item.title}
-              className="p-6 shadow-soft bg-white border border-slate-100 relative overflow-hidden"
+      {/* ── Main Content ── */}
+      <div className="container-custom py-10">
+        <div className="grid lg:grid-cols-12 gap-8">
+          {/* ── Transactions Panel (8/12) ── */}
+          <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-6">
+            {/* Filter bar */}
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 rounded-2xl"
+              style={{ backgroundColor: 'white', border: '1px solid var(--lux-gray-200)' }}
             >
-              <div
-                className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${item.accent} opacity-10 rounded-full`}
-              />
-              <div className="relative z-10">
-                <p className="text-sm font-semibold text-slate-600 mb-1">{item.title}</p>
-                <p className="text-2xl font-bold text-slate-900 mb-2">
-                  {loadingSummary ? '...' : item.value}
-                </p>
-                <p className="text-sm text-slate-500">{item.sub}</p>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-1 h-5 rounded-full"
+                  style={{ backgroundColor: 'var(--lux-gold)' }}
+                />
+                <h2 className="text-base font-bold" style={{ color: 'var(--lux-primary-900)' }}>
+                  Lịch sử ví
+                </h2>
+                {filteredTransactions.length > 0 && (
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full ml-1"
+                    style={{
+                      backgroundColor: 'var(--lux-gray-100)',
+                      color: 'var(--lux-gray-600)',
+                    }}
+                  >
+                    {filteredTransactions.length}
+                  </span>
+                )}
               </div>
-            </Card>
-          ))}
-        </div>
+              <div className="flex gap-2">
+                <select
+                  value={filters.type}
+                  onChange={(e) => handleTypeChange(e.target.value)}
+                  className="px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                  style={{
+                    border: '1.5px solid var(--lux-gray-200)',
+                    color: 'var(--lux-gray-700)',
+                    backgroundColor: 'var(--lux-gray-50)',
+                  }}
+                >
+                  <option value="">Tất cả loại</option>
+                  <option value="purchase">Thanh toán mua</option>
+                  <option value="sale_payment">Tiền bán xe</option>
+                  <option value="deposit">Đặt cọc / Nạp</option>
+                  <option value="escrow_release">Giải phóng escrow</option>
+                  <option value="withdrawal">Rút tiền</option>
+                  <option value="refund">Hoàn tiền</option>
+                </select>
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                  style={{
+                    border: '1.5px solid var(--lux-gray-200)',
+                    color: 'var(--lux-gray-700)',
+                    backgroundColor: 'var(--lux-gray-50)',
+                  }}
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="pending">Đang xử lý</option>
+                  <option value="completed">Thành công</option>
+                  <option value="failed">Thất bại / huỷ</option>
+                </select>
+              </div>
+            </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <Card className="p-6 shadow-soft bg-white border border-slate-100">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">Lịch sử ví</h2>
-                  <p className="text-sm text-slate-500">
-                    Các giao dịch credit/debit, release escrow, rút tiền.
+            {/* Transaction list */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ backgroundColor: 'white', border: '1px solid var(--lux-gray-200)' }}
+            >
+              {loadingTx ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div
+                    className="w-10 h-10 rounded-full border-4 animate-spin mb-4"
+                    style={{
+                      borderColor: 'var(--lux-gray-200)',
+                      borderTopColor: 'var(--lux-primary-800)',
+                    }}
+                  />
+                  <p className="text-sm" style={{ color: 'var(--lux-gray-400)' }}>
+                    Đang tải lịch sử ví...
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-                  <Select
-                    value={filters.type}
-                    onChange={(e) => handleTypeChange(e.target.value)}
-                    options={[
-                      { label: 'Tất cả', value: '' },
-                      { label: 'Thanh toán mua', value: 'purchase' },
-                      { label: 'Tiền bán xe', value: 'sale_payment' },
-                      { label: 'Đặt cọc / Nạp', value: 'deposit' },
-                      { label: 'Giải phóng escrow', value: 'escrow_release' },
-                      { label: 'Rút tiền', value: 'withdrawal' },
-                      { label: 'Hoàn tiền', value: 'refund' },
-                    ]}
-                    placeholder="Loại giao dịch"
-                    className="min-w-[160px]"
-                  />
-                  <Select
-                    value={filters.status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    options={[
-                      { label: 'Tất cả', value: '' },
-                      { label: 'Đang xử lý', value: 'pending' },
-                      { label: 'Thành công', value: 'completed' },
-                      { label: 'Thất bại / huỷ', value: 'failed' },
-                    ]}
-                    placeholder="Trạng thái"
-                    className="min-w-[150px]"
-                  />
+              ) : filteredTransactions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ backgroundColor: 'var(--lux-gray-100)' }}
+                  >
+                    <svg
+                      className="w-7 h-7"
+                      style={{ color: 'var(--lux-gray-400)' }}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--lux-gray-500)' }}>
+                    Chưa có giao dịch nào
+                  </p>
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="text-xs uppercase text-slate-500 border-b border-slate-100">
-                      <th className="py-3 pr-3">Ngày</th>
-                      <th className="py-3 pr-3">Mô tả</th>
-                      <th className="py-3 pr-3">Loại</th>
-                      <th className="py-3 pr-3">Số tiền</th>
-                      <th className="py-3 pr-3">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingTx ? (
-                      <tr>
-                        <td colSpan="5" className="py-8 text-center text-slate-500">
-                          Đang tải lịch sử ví...
-                        </td>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse" style={{ minWidth: '700px' }}>
+                    <thead>
+                      <tr
+                        className="text-xs font-bold uppercase tracking-wider"
+                        style={{
+                          color: 'var(--lux-gray-400)',
+                          backgroundColor: 'var(--lux-gray-50)',
+                        }}
+                      >
+                        <th
+                          className="px-5 py-4 font-bold border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Ngày
+                        </th>
+                        <th
+                          className="px-5 py-4 font-bold border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Mô tả
+                        </th>
+                        <th
+                          className="px-5 py-4 font-bold text-center border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Loại
+                        </th>
+                        <th
+                          className="px-5 py-4 font-bold text-right border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Số tiền
+                        </th>
+                        <th
+                          className="px-5 py-4 font-bold text-center border"
+                          style={{ borderColor: 'var(--lux-gray-100)' }}
+                        >
+                          Trạng thái
+                        </th>
                       </tr>
-                    ) : filteredTransactions.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="py-8 text-center text-slate-500">
-                          Chưa có giao dịch nào.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredTransactions.map((tx) => {
+                    </thead>
+                    <tbody>
+                      {filteredTransactions.map((tx) => {
                         const amount = numberOrZero(tx?.amount);
-                        const isCredit = typeVariant(tx?.type) === 'success';
+                        const isCredit = amount >= 0; // show sign based on data, not on type label
                         return (
                           <tr
                             key={tx?._id || tx?.id}
-                            className="border-b border-slate-100 last:border-0"
+                            className="group transition-colors duration-150"
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'transparent')
+                            }
                           >
-                            <td className="py-3 pr-3 text-sm text-slate-600 whitespace-nowrap">
-                              {formatDateTime(tx?.createdAt || tx?.date)}
+                            <td
+                              className="px-5 py-4 align-middle whitespace-nowrap border"
+                              style={{ borderColor: 'var(--lux-gray-100)' }}
+                            >
+                              <p className="text-sm" style={{ color: 'var(--lux-gray-500)' }}>
+                                {formatDateTime(tx?.createdAt || tx?.date)}
+                              </p>
                             </td>
-                            <td className="py-3 pr-3 text-sm text-slate-700 max-w-xs">
-                              <p className="font-semibold text-slate-900 line-clamp-1">
+                            <td
+                              className="px-5 py-4 align-middle border"
+                              style={{ borderColor: 'var(--lux-gray-100)', minWidth: '300px' }}
+                            >
+                              <p
+                                className="text-sm font-semibold whitespace-normal break-words"
+                                style={{ color: 'var(--lux-primary-900)' }}
+                              >
                                 {tx?.description || tx?.title || 'Giao dịch ví'}
                               </p>
-                              <p className="text-xs text-slate-500 line-clamp-2">
-                                {tx?.referenceId
-                                  ? `Mã tham chiếu: ${tx.referenceId}`
-                                  : tx?.note || ''}
-                              </p>
+                              {tx?.referenceId || tx?.note ? (
+                                <p
+                                  className="text-xs whitespace-normal break-words mt-1"
+                                  style={{ color: 'var(--lux-gray-400)' }}
+                                >
+                                  {tx?.referenceId ? `Mã: ${tx.referenceId}` : tx?.note}
+                                </p>
+                              ) : null}
                             </td>
-                            <td className="py-3 pr-3 text-sm text-slate-700">
+                            <td
+                              className="px-5 py-4 align-middle text-center whitespace-nowrap border"
+                              style={{ borderColor: 'var(--lux-gray-100)' }}
+                            >
                               <Badge variant={typeVariant(tx?.type)} size="sm">
                                 {typeLabel(tx?.type)}
                               </Badge>
                             </td>
                             <td
-                              className={`py-3 pr-3 text-sm font-semibold ${isCredit ? 'text-emerald-600' : 'text-danger'}`}
+                              className="px-5 py-4 align-middle text-right whitespace-nowrap border"
+                              style={{ borderColor: 'var(--lux-gray-100)' }}
                             >
-                              {`${isCredit ? '+' : '-'}${formatMoney(Math.abs(amount))}`}
+                              <p
+                                className="text-sm font-bold"
+                                style={{
+                                  color: isCredit ? 'var(--lux-primary-500)' : '#dc2626',
+                                }}
+                              >
+                                {`${isCredit ? '+' : '-'}${formatMoney(Math.abs(amount))}`}
+                              </p>
                             </td>
-                            <td className="py-3 pr-3 text-sm text-slate-700">
+                            <td
+                              className="px-5 py-4 align-middle text-center whitespace-nowrap border"
+                              style={{ borderColor: 'var(--lux-gray-100)' }}
+                            >
                               <Badge variant={statusVariant(tx?.status)} size="sm">
                                 {tx?.status || 'N/A'}
                               </Badge>
                             </td>
                           </tr>
                         );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {pagination.pages > 1 && (
-                <div className="mt-6 pt-4 border-t border-slate-100">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <p className="text-sm text-slate-500">
-                      Trang {page}/{pagination.pages || 1}
-                      {pagination.total ? ` • Tổng ${pagination.total} giao dịch` : ''}
-                    </p>
-                    <Pagination
-                      currentPage={page}
-                      totalPages={pagination.pages || 1}
-                      onPageChange={(newPage) => fetchTransactions(newPage)}
-                    />
-                  </div>
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
-            </Card>
+
+              {/* Pagination footer */}
+              {filteredTransactions.length > 0 && (
+                <div
+                  className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3"
+                  style={{
+                    borderTop: '1px solid var(--lux-gray-100)',
+                    backgroundColor: 'var(--lux-gray-50)',
+                  }}
+                >
+                  {pagination.pages > 1 ? (
+                    <>
+                      <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
+                        Trang {page}/{pagination.pages} · Tổng {pagination.total} giao dịch
+                      </p>
+                      <Pagination
+                        currentPage={page}
+                        totalPages={pagination.pages || 1}
+                        onPageChange={(newPage) => fetchTransactions(newPage)}
+                      />
+                    </>
+                  ) : (
+                    <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
+                      {pagination.total} giao dịch
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <Card className="p-6 shadow-soft bg-white border border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900 mb-3">Rút tiền về ngân hàng</h3>
-              <p className="text-sm text-slate-500 mb-4">
-                Vui lòng kiểm tra số dư khả dụng trước khi rút. Yêu cầu sẽ được xử lý theo cấu hình
-                hệ thống (tự động hoặc chờ admin duyệt).
-              </p>
+          {/* ── Sidebar (4/12) ── */}
+          <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-6">
+            {/* ── Nạp tiền vào ví ── */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ border: '1px solid var(--lux-gray-200)' }}
+            >
+              <div
+                className="px-6 py-5 relative overflow-hidden"
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
+                }}
+              >
+                <div
+                  className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10 pointer-events-none"
+                  style={{ backgroundColor: 'var(--lux-gold)' }}
+                />
+                <h3
+                  className="text-sm font-bold relative z-10 mb-0.5 flex items-center gap-2"
+                  style={{ color: 'white' }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  Nạp tiền vào ví
+                </h3>
+                <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Nạp tiền qua ZaloPay để mua xe hoặc thanh toán phí
+                </p>
+              </div>
 
-              <div className="space-y-3">
+              <div className="p-5 space-y-4" style={{ backgroundColor: 'white' }}>
+                {/* Preset amounts */}
+                <div>
+                  <p
+                    className="text-xs font-bold uppercase tracking-widest mb-2"
+                    style={{ color: 'var(--lux-gray-400)' }}
+                  >
+                    Chọn nhanh
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[100000, 200000, 500000, 1000000, 2000000, 5000000].map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => setTopUpAmount(String(preset))}
+                        className="px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+                        style={{
+                          border:
+                            Number(topUpAmount) === preset
+                              ? '1.5px solid var(--lux-primary-800)'
+                              : '1.5px solid var(--lux-gray-200)',
+                          backgroundColor:
+                            Number(topUpAmount) === preset
+                              ? 'var(--lux-gray-100)'
+                              : 'var(--lux-gray-50)',
+                          color:
+                            Number(topUpAmount) === preset
+                              ? 'var(--lux-primary-900)'
+                              : 'var(--lux-gray-600)',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (Number(topUpAmount) !== preset) {
+                            e.currentTarget.style.borderColor = 'var(--lux-primary-800)';
+                            e.currentTarget.style.color = 'var(--lux-primary-800)';
+                            e.currentTarget.style.backgroundColor = 'white';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (Number(topUpAmount) !== preset) {
+                            e.currentTarget.style.borderColor = 'var(--lux-gray-200)';
+                            e.currentTarget.style.color = 'var(--lux-gray-600)';
+                            e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)';
+                          }
+                        }}
+                      >
+                        {preset >= 1000000
+                          ? `${(preset / 1000000).toFixed(preset % 1000000 === 0 ? 0 : 1)}tr`
+                          : `${(preset / 1000).toFixed(0)}k`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom amount */}
+                <Input
+                  label="Hoặc nhập số tiền"
+                  type="number"
+                  min="10000"
+                  max="50000000"
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  placeholder="Nhập số tiền (VND)"
+                />
+
+                {/* Amount preview */}
+                {Number(topUpAmount) > 0 && (
+                  <div
+                    className="flex items-center justify-between text-sm rounded-xl px-4 py-3"
+                    style={{
+                      backgroundColor: 'rgba(198,167,94,0.07)',
+                      border: '1px solid rgba(198,167,94,0.2)',
+                    }}
+                  >
+                    <span className="font-medium" style={{ color: 'var(--lux-gray-700)' }}>
+                      Số tiền nạp
+                    </span>
+                    <span className="font-bold text-lg" style={{ color: 'var(--lux-primary-900)' }}>
+                      {Number(topUpAmount).toLocaleString('vi-VN')} {currency}
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, var(--lux-primary-800) 0%, var(--lux-primary-900) 100%)',
+                    color: 'white',
+                    border: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.9';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                  onClick={handleTopUp}
+                  disabled={toppingUp || !topUpAmount || Number(topUpAmount) <= 0}
+                >
+                  {toppingUp ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                      </svg>
+                      Nạp tiền qua ZaloPay
+                    </>
+                  )}
+                </button>
+
+                <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
+                  Bạn sẽ được chuyển đến trang thanh toán ZaloPay. Sau khi thanh toán thành công, số
+                  dư ví sẽ được cập nhật tự động.
+                </p>
+              </div>
+            </div>
+
+            {/* ── Rút tiền ── */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ border: '1px solid var(--lux-gray-200)' }}
+            >
+              <div
+                className="px-6 py-5 relative overflow-hidden"
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
+                }}
+              >
+                <div
+                  className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10 pointer-events-none"
+                  style={{ backgroundColor: 'var(--lux-gold)' }}
+                />
+                <h3 className="text-sm font-bold relative z-10 mb-0.5" style={{ color: 'white' }}>
+                  Rút tiền về ngân hàng
+                </h3>
+                <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Vui lòng kiểm tra số dư khả dụng trước khi rút
+                </p>
+              </div>
+
+              <div className="p-5 space-y-3" style={{ backgroundColor: 'white' }}>
                 <Input
                   label="Số tiền muốn rút"
                   type="number"
@@ -485,50 +968,151 @@ const Wallet = () => {
                   }
                   placeholder="Tên chủ tài khoản"
                 />
-                <div className="flex items-center justify-between text-sm text-slate-600 bg-slate-50 rounded-[16px] px-3 py-2">
-                  <span>Số dư khả dụng</span>
-                  <span className="font-semibold text-slate-900">
+
+                {/* Available balance display */}
+                <div
+                  className="flex items-center justify-between px-4 py-3 rounded-xl"
+                  style={{
+                    backgroundColor: 'rgba(198,167,94,0.07)',
+                    border: '1px solid rgba(198,167,94,0.2)',
+                  }}
+                >
+                  <span className="text-sm font-medium" style={{ color: 'var(--lux-gray-700)' }}>
+                    Số dư khả dụng
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--lux-primary-900)' }}>
                     {formatMoney(availableBalance)}
                   </span>
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    variant="primary"
-                    className="flex-1"
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, var(--lux-primary-800) 0%, var(--lux-primary-900) 100%)',
+                      color: 'white',
+                      border: 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
                     onClick={handleWithdraw}
                     disabled={withdrawing || loadingSummary}
                   >
                     {withdrawing ? 'Đang gửi...' : 'Tạo yêu cầu rút'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
+                  </button>
+                  <button
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    style={{
+                      border: '1.5px solid var(--lux-gray-200)',
+                      color: 'var(--lux-gray-700)',
+                      backgroundColor: 'var(--lux-gray-50)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--lux-primary-800)';
+                      e.currentTarget.style.color = 'var(--lux-primary-800)';
+                      e.currentTarget.style.backgroundColor = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--lux-gray-200)';
+                      e.currentTarget.style.color = 'var(--lux-gray-700)';
+                      e.currentTarget.style.backgroundColor = 'var(--lux-gray-50)';
+                    }}
                     onClick={refreshAll}
                     disabled={withdrawing}
                   >
                     Làm mới
-                  </Button>
+                  </button>
                 </div>
-                <p className="text-xs text-slate-500">
+
+                <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
                   Lưu ý: Số dư trong escrow sẽ được chuyển sang ví khi buyer xác nhận giao hàng hoặc
                   admin release. Sau đó mới có thể rút.
                 </p>
               </div>
-            </Card>
+            </div>
 
-            <Card className="p-5 shadow-soft bg-white border border-slate-100">
-              <h4 className="text-sm font-semibold text-slate-800 mb-2">Mẹo kiểm soát ví</h4>
-              <ul className="text-sm text-slate-600 space-y-2 list-disc list-inside">
-                <li>
-                  Refetch ví sau khi giao dịch hoàn tất, admin release/refund, hoặc rút tiền thành
-                  công.
-                </li>
-                <li>
-                  Theo dõi các dòng credit từ escrow release để đảm bảo đơn hàng được ghi nhận.
-                </li>
-                <li>Giữ lại mã tham chiếu giao dịch khi cần đối soát với bộ phận hỗ trợ.</li>
-              </ul>
-            </Card>
+            {/* Tips Banner */}
+            <div
+              className="rounded-2xl p-6 relative overflow-hidden group"
+              style={{
+                background:
+                  'linear-gradient(135deg, var(--lux-primary-800) 0%, var(--lux-primary-900) 100%)',
+                border: '1px solid rgba(255,255,255,0.05)',
+              }}
+            >
+              {/* Corner glow */}
+              <div
+                className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20 pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle, var(--lux-gold) 0%, transparent 70%)',
+                  transform: 'translate(30%, -30%)',
+                }}
+              />
+              {/* Decorative icon */}
+              <div className="absolute bottom-4 right-4 opacity-10 pointer-events-none transform rotate-12 group-hover:rotate-6 transition-transform duration-500">
+                <svg
+                  className="w-20 h-20"
+                  style={{ color: 'white' }}
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4 4s4-1.79 4-4c0-.88-.36-1.68-.93-2.25z" />
+                </svg>
+              </div>
+
+              <div className="relative z-10">
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider mb-4"
+                  style={{ backgroundColor: 'rgba(198,167,94,0.2)', color: 'var(--lux-gold)' }}
+                >
+                  Mẹo kiểm soát ví
+                </div>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                      style={{ backgroundColor: 'var(--lux-gold)' }}
+                    />
+                    <span
+                      className="text-xs leading-relaxed"
+                      style={{ color: 'rgba(255,255,255,0.6)' }}
+                    >
+                      Làm mới ví sau khi giao dịch hoàn tất, admin release/refund, hoặc rút tiền
+                      thành công.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                      style={{ backgroundColor: 'var(--lux-gold)' }}
+                    />
+                    <span
+                      className="text-xs leading-relaxed"
+                      style={{ color: 'rgba(255,255,255,0.6)' }}
+                    >
+                      Theo dõi các dòng credit từ escrow release để đảm bảo đơn hàng được ghi nhận.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                      style={{ backgroundColor: 'var(--lux-gold)' }}
+                    />
+                    <span
+                      className="text-xs leading-relaxed"
+                      style={{ color: 'rgba(255,255,255,0.6)' }}
+                    >
+                      Giữ lại mã tham chiếu giao dịch khi cần đối soát với bộ phận hỗ trợ.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

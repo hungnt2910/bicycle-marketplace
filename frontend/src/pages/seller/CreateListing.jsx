@@ -338,67 +338,21 @@ const CreateListing = () => {
         throw new Error('Không tìm thấy mã bài đăng để tạo giao dịch thanh toán.');
       }
 
-      toast.info('Bài đăng cần thanh toán phí. Đang tạo giao dịch...', {
+      toast.info('Bài đăng đã tạo. Chuyển sang thanh toán phí...', {
         autoClose: 2000,
       });
 
-      const transactionPayload = {
-        bicycleId: newBicycleId,
-        amount: totalFee,
+      // Chuyển sang trang xác nhận thanh toán ví
+      const params = new URLSearchParams({
         type: 'fee',
-        paymentMethod: 'e_wallet',
-      };
-
-      const transactionRes = await transactionApi.create(transactionPayload);
-      const transactionData = transactionRes?.data?.data || transactionRes?.data;
-
-      // Lấy order_url và app_trans_id từ response
-      const paymentUrl = transactionData?.order_url;
-      const appTransId = transactionData?.app_trans_id;
-
-      if (!paymentUrl) {
-        throw new Error('Không lấy được link thanh toán từ server.');
-      }
-
-      if (!appTransId) {
-        throw new Error('Không lấy được mã giao dịch từ server.');
-      }
-
-      // Gọi getMyTransactions để tìm transaction vừa tạo theo app_trans_id
-      let transactionId = null;
-      try {
-        const myTransactionsRes = await transactionApi.getMyTransactions();
-        const transactions = myTransactionsRes?.data?.data || myTransactionsRes?.data || [];
-
-        // Tìm transaction có payment.transactionId khớp với app_trans_id
-        const foundTransaction = transactions.find(
-          (tx) => tx.payment?.transactionId === appTransId
-        );
-
-        if (foundTransaction) {
-          transactionId = foundTransaction._id;
-          console.log('✅ Found transaction ID:', transactionId);
-        } else {
-          console.warn('⚠️ Transaction not found in list, using app_trans_id');
-          transactionId = appTransId; // Fallback to app_trans_id
-        }
-      } catch (error) {
-        console.warn('⚠️ Error getting transactions, using app_trans_id:', error);
-        transactionId = appTransId; // Fallback to app_trans_id
-      }
-
-      // Lưu transaction ID để kiểm tra sau
-      localStorage.setItem('pendingTransactionId', transactionId);
-      localStorage.setItem('pendingBicycleId', newBicycleId);
-
-      // Chuyển hướng sang trang thanh toán ZaloPay
-      toast.success('Đang chuyển đến trang thanh toán...', {
-        autoClose: 1500,
+        amount: String(totalFee),
+        bicycleId: newBicycleId,
+        title: formData.title || 'Phí đăng tin',
+        returnUrl: '/seller/manage-listings',
       });
 
-      setTimeout(() => {
-        window.location.href = paymentUrl;
-      }, 1500);
+      localStorage.setItem('pendingBicycleId', newBicycleId);
+      navigate(`/wallet-payment?${params.toString()}`);
     } catch (error) {
       console.error('Error creating bicycle listing:', error);
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');

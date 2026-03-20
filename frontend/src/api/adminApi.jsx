@@ -31,13 +31,8 @@ const adminApi = {
   deleteSystemSetting: (key) => axiosClient.delete(`/api/v1/admin/system-setting/${key}`),
 
   // ==================== USER MANAGEMENT ====================
-  // Thay đổi role của user (cấp quyền)
-  changeUserRole: (userId, newRole) =>
-    axiosClient.patch('/api/v1/admin/user/change-role', { userId, newRole }),
-
-  // Thay đổi trạng thái của user
-  changeUserStatus: (userId, newStatus) =>
-    axiosClient.patch('/api/v1/admin/user/change-status', { userId, newStatus }),
+  // Xác minh và cấp quyền seller cho user cụ thể (admin duyệt hồ sơ)
+  verifySeller: (userId) => axiosClient.post(`/api/v1/auth/verify-seller/${userId}`),
 
   // ==================== ESCROW CONTROL (ADMIN) ====================
   // Ép giải ngân escrow cho seller

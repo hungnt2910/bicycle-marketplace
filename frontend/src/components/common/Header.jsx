@@ -1,66 +1,80 @@
-import React, { useMemo, useState } from "react";
-import { Avatar, Button } from "../ui";
-import Logo from "./Logo";
+import React, { useMemo, useState } from 'react';
+import { Avatar, Button } from '../ui';
+import Logo from './Logo';
 
 const navItems = [
-  { label: "Trang chủ", page: "landing" },
-  { label: "Marketplace", page: "marketplace" },
-  { label: "Blog", page: "blog" },
+  { label: 'Trang chủ', page: 'landing' },
+  { label: 'Marketplace', page: 'marketplace' },
+  { label: 'Blog', page: 'blog' },
 ];
 
 const Header = ({
   isAuthenticated = false,
   role = null,
-  currentPage = "landing",
+  currentPage = 'landing',
   onNavigate,
-  userName = "User",
-  userEmail = "user@example.com",
+  userName = 'User',
+  userEmail = 'user@example.com',
   onLogout,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const notifications = [
-    {
-      id: 1,
-      type: "message",
-      text: "Bạn có tin nhắn mới từ người bán",
-      time: "5 phút trước",
-    },
-    {
-      id: 2,
-      type: "order",
-      text: "Đơn hàng #1234 đã được giao",
-      time: "1 giờ trước",
-    },
-    {
-      id: 3,
-      type: "price",
-      text: "Xe bạn yêu thích giảm giá 10%",
-      time: "2 giờ trước",
-    },
-  ];
+  const showSearch = isAuthenticated && role === 'buyer';
 
-  const showSearch = isAuthenticated && role === "buyer";
+  const notifications = useMemo(
+    () => [
+      {
+        id: 1,
+        type: 'message',
+        text: 'Bạn có tin nhắn mới từ người bán',
+        time: '5 phút trước',
+      },
+      {
+        id: 2,
+        type: 'order',
+        text: 'Đơn hàng #1234 đã được giao',
+        time: '1 giờ trước',
+      },
+      {
+        id: 3,
+        type: 'price',
+        text: 'Xe bạn yêu thích giảm giá 10%',
+        time: '2 giờ trước',
+      },
+    ],
+    []
+  );
+
+  // const showSearch = isAuthenticated && role === "buyer";
+
   const mainNavItems = useMemo(() => {
-    if (isAuthenticated && role === "buyer") {
+    if (isAuthenticated && role === 'buyer') {
       return [
-        { label: "Trang chủ", page: "landing" },
-        { label: "Marketplace", page: "marketplace" },
-        { label: "Blog", page: "blog" },
-        { label: "Yêu thích", page: "favorites" },
-        { label: "Ví", page: "wallet" },
-        { label: "Dashboard", page: "dashboard" },
-        { label: "Tài khoản", page: "profile" },
+        { label: 'Trang chủ', page: 'landing' },
+        { label: 'Marketplace', page: 'marketplace' },
+        { label: 'Blog', page: 'blog' },
+        { label: 'Yêu thích', page: 'favorites' },
+        { label: 'Ví', page: 'wallet' },
+        { label: 'Đơn hàng', page: 'dashboard' },
+        // { label: 'Tài khoản', page: 'profile' },
+
+        // { label: "Trang chủ", page: "landing" },
+        // { label: "Marketplace", page: "marketplace" },
+        // { label: "Blog", page: "blog" },
+        // { label: "Yêu thích", page: "favorites" },
+        // { label: "Ví", page: "wallet" },
+        // { label: "Dashboard", page: "dashboard" },
+        // { label: "Tài khoản", page: "profile" },
       ];
     }
 
-    if (isAuthenticated && role && role !== "buyer") {
+    if (isAuthenticated && role && role !== 'buyer') {
       return [
-        { label: "Trang chủ", page: "landing" },
-        { label: "Blog", page: "blog" },
-        { label: "Dashboard", page: "dashboard" },
+        { label: 'Trang chủ', page: 'landing' },
+        { label: 'Blog', page: 'blog' },
+        { label: 'Dashboard', page: 'dashboard' },
       ];
     }
 
@@ -77,16 +91,16 @@ const Header = ({
 
   const handleCta = () => {
     if (!isAuthenticated) {
-      onNavigate && onNavigate("login");
+      onNavigate && onNavigate('login');
       return;
     }
 
-    if (role === "seller") {
-      onNavigate && onNavigate("create-listing");
-    } else if (role === "buyer") {
-      onNavigate && onNavigate("marketplace");
+    if (role === 'seller') {
+      onNavigate && onNavigate('create-listing');
+    } else if (role === 'buyer') {
+      onNavigate && onNavigate('marketplace');
     } else {
-      onNavigate && onNavigate("dashboard");
+      onNavigate && onNavigate('dashboard');
     }
   };
 
@@ -98,7 +112,7 @@ const Header = ({
           <div className="h-18 flex items-center justify-between gap-4">
             {/* Left: Logo + Nav Links */}
             <div className="flex items-center gap-4 md:gap-8 shrink-0">
-              <Logo onClick={() => handleNavigate("landing")} />
+              <Logo onClick={() => handleNavigate('landing')} />
 
               <div className="hidden lg:flex items-center gap-1">
                 {mainNavItems.slice(0, 3).map((item) => (
@@ -107,8 +121,8 @@ const Header = ({
                     onClick={() => handleNavigate(item.page)}
                     className={`relative px-3 lg:px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${
                       currentPage === item.page
-                        ? "text-green-600 bg-green-100 shadow-sm"
-                        : "text-warmgray-600 hover:bg-green-100 hover:text-green-600"
+                        ? 'text-green-600 bg-green-100 shadow-sm'
+                        : 'text-warmgray-600 hover:bg-green-100 hover:text-green-600'
                     }`}
                   >
                     {item.label}
@@ -125,8 +139,8 @@ const Header = ({
                       onClick={() => handleNavigate(item.page)}
                       className={`relative px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${
                         currentPage === item.page
-                          ? "text-primary-800"
-                          : "text-warmgray-600 hover:text-primary-800 hover:bg-warmgray-100/60"
+                          ? 'text-primary-800'
+                          : 'text-warmgray-600 hover:text-primary-800 hover:bg-warmgray-100/60'
                       }`}
                     >
                       {item.label}
@@ -140,7 +154,7 @@ const Header = ({
             </div>
 
             {/* Center: Search (for authenticated buyers) */}
-            {showSearch && (
+            {/* {showSearch && (
               <div className="hidden lg:block flex-1 max-w-xs xl:max-w-sm">
                 <div className="relative">
                   <input
@@ -163,14 +177,14 @@ const Header = ({
                   </svg>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Right: Actions & User Menu */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {role === "buyer" && isAuthenticated && (
+              {role === 'buyer' && isAuthenticated && (
                 <button
                   className="relative p-2 lg:p-2.5 hover:bg-warmgray-100/60 rounded-full transition-colors group hidden md:flex"
-                  onClick={() => handleNavigate("favorites")}
+                  onClick={() => handleNavigate('favorites')}
                 >
                   <svg
                     className="w-4 h-4 lg:w-5 lg:h-5 text-warmgray-600 group-hover:text-danger transition-colors"
@@ -218,9 +232,7 @@ const Header = ({
                   {showNotifications && (
                     <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-[20px] shadow-elevated border border-warmgray-100 overflow-hidden z-50">
                       <div className="px-4 py-3 bg-gradient-to-r from-primary-800/5 to-gold/5 border-b border-warmgray-100">
-                        <h3 className="font-semibold text-primary-900">
-                          Thông báo
-                        </h3>
+                        <h3 className="font-semibold text-primary-900">Thông báo</h3>
                       </div>
                       <div className="max-h-96 overflow-y-auto">
                         {notifications.map((notif) => (
@@ -231,9 +243,7 @@ const Header = ({
                             <p className="text-sm font-medium text-primary-900 mb-1">
                               {notif.text}
                             </p>
-                            <p className="text-xs text-warmgray-500">
-                              {notif.time}
-                            </p>
+                            <p className="text-xs text-warmgray-500">{notif.time}</p>
                           </div>
                         ))}
                       </div>
@@ -274,7 +284,7 @@ const Header = ({
                   >
                     <Avatar name={userName} size="sm" />
                     <svg
-                      className={`w-4 h-4 text-warmgray-400 transition-transform hidden md:block ${showProfile ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 text-warmgray-400 transition-transform hidden md:block ${showProfile ? 'rotate-180' : ''}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -303,7 +313,7 @@ const Header = ({
                         <button
                           className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
                           onClick={() => {
-                            handleNavigate("profile");
+                            handleNavigate('profile');
                           }}
                         >
                           <svg
@@ -321,10 +331,13 @@ const Header = ({
                           </svg>
                           Tài khoản của tôi
                         </button>
-                        {role === "buyer" && (
+
+                        {/* {role === 'buyer' && ( */}
+
+                        {role === 'buyer' && (
                           <button
                             className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
-                            onClick={() => handleNavigate("orders")}
+                            onClick={() => handleNavigate('orders')}
                           >
                             <svg
                               className="w-4 h-4"
@@ -342,10 +355,13 @@ const Header = ({
                             Đơn hàng của tôi
                           </button>
                         )}
-                        {role === "buyer" && (
+                        {/* {role === 'buyer' && (
+
+                        )} */}
+                        {role === 'buyer' && (
                           <button
                             className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
-                            onClick={() => handleNavigate("wallet")}
+                            onClick={() => handleNavigate('wallet')}
                           >
                             <svg
                               className="w-4 h-4"
@@ -363,10 +379,31 @@ const Header = ({
                             Ví của tôi
                           </button>
                         )}
-                        {role === "buyer" && (
+                        {role === 'buyer' && (
+                          <button
+                            className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
+                            onClick={() => handleNavigate('disputes')}
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                              />
+                            </svg>
+                            Tranh chấp của tôi
+                          </button>
+                        )}
+                        {role === 'buyer' && (
                           <button
                             className="w-full px-4 py-2.5 flex items-center gap-2 text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors"
-                            onClick={() => handleNavigate("chat")}
+                            onClick={() => handleNavigate('chat')}
                             title="Tin nhắn"
                           >
                             <svg
@@ -497,8 +534,8 @@ const Header = ({
                 onClick={() => handleNavigate(item.page)}
                 className={`w-full text-left px-5 py-3.5 text-sm font-semibold rounded-[16px] transition-all ${
                   currentPage === item.page
-                    ? "text-primary-800 bg-primary-800/5 border-l-[3px] border-gold"
-                    : "text-warmgray-600 hover:bg-warmgray-50"
+                    ? 'text-primary-800 bg-primary-800/5 border-l-[3px] border-gold'
+                    : 'text-warmgray-600 hover:bg-warmgray-50'
                 }`}
               >
                 {item.label}
@@ -507,18 +544,14 @@ const Header = ({
 
             <div className="pt-4 mt-4 border-t border-warmgray-200/60">
               {isAuthenticated ? (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => onLogout && onLogout()}
-                >
+                <Button variant="outline" className="w-full" onClick={() => onLogout && onLogout()}>
                   Đăng xuất
                 </Button>
               ) : (
                 <Button
                   variant="primary"
                   className="w-full"
-                  onClick={() => handleNavigate("login")}
+                  onClick={() => handleNavigate('login')}
                 >
                   Đăng nhập / Đăng ký
                 </Button>

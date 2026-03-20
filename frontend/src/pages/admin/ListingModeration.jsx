@@ -13,6 +13,7 @@ const ListingModeration = () => {
   const normalizeStatus = (status) => {
     if (status === 'active') return 'approved';
     if (status === 'reserved') return 'approved';
+    if (status === 'sold') return 'sold';
     if (status === 'rejected') return 'rejected';
     if (status === 'draft') return 'draft';
     if (status === 'pending_review') return 'pending';
@@ -59,6 +60,7 @@ const ListingModeration = () => {
     category: bike?.specifications?.type || bike?.category || 'Chưa phân loại',
     condition: bike?.condition?.overall || 'Chưa rõ',
     images: bike?.media?.images?.length || 0,
+    imageUrl: bike?.media?.mainImage || bike?.media?.images?.[0] || '/placeholder.png',
     description: bike?.description || '',
   });
 
@@ -88,12 +90,14 @@ const ListingModeration = () => {
     pending: 'Chờ duyệt',
     approved: 'Đã duyệt',
     rejected: 'Từ chối',
+    sold: 'Đã bán',
   };
 
   const statusColors = {
     pending: 'warning',
     approved: 'success',
     rejected: 'danger',
+    sold: 'sold',
   };
 
   const filteredListings = useMemo(() => {
@@ -216,114 +220,138 @@ const ListingModeration = () => {
               <option value="pending">Chờ duyệt</option>
               <option value="approved">Đã duyệt</option>
               <option value="rejected">Từ chối</option>
+              <option value="sold">Đã bán</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Listing List */}
-      <div className="space-y-4">
-        {loading && (
-          <div className="lux-panel p-12 text-center">
+      <div className="lux-panel p-0 overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center">
             <p className="text-warmgray-500 text-lg">Đang tải danh sách tin đăng...</p>
           </div>
+        ) : filteredListings.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-warmgray-500 text-lg">Không tìm thấy tin đăng nào</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+              <thead className="bg-warmgray-50 border-b border-warmgray-200 text-warmgray-700 divide-x divide-warmgray-200">
+                <tr>
+                  <th className="py-4 px-6 font-semibold text-sm w-32">Hình ảnh</th>
+                  <th className="py-4 px-6 font-semibold text-sm">Thông tin tin đăng</th>
+                  <th className="py-4 px-6 font-semibold text-sm">Trạng thái & Lịch sử</th>
+                  <th className="py-4 px-6 font-semibold text-sm">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-warmgray-200">
+                {filteredListings.map((listing) => (
+                  <tr
+                    key={listing.id}
+                    className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200"
+                  >
+                    <td className="py-4 px-6 align-middle">
+                      <img
+                        src={listing.imageUrl}
+                        alt={listing.name}
+                        className="w-20 h-16 object-cover rounded-[8px]"
+                      />
+                    </td>
+                    <td className="py-4 px-6 align-middle">
+                      <div className="font-medium text-lg text-primary-900 mb-1 line-clamp-2">
+                        {listing.name}
+                      </div>
+                      <div className="text-sm text-warmgray-600 mb-2">
+                        <span className="font-medium text-warmgray-800">Người bán:</span>{' '}
+                        {listing.seller}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-warmgray-600">
+                        <div>
+                          <span className="font-medium text-warmgray-800">Giá:</span>{' '}
+                          {(listing.price / 1000000).toFixed(1)}M ₫
+                        </div>
+                        <div>
+                          <span className="font-medium text-warmgray-800">Danh mục:</span>{' '}
+                          {listing.category}
+                        </div>
+                        <div>
+                          <span className="font-medium text-warmgray-800">Tình trạng:</span>{' '}
+                          {listing.condition}
+                        </div>
+                        <div>
+                          <span className="font-medium text-warmgray-800">Ảnh:</span>{' '}
+                          {listing.images} ảnh
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 align-middle min-w-[200px]">
+                      <div className="mb-2">
+                        <Badge variant={statusColors[listing.status]}>
+                          {statusLabels[listing.status]}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 text-sm text-warmgray-600">
+                        <p>
+                          <strong>Ngày gửi:</strong> {listing.submitDate}
+                        </p>
+                        {listing.status === 'approved' && listing.approvedDate && (
+                          <p className="text-success-800">
+                            <strong>Ngày duyệt:</strong> {listing.approvedDate}
+                          </p>
+                        )}
+                        {listing.status === 'rejected' && (
+                          <div className="bg-danger/5 p-2 rounded-[8px] mt-1">
+                            <p className="text-danger-800 text-xs">
+                              <strong>Ngày từ chối:</strong> {listing.rejectedDate}
+                            </p>
+                            <p
+                              className="text-danger text-xs mt-0.5 line-clamp-2"
+                              title={listing.rejectedReason}
+                            >
+                              {listing.rejectedReason}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 align-middle text-right">
+                      <div className="flex flex-col gap-2 w-[120px] ml-auto">
+                        {/* <button className="btn btn-sm btn-primary w-full">
+                          Xem chi tiết
+                        </button> */}
+                        {listing.status === 'pending' && (
+                          <div className="flex flex-col gap-2 w-full">
+                            <button
+                              className="btn btn-sm btn-success w-full"
+                              onClick={() => handleApprove(listing.id)}
+                            >
+                              Duyệt
+                            </button>
+                            <button
+                              className="btn btn-sm btn-danger w-full"
+                              onClick={() => handleReject(listing.id)}
+                            >
+                              Từ chối
+                            </button>
+                          </div>
+                        )}
+                        {listing.status === 'approved' && (
+                          <button className="btn btn-sm btn-outline border-danger text-danger w-full hover:bg-red-50">
+                            Gỡ tin
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-        {!loading &&
-          filteredListings.map((listing) => (
-            <div key={listing.id} className="lux-panel">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold text-primary-900">{listing.name}</h3>
-                    <Badge variant={statusColors[listing.status]}>
-                      {statusLabels[listing.status]}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-warmgray-600 mb-1">Người bán: {listing.seller}</p>
-                  <p className="text-sm text-warmgray-600">Ngày gửi: {listing.submitDate}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-primary-700">
-                    {(listing.price / 1000000).toFixed(1)}M ₫
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
-                <div>
-                  <p className="text-warmgray-600">Danh mục</p>
-                  <p className="font-medium text-primary-900">{listing.category}</p>
-                </div>
-                <div>
-                  <p className="text-warmgray-600">Tình trạng</p>
-                  <p className="font-medium text-primary-900">{listing.condition}</p>
-                </div>
-                <div>
-                  <p className="text-warmgray-600">Số hình ảnh</p>
-                  <p className="font-medium text-primary-900">{listing.images} ảnh</p>
-                </div>
-                <div>
-                  <p className="text-warmgray-600">Mô tả</p>
-                  <p className="font-medium text-primary-900">
-                    {listing.description.length > 50
-                      ? `${listing.description.substring(0, 50)}...`
-                      : listing.description}
-                  </p>
-                </div>
-              </div>
-
-              {listing.status === 'approved' && (
-                <div className="bg-success/5 p-3 rounded-[16px] mb-4">
-                  <p className="text-sm text-green-800">
-                    <strong>✓ Đã duyệt:</strong> {listing.approvedDate}
-                  </p>
-                </div>
-              )}
-
-              {listing.status === 'rejected' && (
-                <div className="bg-danger/5 p-3 rounded-[16px] mb-4">
-                  <p className="text-sm text-red-800">
-                    <strong>✗ Từ chối:</strong> {listing.rejectedDate}
-                  </p>
-                  <p className="text-sm text-danger mt-1">Lý do: {listing.rejectedReason}</p>
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button className="flex-1 bg-primary-700 text-white py-2 rounded-[16px] hover:bg-primary-800 font-medium">
-                  Xem chi tiết
-                </button>
-                {listing.status === 'pending' && (
-                  <>
-                    <button
-                      className="flex-1 bg-success text-white py-2 rounded-[16px] hover:bg-green-700 font-medium"
-                      onClick={() => handleApprove(listing.id)}
-                    >
-                      Phê duyệt
-                    </button>
-                    <button
-                      className="flex-1 bg-danger text-white py-2 rounded-[16px] hover:bg-red-700 font-medium"
-                      onClick={() => handleReject(listing.id)}
-                    >
-                      Từ chối
-                    </button>
-                  </>
-                )}
-                {listing.status === 'approved' && (
-                  <button className="flex-1 border border-red-300 text-danger py-2 rounded-[16px] hover:bg-danger/5 font-medium">
-                    Gỡ tin
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
       </div>
-
-      {!loading && filteredListings.length === 0 && (
-        <div className="lux-panel p-12 text-center">
-          <p className="text-warmgray-500 text-lg">Không tìm thấy tin đăng nào</p>
-        </div>
-      )}
     </div>
   );
 };

@@ -182,7 +182,7 @@ const Profile = () => {
               </section>
 
               {/* ADDRESS SECTION */}
-              <section>
+              {/* <section>
                 <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6 border-b border-[var(--lux-gray-100)] pb-4">
                   Tọa độ vật lý
                 </h3>
@@ -212,7 +212,7 @@ const Profile = () => {
                     </dd>
                   </div>
                 </dl>
-              </section>
+              </section> */}
             </div>
 
             {/* RIGHT SHEET: SYSTEM METRICS & ACTIONS */}

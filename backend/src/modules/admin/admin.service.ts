@@ -15,7 +15,7 @@ import {
   SystemSetting,
   SystemSettingDocument,
 } from 'src/entities/system-setting.entity';
-import { User, UserDocument } from 'src/entities/user.entity';
+import { User, UserDocument, UserRole } from 'src/entities/user.entity';
 
 @Injectable()
 export class AdminService {
@@ -32,6 +32,56 @@ export class AdminService {
     @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
   ) {}
+
+  //-------------------------------------------
+  // Seller verification workflow
+  async getSellerRequests(status: 'pending' | 'approved' | 'rejected' = 'pending') {
+    const filter: Record<string, any> = {};
+
+    if (status === 'pending') {
+      filter.sellerRequestPending = true;
+    } else if (status === 'approved') {
+      filter.verifiedRoleSeller = true;
+      filter.role = UserRole.SELLER;
+    } else if (status === 'rejected') {
+      filter.sellerRequestRejected = true;
+    }
+
+    return this.userModel.find(filter).exec();
+  }
+
+  async approveSeller(userId: string) {
+    return this.userModel.findByIdAndUpdate(
+      new Types.ObjectId(userId),
+      {
+        $set: {
+          role: UserRole.SELLER,
+          verifiedRoleSeller: true,
+          sellerRequestPending: false,
+          sellerRequestRejected: false,
+          sellerRejectReason: undefined,
+          sellerApprovedAt: new Date(),
+        },
+      },
+      { new: true },
+    );
+  }
+
+  async rejectSeller(userId: string, reason?: string) {
+    return this.userModel.findByIdAndUpdate(
+      new Types.ObjectId(userId),
+      {
+        $set: {
+          sellerRequestPending: false,
+          sellerRequestRejected: true,
+          verifiedRoleSeller: false,
+          role: UserRole.BUYER,
+          sellerRejectReason: reason,
+        },
+      },
+      { new: true },
+    );
+  }
 
   //-------------------------------------------
   // CRUD category SystemSetting
@@ -150,13 +200,7 @@ export class AdminService {
       originalKey?: string;
     },
   ): Promise<SystemSetting | null> {
-    const {
-      key,
-      _id,
-      groupId,
-      originalKey,
-      ...updateData
-    } = dataUpdate as any;
+    const { key, _id, groupId, originalKey, ...updateData } = dataUpdate as any;
 
     const keyCandidates = [key, originalKey]
       .map((item) => (typeof item === 'string' ? item.trim() : ''))
@@ -169,7 +213,9 @@ export class AdminService {
           ? this.parseSettingValue((updateData as any).value)
           : (updateData as any).value,
       category:
-        (updateData as any).category === '' ? null : (updateData as any).category,
+        (updateData as any).category === ''
+          ? null
+          : (updateData as any).category,
     };
 
     const targetDocId = (_id || groupId || '').toString().trim();
@@ -186,7 +232,9 @@ export class AdminService {
 
     for (const candidateKey of keyCandidates) {
       const updatedFlat = await this.systemSettingModel
-        .findOneAndUpdate({ key: candidateKey }, normalizedUpdateData, { new: true })
+        .findOneAndUpdate({ key: candidateKey }, normalizedUpdateData, {
+          new: true,
+        })
         .exec();
 
       if (updatedFlat) return updatedFlat;
@@ -213,7 +261,8 @@ export class AdminService {
     }
 
     const matchedLegacy = ((legacyContainer as any)?.name_value || []).find(
-      (item: any) => keyCandidates.includes((item?.key || '').toString().trim()),
+      (item: any) =>
+        keyCandidates.includes((item?.key || '').toString().trim()),
     );
 
     const legacyKeyToUpdate = matchedLegacy?.key;

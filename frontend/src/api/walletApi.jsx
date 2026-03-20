@@ -11,10 +11,16 @@ const walletApi = {
   getTotals: (params = {}) => axiosClient.get('/api/v1/wallet/totals', { params }),
 
   // Paginated transaction history
-  getTransactions: (params = {}) => axiosClient.get('/api/v1/wallet/transactions', { params }),
+  // getTransactions: (params = {}) => axiosClient.get('/api/v1/wallet/transactions', { params }),
 
   // Withdraw to bank
   requestWithdrawal: (payload) => axiosClient.post('/api/v1/wallet/withdraw', payload),
+
+  // Admin: list withdrawal requests
+  getWithdrawals: (params = {}) => axiosClient.get('/api/v1/wallet/withdrawals', { params }),
+
+  // Admin: accept a pending withdrawal request
+  acceptWithdrawal: (id) => axiosClient.post(`/api/v1/wallet/withdrawals/${id}/accept`),
 };
 
 export default walletApi;

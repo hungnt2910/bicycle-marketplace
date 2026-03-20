@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Pagination({
   currentPage = 1,
@@ -91,8 +90,20 @@ export default function Pagination({
           onClick={handlePrevious}
           disabled={currentPage === 1}
           className="p-2 border-[1.5px] border-warmgray-300 rounded-[12px] hover:bg-warmgray-50 hover:border-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          aria-label="Previous page"
         >
-          <ChevronLeft size={20} />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-5 h-5"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
 
         <div className="flex items-center gap-1">
@@ -118,8 +129,20 @@ export default function Pagination({
           onClick={handleNext}
           disabled={currentPage === totalPages}
           className="p-2 border-[1.5px] border-warmgray-300 rounded-[12px] hover:bg-warmgray-50 hover:border-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          aria-label="Next page"
         >
-          <ChevronRight size={20} />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-5 h-5"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
         </button>
       </div>
 
