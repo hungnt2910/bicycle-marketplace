@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Badge } from '../../components/ui';
+import { toast } from 'react-toastify';
 import adminApi from '../../api/adminApi';
+import userApi from '../../api/userApi';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -14,62 +15,63 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState('');
   const [newStatus, setNewStatus] = useState('');
-
-  // Mock data - thay thế bằng API call thực tế khi có
-  const mockUsers = [
-    {
-      id: '1',
-      fullName: 'Nguyễn Văn A',
-      email: 'nguyenvana@example.com',
-      phone: '0123456789',
-      role: 'BUYER',
-      status: 'active',
-      joinDate: '2024-01-15',
-      lastLogin: '2024-02-20',
-    },
-    {
-      id: '2',
-      fullName: 'Trần Thị B',
-      email: 'tranthib@example.com',
-      phone: '0987654321',
-      role: 'SELLER',
-      status: 'active',
-      joinDate: '2024-01-20',
-      lastLogin: '2024-02-22',
-    },
-    {
-      id: '3',
-      fullName: 'Lê Văn C',
-      email: 'levanc@example.com',
-      phone: '0369852147',
-      role: 'INSPECTOR',
-      status: 'active',
-      joinDate: '2024-02-01',
-      lastLogin: '2024-02-23',
-    },
-  ];
+  const [sellerActionLoading, setSellerActionLoading] = useState({});
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  const mapSellerStatus = (user) => {
+    const rawStatus =
+      user?.sellerRequestStatus ||
+      user?.sellerStatus ||
+      user?.sellerVerifyStatus ||
+      user?.sellerReviewStatus ||
+      user?.reviewSellerStatus ||
+      user?.role;
+
+    const normalized = (rawStatus || '').toString().toLowerCase();
+    if (normalized.includes('reject')) return 'rejected';
+    if (normalized.includes('pending') || normalized.includes('review')) return 'pending';
+    if (normalized.includes('seller')) return 'approved';
+    return 'none';
+  };
+
+  const normalizeUser = (user) => {
+    const role = (user?.role || user?.userRole || 'BUYER').toUpperCase();
+    const status = (user?.status || 'active').toLowerCase();
+    const joinedAt = user?.createdAt || user?.joinDate;
+    const readableDate = joinedAt ? new Date(joinedAt).toLocaleDateString('vi-VN') : '';
+
+    return {
+      id: user?.id || user?._id || user?.userId || user?.uid || Math.random().toString(36),
+      fullName:
+        user?.fullName ||
+        user?.name ||
+        `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
+        'Không có tên',
+      email: user?.email || user?.username || 'N/A',
+      phone: user?.phone || user?.phoneNumber || 'N/A',
+      role,
+      status,
+      joinDate: readableDate,
+      sellerStatus: mapSellerStatus(user),
+    };
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
     try {
-      // TODO: Thay bằng API call thực tế
-      // const response = await adminApi.getAllUsers();
-      // setUsers(response?.data?.data || []);
-      
-      // Tạm thời dùng mock data
-      setTimeout(() => {
-        setUsers(mockUsers);
-        setLoading(false);
-      }, 500);
+      const response = await userApi.getAllUsers();
+      const apiUsers = response?.data?.data || response?.data || [];
+      const normalized = Array.isArray(apiUsers) ? apiUsers.map(normalizeUser) : [];
+      setUsers(normalized);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Không thể tải danh sách người dùng');
-      setUsers(mockUsers); // Fallback to mock data
+      setUsers([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -100,6 +102,20 @@ const UserManagement = () => {
     banned: 'red',
   };
 
+  const sellerStatusLabels = {
+    pending: 'Chờ duyệt seller',
+    approved: 'Đã là seller',
+    rejected: 'Từ chối seller',
+    none: 'Chưa yêu cầu',
+  };
+
+  const sellerStatusColors = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
+    none: 'muted',
+  };
+
   const openRoleModal = (user) => {
     setSelectedUser(user);
     setNewRole(user.role);
@@ -110,6 +126,48 @@ const UserManagement = () => {
     setSelectedUser(user);
     setNewStatus(user.status);
     setShowStatusModal(true);
+  };
+
+  const withSellerLoading = (userId, value) => {
+    setSellerActionLoading((prev) => ({ ...prev, [userId]: value }));
+  };
+
+  const handleApproveSeller = async (user) => {
+    if (!user?.id) return;
+    withSellerLoading(user.id, true);
+    try {
+      await adminApi.verifySeller(user.id);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, role: 'SELLER', sellerStatus: 'approved' } : u))
+      );
+      toast.success('Đã xác minh seller thành công');
+    } catch (err) {
+      console.error('Error verifying seller:', err);
+      toast.error(err?.response?.data?.message || 'Không thể xác minh seller');
+    } finally {
+      withSellerLoading(user.id, false);
+    }
+  };
+
+  const handleRejectSeller = async (user) => {
+    if (!user?.id) return;
+    const reason = window.prompt('Nhập lý do từ chối hồ sơ seller');
+    if (reason === null) return;
+    withSellerLoading(user.id, true);
+    try {
+      // Tạm thời đánh dấu trạng thái seller phía client; cần endpoint reject riêng nếu backend hỗ trợ
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, sellerStatus: 'rejected', sellerRejectReason: reason } : u
+        )
+      );
+      toast.info('Đã đánh dấu từ chối hồ sơ seller');
+    } catch (err) {
+      console.error('Error rejecting seller:', err);
+      toast.error(err?.response?.data?.message || 'Không thể từ chối hồ sơ');
+    } finally {
+      withSellerLoading(user.id, false);
+    }
   };
 
   const handleChangeRole = async () => {
@@ -156,6 +214,8 @@ const UserManagement = () => {
     return matchSearch && matchRole && matchStatus;
   });
 
+  const sellerPendingCount = users.filter((u) => u.sellerStatus === 'pending').length;
+
   return (
     <div className="dash-content">
       {/* Header */}
@@ -183,10 +243,8 @@ const UserManagement = () => {
           </p>
         </div>
         <div className="lux-panel">
-          <p className="text-warmgray-600 text-sm">Người bán</p>
-          <p className="text-2xl font-bold text-primary-900">
-            {users.filter((u) => u.role === 'SELLER').length}
-          </p>
+          <p className="text-warmgray-600 text-sm">Chờ duyệt seller</p>
+          <p className="text-2xl font-bold text-gold">{sellerPendingCount}</p>
         </div>
         <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Kiểm định viên</p>
@@ -265,6 +323,9 @@ const UserManagement = () => {
                   Trạng thái
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
+                  Seller KYC
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Ngày tham gia
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
@@ -309,6 +370,42 @@ const UserManagement = () => {
                     >
                       {statusLabels[user.status]}
                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium inline-flex w-fit ${
+                          sellerStatusColors[user.sellerStatus] === 'success'
+                            ? 'bg-success/10 text-green-800'
+                            : sellerStatusColors[user.sellerStatus] === 'warning'
+                              ? 'bg-gold/10 text-yellow-800'
+                              : sellerStatusColors[user.sellerStatus] === 'danger'
+                                ? 'bg-danger/10 text-red-800'
+                                : 'bg-warmgray-200 text-warmgray-700'
+                        }`}
+                      >
+                        {sellerStatusLabels[user.sellerStatus] || sellerStatusLabels.none}
+                      </span>
+
+                      {user.sellerStatus === 'pending' && (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => handleApproveSeller(user)}
+                            disabled={sellerActionLoading[user.id]}
+                            className="px-3 py-1 bg-primary-700 text-white rounded font-medium text-sm hover:bg-primary-800 disabled:opacity-60"
+                          >
+                            {sellerActionLoading[user.id] ? 'Đang duyệt...' : 'Duyệt seller'}
+                          </button>
+                          <button
+                            onClick={() => handleRejectSeller(user)}
+                            disabled={sellerActionLoading[user.id]}
+                            className="px-3 py-1 bg-danger text-white rounded font-medium text-sm hover:bg-red-700 disabled:opacity-60"
+                          >
+                            {sellerActionLoading[user.id] ? 'Đang xử lý...' : 'Từ chối'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-warmgray-600">{user.joinDate}</td>
                   <td className="px-6 py-4">

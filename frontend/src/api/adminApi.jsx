@@ -35,6 +35,9 @@ const adminApi = {
   changeUserRole: (userId, newRole) =>
     axiosClient.patch('/api/v1/admin/user/change-role', { userId, newRole }),
 
+  // Xác minh và cấp quyền seller cho user cụ thể
+  verifySeller: (userId) => axiosClient.post(`/api/v1/auth/verify-seller/${userId}`),
+
   // Thay đổi trạng thái của user
   changeUserStatus: (userId, newStatus) =>
     axiosClient.patch('/api/v1/admin/user/change-status', { userId, newStatus }),

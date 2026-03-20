@@ -84,10 +84,11 @@ const Header = ({
                   <button
                     key={item.page}
                     onClick={() => handleNavigate(item.page)}
-                    className={`relative px-3 lg:px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${currentPage === item.page
+                    className={`relative px-3 lg:px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${
+                      currentPage === item.page
                         ? 'text-primary-800'
                         : 'text-warmgray-600 hover:text-primary-800 hover:bg-warmgray-100/60'
-                      }`}
+                    }`}
                   >
                     {item.label}
                     {currentPage === item.page && (
@@ -101,10 +102,11 @@ const Header = ({
                     <button
                       key={item.page}
                       onClick={() => handleNavigate(item.page)}
-                      className={`relative px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${currentPage === item.page
+                      className={`relative px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${
+                        currentPage === item.page
                           ? 'text-primary-800'
                           : 'text-warmgray-600 hover:text-primary-800 hover:bg-warmgray-100/60'
-                        }`}
+                      }`}
                     >
                       {item.label}
                       {currentPage === item.page && (
@@ -117,7 +119,7 @@ const Header = ({
             </div>
 
             {/* Center: Search (for authenticated buyers) */}
-            {showSearch && (
+            {/* {showSearch && (
               <div className="hidden lg:block flex-1 max-w-xs xl:max-w-sm">
                 <div className="relative">
                   <input
@@ -140,7 +142,7 @@ const Header = ({
                   </svg>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Right: Actions & User Menu */}
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -199,7 +201,7 @@ const Header = ({
                           </svg>
                           Tài khoản của tôi
                         </button>
-                        {role === 'buyer' && (
+                        {/* {role === 'buyer' && (
                           <button
                             className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
                             onClick={() => handleNavigate('orders')}
@@ -219,7 +221,7 @@ const Header = ({
                             </svg>
                             Đơn hàng của tôi
                           </button>
-                        )}
+                        )} */}
                         {role === 'buyer' && (
                           <button
                             className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
@@ -394,10 +396,11 @@ const Header = ({
               <button
                 key={item.page}
                 onClick={() => handleNavigate(item.page)}
-                className={`w-full text-left px-5 py-3.5 text-sm font-semibold rounded-[16px] transition-all ${currentPage === item.page
+                className={`w-full text-left px-5 py-3.5 text-sm font-semibold rounded-[16px] transition-all ${
+                  currentPage === item.page
                     ? 'text-primary-800 bg-primary-800/5 border-l-[3px] border-gold'
                     : 'text-warmgray-600 hover:bg-warmgray-50'
-                  }`}
+                }`}
               >
                 {item.label}
               </button>

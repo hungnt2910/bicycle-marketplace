@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button, Avatar, Modal, Input } from '../../components/ui';
 import { toast } from 'react-toastify';
 import transactionApi from '../../api/transactionApi';
+import disputeApi from '../../api/disputeApi';
 
 const statusLabels = {
   pending_payment: 'Chờ thanh toán',
@@ -51,6 +52,22 @@ const SellerOrders = () => {
   const [shippingForm, setShippingForm] = useState({ provider: '', trackingNumber: '' });
   const [shippingErrors, setShippingErrors] = useState({});
 
+  const normalizeDispute = (tx) => {
+    const d = tx?.dispute;
+    if (!d)
+      return {
+        id: tx?.disputeId || tx?.dispute_id || '',
+        status: tx?.disputeStatus || tx?.dispute_status || '',
+      };
+    if (typeof d === 'string') return { id: d, status: '' };
+
+    // BE returns dispute as an embedded object with disputeId but no status; capture that ID
+    return {
+      id: d?.disputeId || d?.dispute_id || d?._id || d?.id || '',
+      status: d?.status || '',
+    };
+  };
+
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -58,22 +75,54 @@ const SellerOrders = () => {
       const data = res?.data?.data || res?.data || [];
       const mapped = (Array.isArray(data) ? data : [])
         .filter((tx) => !feeTypes.includes((tx?.type || '').toLowerCase()))
-        .map((tx) => ({
-          id: tx?._id || tx?.id,
-          bike: tx?.bicycleId?.title || 'Xe đạp',
-          buyer:
-            `${tx?.buyerId?.profile?.firstName || ''} ${tx?.buyerId?.profile?.lastName || ''}`.trim() ||
-            tx?.buyerId?.email ||
-            'Người mua',
-          price: tx?.amount || 0,
-          status: (tx?.status || '').toLowerCase(),
-          date: tx?.createdAt ? new Date(tx.createdAt).toLocaleDateString('vi-VN') : '--',
-          image:
-            tx?.bicycleId?.media?.mainImage ||
-            tx?.bicycleId?.media?.images?.[0] ||
-            '/mountain_bike_hero_1768417732962.png',
-        }));
-      setOrders(mapped);
+        .map((tx) => {
+          const dispute = normalizeDispute(tx);
+          return {
+            id: tx?._id || tx?.id,
+            bike: tx?.bicycleId?.title || 'Xe đạp',
+            buyer:
+              `${tx?.buyerId?.profile?.firstName || ''} ${tx?.buyerId?.profile?.lastName || ''}`.trim() ||
+              tx?.buyerId?.email ||
+              'Người mua',
+            price: tx?.amount || 0,
+            status: (tx?.status || '').toLowerCase(),
+            disputeId: dispute.id,
+            disputeStatus: (dispute.status || '').toLowerCase(),
+            returnTracking: tx?.dispute?.returnInfo?.trackingInfo,
+            returnSentAt: tx?.dispute?.returnInfo?.sentAt,
+            date: tx?.createdAt ? new Date(tx.createdAt).toLocaleDateString('vi-VN') : '--',
+            image:
+              tx?.bicycleId?.media?.mainImage ||
+              tx?.bicycleId?.media?.images?.[0] ||
+              '/mountain_bike_hero_1768417732962.png',
+          };
+        });
+
+      // Enrich disputes missing status/return info by pulling dispute detail from BE
+      const withDisputeDetails = await Promise.all(
+        mapped.map(async (order) => {
+          if (!order.disputeId) return order;
+          const hasStatus = Boolean(order.disputeStatus);
+
+          try {
+            const resDetail = await disputeApi.getById(order.disputeId);
+            const detail = resDetail?.data?.data;
+
+            return {
+              ...order,
+              disputeStatus: (detail?.status || order.disputeStatus || '').toLowerCase(),
+              returnTracking: detail?.returnInfo?.trackingInfo || order.returnTracking,
+              returnSentAt: detail?.returnInfo?.sentAt || order.returnSentAt,
+            };
+          } catch (err) {
+            // Keep the base order if we cannot fetch dispute detail
+            if (!hasStatus) console.warn('Dispute detail fetch failed', err);
+            return order;
+          }
+        })
+      );
+
+      setOrders(withDisputeDetails);
     } catch (err) {
       console.error('Fetch seller orders error:', err);
       toast.error(err?.response?.data?.message || 'Không tải được đơn hàng');
@@ -98,6 +147,21 @@ const SellerOrders = () => {
     } finally {
       setActionLoading('');
     }
+  };
+
+  const handleSellerConfirmReturn = async (order) => {
+    if (!order?.disputeId) {
+      toast.warn('Không tìm thấy tranh chấp để xác nhận.');
+      return;
+    }
+    if (order.disputeStatus !== 'awaiting_seller_confirmation') {
+      toast.warn('Chỉ xác nhận khi tranh chấp đang chờ seller xác nhận.');
+      return;
+    }
+    await runAction(`confirm-${order.disputeId}`, async () => {
+      await disputeApi.sellerConfirm(order.disputeId);
+      toast.success('Đã xác nhận đã nhận lại xe.');
+    });
   };
 
   const closeShippingModal = () => {
@@ -256,7 +320,29 @@ const SellerOrders = () => {
                       {formatCurrency(order.price)} ₫
                     </td>
                     <td className="py-4 px-6 align-middle whitespace-nowrap">
-                      {getStatusBadge(order.status)}
+                      <div className="flex flex-col gap-1">
+                        {getStatusBadge(order.status)}
+                        {order.disputeStatus && (
+                          <Badge
+                            variant={
+                              ['return_requested', 'awaiting_seller_confirmation'].includes(
+                                order.disputeStatus
+                              )
+                                ? 'warning'
+                                : order.disputeStatus === 'return_receivedddd'
+                                  ? 'success'
+                                  : 'secondary'
+                            }
+                          >
+                            Tranh chấp: {order.disputeStatus}
+                          </Badge>
+                        )}
+                        {order.returnTracking && (
+                          <p className="text-xs text-warmgray-500">
+                            Tracking trả: {order.returnTracking}
+                          </p>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-6 align-middle">
                       <div className="flex flex-wrap items-center gap-2">
@@ -267,6 +353,31 @@ const SellerOrders = () => {
                         >
                           Xem chi tiết
                         </Button> */}
+                        {order.disputeId &&
+                          order.disputeStatus === 'awaiting_seller_confirmation' && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              disabled={actionLoading === `confirm-${order.disputeId}`}
+                              onClick={() => handleSellerConfirmReturn(order)}
+                            >
+                              {actionLoading === `confirm-${order.disputeId}`
+                                ? 'Đang xác nhận...'
+                                : 'Xác nhận đã nhận xe'}
+                            </Button>
+                          )}
+                        {order.disputeId && order.disputeStatus === 'return_requested' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/buyer/disputes/${order.disputeId}`)}
+                          >
+                            Xem tranh chấp
+                          </Button>
+                        )}
+                        {!order.disputeId && order.status === 'disputed' && (
+                          <Badge variant="warning">Tranh chấp: chưa có mã</Badge>
+                        )}
                         <Button
                           variant="success"
                           size="sm"

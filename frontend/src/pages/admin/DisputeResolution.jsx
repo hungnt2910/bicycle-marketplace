@@ -42,6 +42,7 @@ const DisputeResolution = () => {
     penaltyToSeller: 0,
     penaltyToBuyer: 0,
     notes: '',
+    requireReturn: false,
   });
 
   // Detail modal
@@ -99,6 +100,7 @@ const DisputeResolution = () => {
       penaltyToSeller: 0,
       penaltyToBuyer: 0,
       notes: '',
+      requireReturn: false,
     });
     setResolveModal(true);
   };
@@ -436,6 +438,27 @@ const DisputeResolution = () => {
                 rows={4}
               />
             </div>
+
+            {resolveForm.decision === 'buyer_favor' && (
+              <label className="flex items-center gap-3 p-3 rounded-[16px] border border-warmgray-200 bg-warmgray-50">
+                <input
+                  type="checkbox"
+                  checked={resolveForm.requireReturn}
+                  onChange={(e) =>
+                    setResolveForm((prev) => ({ ...prev, requireReturn: e.target.checked }))
+                  }
+                  className="w-4 h-4"
+                />
+                <div className="text-sm">
+                  <p className="font-semibold text-warmgray-900">
+                    Yêu cầu buyer trả xe rồi mới hoàn tiền
+                  </p>
+                  <p className="text-warmgray-600 text-xs">
+                    Bật để chuyển trạng thái sang return_requested và mở bước buyer báo đã gửi hàng.
+                  </p>
+                </div>
+              </label>
+            )}
 
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setResolveModal(false)}>

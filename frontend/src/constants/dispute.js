@@ -22,6 +22,9 @@ export const DisputeStatus = {
   OPEN: 'open',
   UNDER_REVIEW: 'under_review',
   AWAITING_EVIDENCE: 'awaiting_evidence',
+  RETURN_REQUESTED: 'return_requested',
+  AWAITING_SELLER_CONFIRMATION: 'awaiting_seller_confirmation',
+  RETURN_RECEIVED: 'return_received',
   RESOLVED_BUYER_FAVOR: 'resolved_buyer_favor',
   RESOLVED_SELLER_FAVOR: 'resolved_seller_favor',
   RESOLVED_PARTIAL_REFUND: 'resolved_partial_refund',
@@ -32,6 +35,9 @@ export const DisputeStatusLabels = {
   open: 'Chờ xử lý',
   under_review: 'Đang xem xét',
   awaiting_evidence: 'Chờ bằng chứng',
+  return_requested: 'Admin yêu cầu trả hàng',
+  awaiting_seller_confirmation: 'Đang chờ seller xác nhận',
+  return_received: 'Seller đã nhận lại hàng',
   resolved_buyer_favor: 'Hoàn tiền cho buyer',
   resolved_seller_favor: 'Giữ tiền cho seller',
   resolved_partial_refund: 'Hoàn tiền một phần',
@@ -39,9 +45,9 @@ export const DisputeStatusLabels = {
 };
 
 export const DisputeDecision = {
-  BUYER_FAVOR: 'buyer_favor',
-  SELLER_FAVOR: 'seller_favor',
-  PARTIAL_REFUND: 'partial_refund',
+  BUYER_FAVOR: 'Có lợi cho người mua',
+  SELLER_FAVOR: 'Có lợi cho người bán',
+  PARTIAL_REFUND: 'Hoàn tiền một phần',
 };
 
 export const DisputeDecisionLabels = {

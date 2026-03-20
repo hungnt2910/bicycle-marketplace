@@ -8,6 +8,12 @@ const disputeApi = {
 
   getById: (disputeId) => axiosClient.get(`/api/v1/disputes/${disputeId}`),
 
+  // -- Return flow --
+  markReturnSent: (disputeId, payload) =>
+    axiosClient.patch(`/api/v1/disputes/${disputeId}/mark-return-sent`, payload),
+
+  sellerConfirm: (disputeId) => axiosClient.patch(`/api/v1/disputes/${disputeId}/seller-confirm`),
+
   // -- Admin --
   getAll: (params = {}) => axiosClient.get('/api/v1/disputes/admin/all', { params }),
 
