@@ -9,8 +9,7 @@ const authApi = {
 
   profile: () => axiosClient.get('/api/v1/auth/profile'),
 
-  // Admin-only: verify and grant seller role for a given userId
-  verifySeller: (userId) => axiosClient.post(`/api/v1/auth/verify-seller/${userId}`),
+  // verifySeller: (userId) => axiosClient.post(`/api/v1/auth/verify-seller/${userId}`),
 };
 
 export default authApi;
