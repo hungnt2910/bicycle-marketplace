@@ -1,7 +1,166 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import adminApi from '../../api/adminApi';
+import Chart from 'react-apexcharts';
 
 const SystemReports = () => {
   const [dateRange, setDateRange] = useState('7days');
+  const [revenueSummary, setRevenueSummary] = useState(null);
+  const [revenueLoading, setRevenueLoading] = useState(false);
+  const [revenueError, setRevenueError] = useState('');
+
+  const periodMap = {
+    '7days': '7d',
+    '30days': '30d',
+    '90days': '30d',
+    year: '12m',
+  };
+
+  const selectedPeriod = periodMap[dateRange] || '7d';
+
+  useEffect(() => {
+    const fetchRevenueSummary = async () => {
+      try {
+        setRevenueLoading(true);
+        setRevenueError('');
+        const response = await adminApi.getRevenueSummary(selectedPeriod);
+        const data = response?.data || null;
+        setRevenueSummary(data);
+      } catch (err) {
+        console.error('Error fetching revenue summary:', err);
+        setRevenueError('Không thể tải dữ liệu doanh thu');
+      } finally {
+        setRevenueLoading(false);
+      }
+    };
+
+    fetchRevenueSummary();
+  }, [selectedPeriod]);
+
+  const formatCurrency = (value = 0) =>
+    Number(value || 0).toLocaleString('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    });
+
+  const revenueChartData = useMemo(() => {
+    const breakdown = Array.isArray(revenueSummary?.breakdown) ? revenueSummary.breakdown : [];
+    return breakdown.map((item) => ({
+      date: item?.type || '--',
+      value: Number(item?.total || 0),
+      count: Number(item?.count || 0),
+      direction: item?.direction || '',
+    }));
+  }, [revenueSummary]);
+
+  const typeLabelMap = {
+    full_payment: 'Thanh toán đủ',
+    deposit: 'Đặt cọc',
+    inspection_fee: 'Phí kiểm định',
+    fee: 'Phí nền tảng',
+    refund: 'Hoàn tiền',
+    dispute_refund: 'Hoàn tiền tranh chấp',
+  };
+
+  const breakdownRows = useMemo(() => {
+    const total = Number(revenueSummary?.totalIn || 0);
+    return revenueChartData.map((item) => ({
+      ...item,
+      label: typeLabelMap[item.date] || item.date,
+      ratio: total > 0 ? (item.value / total) * 100 : 0,
+    }));
+  }, [revenueChartData, revenueSummary?.totalIn]);
+
+  const revenueBarChart = useMemo(() => {
+    const categories = breakdownRows.map((item) => item.label);
+    const seriesData = breakdownRows.map((item) => item.value);
+
+    return {
+      series: [
+        {
+          name: 'Doanh thu',
+          data: seriesData,
+        },
+      ],
+      options: {
+        chart: {
+          type: 'area',
+          toolbar: { show: false },
+          animations: { enabled: true },
+          fontFamily: 'inherit',
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3,
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.4,
+            opacityTo: 0.05,
+            stops: [0, 95, 100],
+          },
+        },
+        markers: {
+          size: 0,
+          hover: { size: 5 },
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+          categories,
+          labels: { rotate: -20, trim: true },
+        },
+        yaxis: {
+          labels: {
+            formatter: (value) =>
+              Number(value || 0).toLocaleString('vi-VN', {
+                maximumFractionDigits: 0,
+              }),
+          },
+        },
+        tooltip: {
+          y: {
+            formatter: (value) => formatCurrency(value),
+          },
+        },
+        colors: ['#14532d'],
+        grid: {
+          borderColor: '#e5e7eb',
+          strokeDashArray: 4,
+        },
+      },
+    };
+  }, [breakdownRows]);
+
+  const revenueDonutChart = useMemo(() => {
+    const labels = breakdownRows.map((item) => item.label);
+    const series = breakdownRows.map((item) => item.value);
+
+    return {
+      series,
+      options: {
+        chart: {
+          type: 'donut',
+          fontFamily: 'inherit',
+        },
+        labels,
+        legend: {
+          position: 'bottom',
+        },
+        dataLabels: {
+          enabled: true,
+          formatter: (val) => `${val.toFixed(1)}%`,
+        },
+        tooltip: {
+          y: {
+            formatter: (value) => formatCurrency(value),
+          },
+        },
+        colors: ['#14532d', '#1d4ed8', '#0d9488', '#f59e0b', '#ef4444', '#7c3aed'],
+      },
+    };
+  }, [breakdownRows]);
 
   const stats = {
     revenue: {
@@ -85,50 +244,107 @@ const SystemReports = () => {
       {/* Revenue Stats */}
       <div className="lux-panel mb-6">
         <h2 className="text-xl font-bold text-primary-900 mb-6">Doanh thu</h2>
+
+        {revenueError && (
+          <div className="mb-4 rounded-[12px] border border-red-200 bg-danger/5 px-4 py-3 text-danger">
+            {revenueError}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="p-4 bg-primary-800/5 rounded-[16px]">
             <p className="text-sm text-warmgray-600 mb-1">Tổng doanh thu</p>
             <p className="text-2xl font-bold text-primary-900">
-              {(stats.revenue.total / 1000000000).toFixed(2)}B ₫
+              {revenueLoading ? 'Đang tải...' : formatCurrency(revenueSummary?.totalIn || 0)}
             </p>
-            <p className="text-sm text-success mt-1">+{stats.revenue.growth}%</p>
+            <p className="text-sm text-success mt-1">Kỳ: {(revenueSummary?.period || selectedPeriod).toUpperCase()}</p>
           </div>
           <div className="p-4 bg-success/5 rounded-[16px]">
             <p className="text-sm text-warmgray-600 mb-1">Số giao dịch</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.revenue.transactions}</p>
+            <p className="text-2xl font-bold text-primary-900">
+              {revenueLoading
+                ? '...'
+                : revenueChartData.reduce((sum, item) => sum + (item.count || 0), 0)}
+            </p>
             <p className="text-sm text-warmgray-500 mt-1">giao dịch</p>
           </div>
           <div className="p-4 bg-info/5 rounded-[16px]">
             <p className="text-sm text-warmgray-600 mb-1">Trung bình/GD</p>
             <p className="text-2xl font-bold text-primary-900">
-              {(stats.revenue.avgTransaction / 1000000).toFixed(1)}M ₫
+              {revenueLoading
+                ? '...'
+                : formatCurrency(
+                    (revenueSummary?.totalIn || 0) /
+                      Math.max(revenueChartData.reduce((sum, item) => sum + (item.count || 0), 0), 1),
+                  )}
             </p>
           </div>
           <div className="p-4 bg-gold/5 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Hoa hồng (5%)</p>
+            <p className="text-sm text-warmgray-600 mb-1">Dòng tiền ròng</p>
             <p className="text-2xl font-bold text-primary-900">
-              {((stats.revenue.total * 0.05) / 1000000).toFixed(0)}M ₫
+              {revenueLoading ? '...' : formatCurrency(revenueSummary?.net || 0)}
             </p>
           </div>
         </div>
 
-        {/* Simple Revenue Chart */}
+        {/* Revenue Charts */}
         <div className="mt-6">
-          <h3 className="text-sm font-semibold text-warmgray-700 mb-4">Doanh thu theo ngày</h3>
-          <div className="flex items-end gap-2 h-48">
-            {revenueData.map((data, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-full bg-primary-800/10 rounded-t relative group cursor-pointer hover:bg-primary-800/15 transition-colors"
-                  style={{ height: `${(data.value / 200000000) * 100}%` }}
-                >
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-primary-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {(data.value / 1000000).toFixed(0)}M ₫
-                  </div>
-                </div>
-                <p className="text-xs text-warmgray-600 mt-2">{data.date}</p>
-              </div>
-            ))}
+          <h3 className="text-sm font-semibold text-warmgray-700 mb-4">Doanh thu theo loại giao dịch</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="xl:col-span-2 rounded-[16px] border border-warmgray-200 p-3 bg-white">
+              <Chart
+                type="area"
+                height={320}
+                series={revenueBarChart.series}
+                options={revenueBarChart.options}
+              />
+            </div>
+            <div className="rounded-[16px] border border-warmgray-200 p-3 bg-white">
+              <Chart
+                type="donut"
+                height={320}
+                series={revenueDonutChart.series}
+                options={revenueDonutChart.options}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-warmgray-200 text-warmgray-600">
+                  <th className="text-left py-2">Loại giao dịch</th>
+                  <th className="text-right py-2">Số lượng</th>
+                  <th className="text-right py-2">Tổng doanh thu</th>
+                  <th className="text-right py-2">Tỷ trọng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {breakdownRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-4 text-center text-warmgray-500">
+                      Chưa có dữ liệu breakdown
+                    </td>
+                  </tr>
+                ) : (
+                  breakdownRows.map((row, idx) => (
+                    <tr key={`${row.date}-${idx}`} className="border-b border-warmgray-100">
+                      <td className="py-2 text-primary-900">
+                        {row.label}
+                        {row.direction && (
+                          <span className="ml-2 text-xs text-warmgray-500">({row.direction})</span>
+                        )}
+                      </td>
+                      <td className="py-2 text-right font-medium text-primary-900">{row.count}</td>
+                      <td className="py-2 text-right font-medium text-primary-900">
+                        {formatCurrency(row.value)}
+                      </td>
+                      <td className="py-2 text-right text-warmgray-700">{row.ratio.toFixed(1)}%</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
