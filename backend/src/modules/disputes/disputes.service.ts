@@ -19,6 +19,11 @@ import {
   InspectionReport,
   InspectionReportDocument,
 } from '../../entities/inspection-report.entity';
+import {
+  Bicycle,
+  BicycleDocument,
+  BicycleStatus,
+} from '../../entities/bicycle.entity';
 import { EscrowService } from '../escrow/escrow.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
@@ -32,6 +37,7 @@ export class DisputesService {
     private transactionModel: Model<TransactionDocument>,
     @InjectModel(InspectionReport.name)
     private inspectionModel: Model<InspectionReportDocument>,
+    @InjectModel(Bicycle.name) private bicycleModel: Model<BicycleDocument>,
     private escrowService: EscrowService,
     private notificationsService: NotificationsService,
   ) {}
@@ -230,6 +236,14 @@ export class DisputesService {
         // Refund buyer immediately
         await this.escrowService.refundFunds(transaction);
         transaction.status = TransactionStatus.REFUNDED;
+        
+        // Hide bicycle (not sellable without return)
+        const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
+        if (bicycle) {
+          bicycle.status = BicycleStatus.HIDDEN;
+          bicycle.updatedAt = new Date();
+          await bicycle.save();
+        }
       }
     } else if (decision === 'seller_favor') {
       dispute.status = DisputeStatus.RESOLVED_SELLER_FAVOR;
@@ -237,6 +251,14 @@ export class DisputesService {
       // Release funds to seller
       await this.escrowService.releaseFunds(transaction);
       transaction.status = TransactionStatus.COMPLETED;
+      
+      // Reset bicycle to ACTIVE so seller can sell again
+      const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
+      if (bicycle) {
+        bicycle.status = BicycleStatus.ACTIVE;
+        bicycle.updatedAt = new Date();
+        await bicycle.save();
+      }
     } else if (decision === 'partial_refund') {
       dispute.status = DisputeStatus.RESOLVED_PARTIAL_REFUND;
 
@@ -340,6 +362,15 @@ export class DisputesService {
     // Refund buyer now that seller confirmed receipt
     await this.escrowService.refundFunds(transaction);
     transaction.status = TransactionStatus.REFUNDED;
+    
+    // Reset bicycle to DRAFT so seller can refurbish and re-list
+    const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
+    if (bicycle) {
+      bicycle.status = BicycleStatus.DRAFT;
+      bicycle.inspection = undefined;
+      bicycle.updatedAt = new Date();
+      await bicycle.save();
+    }
 
     dispute.timeline = dispute.timeline || [];
     dispute.timeline.push({

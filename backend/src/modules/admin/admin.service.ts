@@ -75,23 +75,184 @@ export class AdminService {
 
   //-------------------------------------------
   // sửa thông số hê thống
+  private parseSettingValue(value: any) {
+    if (typeof value !== 'string') return value;
+
+    const trimmed = value.trim();
+    if (trimmed === '') return '';
+
+    if (trimmed === 'true') return true;
+    if (trimmed === 'false') return false;
+
+    const asNumber = Number(trimmed);
+    if (!Number.isNaN(asNumber) && /^-?\d+(\.\d+)?$/.test(trimmed)) {
+      return asNumber;
+    }
+
+    return trimmed;
+  }
+
   async createSystemSetting(data: SystemSetting): Promise<SystemSetting> {
+    const normalizedValue = this.parseSettingValue((data as any).value);
+
+    const existedLegacy = await this.systemSettingModel.findOne({
+      'name_value.key': (data as any).key,
+    } as any);
+    if (existedLegacy) {
+      throw new Error('Key already exists');
+    }
+
     const existedSetting = await this.systemSettingModel.findOne({
       key: data.key,
     });
     if (existedSetting) {
       throw new Error('Key already exists');
     }
-    return await new this.systemSettingModel(data).save();
+
+    const legacyContainer = await this.systemSettingModel.findOne({
+      name_value: { $exists: true, $type: 'array' },
+    } as any);
+
+    if (legacyContainer) {
+      await this.systemSettingModel.updateOne(
+        { _id: (legacyContainer as any)._id } as any,
+        {
+          $push: {
+            name_value: {
+              key: (data as any).key,
+              value: normalizedValue,
+              description: (data as any).description || '',
+              category: (data as any).category || null,
+            },
+          },
+        } as any,
+      );
+
+      return {
+        key: (data as any).key,
+        value: normalizedValue,
+        description: (data as any).description,
+        category: (data as any).category,
+      } as SystemSetting;
+    }
+
+    return await new this.systemSettingModel({
+      ...data,
+      value: normalizedValue,
+    }).save();
   }
 
   async updateSystemSetting(
-    dataUpdate: Partial<SystemSetting> & { key: string },
+    dataUpdate: Partial<SystemSetting> & {
+      key?: string;
+      _id?: string;
+      groupId?: string;
+      originalKey?: string;
+    },
   ): Promise<SystemSetting | null> {
-    const { key, ...updateData } = dataUpdate;
-    return await this.systemSettingModel
-      .findOneAndUpdate({ key }, updateData, { new: true })
-      .exec();
+    const {
+      key,
+      _id,
+      groupId,
+      originalKey,
+      ...updateData
+    } = dataUpdate as any;
+
+    const keyCandidates = [key, originalKey]
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean);
+
+    const normalizedUpdateData = {
+      ...updateData,
+      value:
+        (updateData as any).value !== undefined
+          ? this.parseSettingValue((updateData as any).value)
+          : (updateData as any).value,
+      category:
+        (updateData as any).category === '' ? null : (updateData as any).category,
+    };
+
+    const targetDocId = (_id || groupId || '').toString().trim();
+
+    if (targetDocId) {
+      const updatedById = await this.systemSettingModel
+        .findByIdAndUpdate(targetDocId, normalizedUpdateData, { new: true })
+        .exec();
+
+      if (updatedById && updatedById.key) {
+        return updatedById;
+      }
+    }
+
+    for (const candidateKey of keyCandidates) {
+      const updatedFlat = await this.systemSettingModel
+        .findOneAndUpdate({ key: candidateKey }, normalizedUpdateData, { new: true })
+        .exec();
+
+      if (updatedFlat) return updatedFlat;
+    }
+
+    const legacyContainer =
+      keyCandidates.length > 0
+        ? await this.systemSettingModel.findOne({
+            'name_value.key': { $in: keyCandidates },
+          } as any)
+        : targetDocId
+          ? await this.systemSettingModel.findById(targetDocId)
+          : null;
+
+    if (!legacyContainer) {
+      return null;
+    }
+
+    const matchedLegacy = ((legacyContainer as any)?.name_value || []).find(
+      (item: any) => keyCandidates.includes((item?.key || '').toString().trim()),
+    );
+
+    const legacyKeyToUpdate = matchedLegacy?.key;
+
+    if (!legacyKeyToUpdate) {
+      return null;
+    }
+
+    await this.systemSettingModel.updateOne(
+      {
+        _id: (legacyContainer as any)._id,
+        'name_value.key': legacyKeyToUpdate,
+      } as any,
+      {
+        $set: {
+          ...(normalizedUpdateData.value !== undefined
+            ? { 'name_value.$.value': normalizedUpdateData.value }
+            : {}),
+          ...(normalizedUpdateData.description !== undefined
+            ? { 'name_value.$.description': normalizedUpdateData.description }
+            : {}),
+          ...(normalizedUpdateData.category !== undefined
+            ? { 'name_value.$.category': normalizedUpdateData.category }
+            : {}),
+        },
+      } as any,
+    );
+
+    const refreshedLegacy = await this.systemSettingModel.findOne({
+      _id: (legacyContainer as any)._id,
+    } as any);
+
+    const matchedSetting = (refreshedLegacy as any)?.name_value?.find(
+      (item: any) => item?.key === legacyKeyToUpdate,
+    );
+
+    if (!matchedSetting) {
+      return null;
+    }
+
+    return {
+      key: matchedSetting.key,
+      value: matchedSetting.value,
+      description: matchedSetting.description,
+      category: matchedSetting.category || null,
+    } as SystemSetting;
   }
 
   async getAllSystemSettings(): Promise<SystemSetting[]> {
@@ -99,7 +260,38 @@ export class AdminService {
   }
 
   async deleteSystemSetting(key: string): Promise<SystemSetting | null> {
-    return await this.systemSettingModel.findOneAndDelete({ key });
+    const deletedFlat = await this.systemSettingModel.findOneAndDelete({ key });
+    if (deletedFlat) return deletedFlat;
+
+    const legacyContainer = await this.systemSettingModel.findOne({
+      'name_value.key': key,
+    } as any);
+
+    if (!legacyContainer) {
+      return null;
+    }
+
+    const target = (legacyContainer as any).name_value?.find(
+      (item: any) => item?.key === key,
+    );
+
+    await this.systemSettingModel.updateOne(
+      { _id: (legacyContainer as any)._id } as any,
+      {
+        $pull: {
+          name_value: { key },
+        },
+      } as any,
+    );
+
+    if (!target) return null;
+
+    return {
+      key: target.key,
+      value: target.value,
+      description: target.description,
+      category: target.category || null,
+    } as SystemSetting;
   }
 
   //-------------------------------------------
