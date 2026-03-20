@@ -114,7 +114,7 @@ export class AdminService {
     } as any);
 
     if (legacyContainer) {
-      await this.systemSettingModel.updateOne(
+      await this.systemSettingModel.collection.updateOne(
         { _id: (legacyContainer as any)._id } as any,
         {
           $push: {
@@ -192,14 +192,21 @@ export class AdminService {
       if (updatedFlat) return updatedFlat;
     }
 
-    const legacyContainer =
-      keyCandidates.length > 0
-        ? await this.systemSettingModel.findOne({
-            'name_value.key': { $in: keyCandidates },
-          } as any)
-        : targetDocId
-          ? await this.systemSettingModel.findById(targetDocId)
-          : null;
+    const collection = this.systemSettingModel.collection;
+
+    let legacyContainer: any = null;
+
+    if (keyCandidates.length > 0) {
+      legacyContainer = await collection.findOne({
+        'name_value.key': { $in: keyCandidates },
+      } as any);
+    }
+
+    if (!legacyContainer && targetDocId && Types.ObjectId.isValid(targetDocId)) {
+      legacyContainer = await collection.findOne({
+        _id: new Types.ObjectId(targetDocId),
+      } as any);
+    }
 
     if (!legacyContainer) {
       return null;
@@ -215,7 +222,7 @@ export class AdminService {
       return null;
     }
 
-    await this.systemSettingModel.updateOne(
+    await collection.updateOne(
       {
         _id: (legacyContainer as any)._id,
         'name_value.key': legacyKeyToUpdate,
@@ -235,7 +242,7 @@ export class AdminService {
       } as any,
     );
 
-    const refreshedLegacy = await this.systemSettingModel.findOne({
+    const refreshedLegacy = await collection.findOne({
       _id: (legacyContainer as any)._id,
     } as any);
 
@@ -263,7 +270,7 @@ export class AdminService {
     const deletedFlat = await this.systemSettingModel.findOneAndDelete({ key });
     if (deletedFlat) return deletedFlat;
 
-    const legacyContainer = await this.systemSettingModel.findOne({
+    const legacyContainer = await this.systemSettingModel.collection.findOne({
       'name_value.key': key,
     } as any);
 
@@ -275,7 +282,7 @@ export class AdminService {
       (item: any) => item?.key === key,
     );
 
-    await this.systemSettingModel.updateOne(
+    await this.systemSettingModel.collection.updateOne(
       { _id: (legacyContainer as any)._id } as any,
       {
         $pull: {
