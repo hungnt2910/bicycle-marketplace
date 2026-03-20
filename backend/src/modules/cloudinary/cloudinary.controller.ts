@@ -56,4 +56,22 @@ export class CloudinaryController {
       data: result,
     };
   }
+
+  @Public()
+  @Post('upload-image/CCCD')
+  @UseInterceptors(FileInterceptor('file'))
+  //mô tả API cho Swagger
+  @ApiBody({
+    description:
+      'seller thì để seller, inspector thì để inspector trên api. Truyền form data với key là file và value là file ảnh/video cần upload',
+    type: 'multipart/form-data',
+    required: true,
+  })
+  async uploadCCCD(@UploadedFile() file: Express.Multer.File) {
+    const result = await this.cloudinaryService.uploadFile(file, 'CCCD');
+    return {
+      message: 'Image uploaded successfully',
+      data: result,
+    };
+  }
 }

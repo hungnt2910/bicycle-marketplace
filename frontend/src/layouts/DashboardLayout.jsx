@@ -18,12 +18,14 @@ const DashboardLayout = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Auto-detect currentPage from URL if not provided
-  const detectedPage = currentPage || (() => {
-    const path = location.pathname;
-    // Extract page from path like /seller/messages -> messages
-    const match = path.match(/\/(seller|inspector|admin)\/([^/]+)/);
-    return match ? match[2] : 'dashboard';
-  })();
+  const detectedPage =
+    currentPage ||
+    (() => {
+      const path = location.pathname;
+      // Extract page from path like /seller/messages -> messages
+      const match = path.match(/\/(seller|inspector|admin)\/([^/]+)/);
+      return match ? match[2] : 'dashboard';
+    })();
 
   // Scroll to top when route changes
   useEffect(() => {
@@ -96,6 +98,20 @@ const DashboardLayout = ({
         ),
         label: 'Uy tín & Đánh giá',
         path: 'reputation',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3zm0 2c2.761 0 5 2.239 5 5v3H7v-3c0-2.761 2.239-5 5-5z"
+            />
+          </svg>
+        ),
+        label: 'Phí & dịch vụ',
+        path: 'fees',
       },
       {
         icon: (
@@ -305,6 +321,20 @@ const DashboardLayout = ({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
+              d="M9 12l2 2 4-4m4 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        ),
+        label: 'Duyệt rút tiền',
+        path: 'withdrawals',
+      },
+      {
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
@@ -460,8 +490,8 @@ const DashboardLayout = ({
     if (onNavigate) {
       // Nếu path bắt đầu với '/', dùng path đó trực tiếp (absolute path)
       // Nếu không, construct path theo role
-      const fullPath = path.startsWith('/') 
-        ? path 
+      const fullPath = path.startsWith('/')
+        ? path
         : role === 'seller'
           ? `/seller/${path}`
           : role === 'inspector'
@@ -490,7 +520,11 @@ const DashboardLayout = ({
         >
           {sidebarOpen && <div className="flex items-center gap-2"></div>}
           {!sidebarOpen && (
-            <div className="flex flex-col items-center gap-1.5 w-full cursor-pointer" onClick={() => setSidebarOpen(true)} title="Mở rộng sidebar">
+            <div
+              className="flex flex-col items-center gap-1.5 w-full cursor-pointer"
+              onClick={() => setSidebarOpen(true)}
+              title="Mở rộng sidebar"
+            >
               <div className="w-9 h-9 rounded-[14px] bg-gradient-to-br from-gold to-gold-light p-1.5 shadow-md">
                 <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-primary-900">
                   <path
@@ -579,7 +613,7 @@ const DashboardLayout = ({
         </div>
 
         {/* Menu Items — generous spacing */}
-        <nav className="flex-1 px-4 py-3 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-4 py-3 space-y-2 overflow-y-auto scrollbar-hide">
           {menuItems[role].map((item, index) => {
             const isActive = detectedPage === item.path;
             return (
@@ -729,7 +763,7 @@ const DashboardLayout = ({
           onClick={() => setMobileMenuOpen(false)}
         >
           <div
-            className="bg-primary-900 h-full max-w-[280px] w-full shadow-elevated overflow-y-auto"
+            className="bg-primary-900 h-full max-w-[280px] w-full shadow-elevated overflow-y-auto scrollbar-hide"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-white/10 flex items-center justify-between">

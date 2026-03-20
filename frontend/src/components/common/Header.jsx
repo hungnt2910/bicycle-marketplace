@@ -21,13 +21,34 @@ const Header = ({
   const [showProfile, setShowProfile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const notifications = [
-    { id: 1, type: 'message', text: 'Bạn có tin nhắn mới từ người bán', time: '5 phút trước' },
-    { id: 2, type: 'order', text: 'Đơn hàng #1234 đã được giao', time: '1 giờ trước' },
-    { id: 3, type: 'price', text: 'Xe bạn yêu thích giảm giá 10%', time: '2 giờ trước' },
-  ];
-
   const showSearch = isAuthenticated && role === 'buyer';
+
+  const notifications = useMemo(
+    () => [
+      {
+        id: 1,
+        type: 'message',
+        text: 'Bạn có tin nhắn mới từ người bán',
+        time: '5 phút trước',
+      },
+      {
+        id: 2,
+        type: 'order',
+        text: 'Đơn hàng #1234 đã được giao',
+        time: '1 giờ trước',
+      },
+      {
+        id: 3,
+        type: 'price',
+        text: 'Xe bạn yêu thích giảm giá 10%',
+        time: '2 giờ trước',
+      },
+    ],
+    []
+  );
+
+  // const showSearch = isAuthenticated && role === "buyer";
+
   const mainNavItems = useMemo(() => {
     if (isAuthenticated && role === 'buyer') {
       return [
@@ -36,8 +57,16 @@ const Header = ({
         { label: 'Blog', page: 'blog' },
         { label: 'Yêu thích', page: 'favorites' },
         { label: 'Ví', page: 'wallet' },
-        { label: 'Dashboard', page: 'dashboard' },
-        { label: 'Tài khoản', page: 'profile' },
+        { label: 'Đơn hàng', page: 'dashboard' },
+        // { label: 'Tài khoản', page: 'profile' },
+
+        // { label: "Trang chủ", page: "landing" },
+        // { label: "Marketplace", page: "marketplace" },
+        // { label: "Blog", page: "blog" },
+        // { label: "Yêu thích", page: "favorites" },
+        // { label: "Ví", page: "wallet" },
+        // { label: "Dashboard", page: "dashboard" },
+        // { label: "Tài khoản", page: "profile" },
       ];
     }
 
@@ -80,9 +109,9 @@ const Header = ({
       {/* Main Navigation Bar */}
       <nav>
         <div className="container-custom">
-          <div className="h-[72px] flex items-center justify-between gap-4">
+          <div className="h-18 flex items-center justify-between gap-4">
             {/* Left: Logo + Nav Links */}
-            <div className="flex items-center gap-4 md:gap-8 flex-shrink-0">
+            <div className="flex items-center gap-4 md:gap-8 shrink-0">
               <Logo onClick={() => handleNavigate('landing')} />
 
               <div className="hidden lg:flex items-center gap-1">
@@ -92,13 +121,13 @@ const Header = ({
                     onClick={() => handleNavigate(item.page)}
                     className={`relative px-3 lg:px-4 py-2 text-sm font-semibold rounded-[12px] transition-all duration-200 ${
                       currentPage === item.page
-                        ? 'text-primary-800'
-                        : 'text-warmgray-600 hover:text-primary-800 hover:bg-warmgray-100/60'
+                        ? 'text-green-600 bg-green-100 shadow-sm'
+                        : 'text-warmgray-600 hover:bg-green-100 hover:text-green-600'
                     }`}
                   >
                     {item.label}
                     {currentPage === item.page && (
-                      <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-gold to-gold-light rounded-full" />
+                      <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-linear-to-r from-gold to-gold-light rounded-full" />
                     )}
                   </button>
                 ))}
@@ -125,7 +154,7 @@ const Header = ({
             </div>
 
             {/* Center: Search (for authenticated buyers) */}
-            {showSearch && (
+            {/* {showSearch && (
               <div className="hidden lg:block flex-1 max-w-xs xl:max-w-sm">
                 <div className="relative">
                   <input
@@ -148,7 +177,7 @@ const Header = ({
                   </svg>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Right: Actions & User Menu */}
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -302,6 +331,9 @@ const Header = ({
                           </svg>
                           Tài khoản của tôi
                         </button>
+
+                        {/* {role === 'buyer' && ( */}
+
                         {role === 'buyer' && (
                           <button
                             className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
@@ -323,6 +355,9 @@ const Header = ({
                             Đơn hàng của tôi
                           </button>
                         )}
+                        {/* {role === 'buyer' && (
+
+                        )} */}
                         {role === 'buyer' && (
                           <button
                             className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
@@ -342,6 +377,27 @@ const Header = ({
                               />
                             </svg>
                             Ví của tôi
+                          </button>
+                        )}
+                        {role === 'buyer' && (
+                          <button
+                            className="w-full px-4 py-2.5 text-left text-sm text-warmgray-700 hover:bg-warmgray-50 transition-colors flex items-center gap-2"
+                            onClick={() => handleNavigate('disputes')}
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                              />
+                            </svg>
+                            Tranh chấp của tôi
                           </button>
                         )}
                         {role === 'buyer' && (
@@ -403,7 +459,7 @@ const Header = ({
                 className="hidden xl:inline-flex shadow-soft hover:shadow-elevated transition-all text-sm px-5 py-2.5 rounded-full"
                 onClick={handleCta}
               >
-                Đăng tin
+                Đăng nhập
               </Button>
 
               <button

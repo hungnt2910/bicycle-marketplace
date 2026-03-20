@@ -8,6 +8,8 @@ const authApi = {
   signout: () => axiosClient.post('/api/v1/auth/signout'),
 
   profile: () => axiosClient.get('/api/v1/auth/profile'),
+
+  // verifySeller: (userId) => axiosClient.post(`/api/v1/auth/verify-seller/${userId}`),
 };
 
 export default authApi;

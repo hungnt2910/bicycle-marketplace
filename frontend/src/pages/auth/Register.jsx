@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input, Card, Select } from '../../components/ui';
 import authApi from '../../api/authApi';
+import cloudinaryApi from '../../api/cloudinaryApi';
 
 const Register = ({ onRegisterSuccess, onNavigate }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +11,13 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
     role: 'buyer',
     firstName: '',
     lastName: '',
+    cccdFront: '',
+    cccdBack: '',
+  });
+
+  const [uploadingImages, setUploadingImages] = useState({
+    cccdFront: false,
+    cccdBack: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -29,6 +37,46 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
     // Clear error when user types
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const { name, files } = e.target;
+    const file = files[0];
+
+    if (!file) return;
+
+    // Cập nhật trạng thái đang upload
+    setUploadingImages((prev) => ({ ...prev, [name]: true }));
+
+    try {
+      const formDataUpload = new FormData();
+      // Phải chính xác là "file" (không có "s" ở cuối) vì Backend yêu cầu thế
+      formDataUpload.append('file', file);
+
+      // Gọi API tải ảnh
+      const uploadResponse = await cloudinaryApi.uploadCCCDImage(formDataUpload);
+
+      console.log('Response upload ảnh:', uploadResponse.data);
+
+      // Backend NestJS trả về obj chứa { message, data: { ...Thông_tin_Cloudinary } }
+      // Lấy link secure_url của Cloudinary (HTTPS)
+      const imageUrl = uploadResponse?.data?.data?.secure_url || uploadResponse?.data?.data?.url;
+
+      if (imageUrl) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: imageUrl, // Lưu URL HTTPS này vào biến formData
+        }));
+      } else {
+        alert('Upload thành công nhưng không lấy được link ảnh!');
+      }
+    } catch (error) {
+      console.error(`Upload ${name} error:`, error);
+      alert(error?.response?.data?.message || 'Tải ảnh thất bại, vui lòng thử lại');
+    } finally {
+      // Tắt trạng thái đang upload
+      setUploadingImages((prev) => ({ ...prev, [name]: false }));
     }
   };
 
@@ -61,6 +109,15 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
       newErrors.lastName = 'Vui lòng nhập tên';
     }
 
+    if (formData.role === 'seller') {
+      if (!formData.cccdFront) {
+        newErrors.cccdFront = 'Vui lòng tải ảnh CCCD mặt trước';
+      }
+      if (!formData.cccdBack) {
+        newErrors.cccdBack = 'Vui lòng tải ảnh CCCD mặt sau';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -68,16 +125,27 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+    if (uploadingImages.cccdFront || uploadingImages.cccdBack) {
+      alert('Vui lòng chờ tải ảnh CCCD xong');
+      return;
+    }
     setIsLoading(true);
     try {
-      const response = await authApi.register({
+      const payload = {
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
         role: formData.role,
         firstName: formData.firstName,
         lastName: formData.lastName,
-      });
+      };
+
+      if (formData.role === 'seller') {
+        // Backend đang chấp nhận dạng mảng chứa chuỗi "front","back"
+        payload.CCCD = [`"${formData.cccdFront}","${formData.cccdBack}"`];
+      }
+
+      const response = await authApi.register(payload);
 
       console.log('Register success:', response.data);
 
@@ -118,6 +186,7 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
         <Card className="p-10 animate-scale-in">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection */}
+
             <div>
               <label className="block text-sm font-medium text-warmgray-700 mb-2">
                 Bạn muốn <span className="text-danger-500">*</span>
@@ -215,6 +284,96 @@ const Register = ({ onRegisterSuccess, onNavigate }) => {
               required
             />
 
+            {formData.role === 'seller' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* CCCD mặt trước */}
+                <div>
+                  <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                    CCCD mặt trước *
+                  </label>
+                  {!formData.cccdFront ? (
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-warmgray-300 rounded-[16px] p-6 text-center hover:border-primary-800 transition-colors cursor-pointer bg-neutral-offwhite hover:bg-primary-800/5 h-32">
+                      <input
+                        type="file"
+                        name="cccdFront"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <div className="text-3xl mb-1">📷</div>
+                      <p className="text-sm font-semibold text-primary-900 mb-1">Click để upload</p>
+                      <p className="text-xs text-warmgray-500">Tối đa 5MB</p>
+                    </label>
+                  ) : (
+                    <div className="relative group w-full">
+                      <img
+                        src={formData.cccdFront}
+                        alt="CCCD mặt trước"
+                        className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200 bg-white"
+                      />
+                      <div className="absolute inset-0 bg-primary-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all rounded-[16px] flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              cccdFront: null,
+                            }))
+                          }
+                          className="px-3 py-1.5 bg-danger/80 text-white text-xs font-semibold rounded hover:bg-danger shadow-lg transition-colors"
+                        >
+                          Xóa ảnh
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {errors.cccdFront && (
+                    <p className="mt-2 text-sm text-danger-500">{errors.cccdFront}</p>
+                  )}
+                </div>
+
+                {/* CCCD mặt sau */}
+                <div>
+                  <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                    CCCD mặt sau *
+                  </label>
+                  {!formData.cccdBack ? (
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-warmgray-300 rounded-[16px] p-6 text-center hover:border-primary-800 transition-colors cursor-pointer bg-neutral-offwhite hover:bg-primary-800/5 h-32">
+                      <input
+                        type="file"
+                        name="cccdBack"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <div className="text-3xl mb-1">📷</div>
+                      <p className="text-sm font-semibold text-primary-900 mb-1">Click để upload</p>
+                      <p className="text-xs text-warmgray-500">Tối đa 5MB</p>
+                    </label>
+                  ) : (
+                    <div className="relative group w-full">
+                      <img
+                        src={formData.cccdBack}
+                        alt="CCCD mặt sau"
+                        className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200 bg-white"
+                      />
+                      <div className="absolute inset-0 bg-primary-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all rounded-[16px] flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, cccdBack: null }))}
+                          className="px-3 py-1.5 bg-danger/80 text-white text-xs font-semibold rounded hover:bg-danger shadow-lg transition-colors"
+                        >
+                          Xóa ảnh
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {errors.cccdBack && (
+                    <p className="mt-2 text-sm text-danger-500">{errors.cccdBack}</p>
+                  )}
+                </div>
+              </div>
+            )}
             {/* Submit Button */}
             <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
               {isLoading ? (

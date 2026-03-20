@@ -188,104 +188,94 @@ const ManageListings = () => {
       </Card>
 
       {/* Listings */}
-      <div className="space-y-4">
-        {filteredListings.map((listing) => (
-          <Card key={listing._id || listing.id} className="p-4 hover:shadow-soft transition-shadow">
-            <div className="flex gap-4">
-              <img
-                src={listing.media?.mainImage || listing.image || '/placeholder-bike.png'}
-                alt={listing.title || listing.name}
-                className="w-32 h-24 object-cover rounded-[16px]"
-              />
-              <div className="flex-1">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-lg">{listing.title || listing.name}</h3>
-                    <p className="text-sm text-warmgray-600">
-                      Đăng ngày: {new Date(listing.createdAt).toLocaleDateString('vi-VN')}
-                    </p>
-                  </div>
-                  {getStatusBadge(listing.status)}
-                </div>
-                {/* <div className="flex items-center gap-6 text-sm text-warmgray-600 mb-3">
-                  <span>
-                    Giá:{' '}
-                    <strong className="text-primary-600">
-                      {listing.price.toLocaleString('vi-VN')} ₫
-                    </strong>
-                  </span>
-                  <span>{listing.views || 0} lượt xem</span>
-                  <span>{listing.favoriteCount || 0} yêu thích</span>
-
-                  {listing.inspection?.isInspected && (
-                    <span className="text-success-600 font-medium flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      Đã kiểm định
-                    </span>
-                  )}
-
-                </div> */}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleEdit(listing._id || listing.id)}
+      {filteredListings.length > 0 ? (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-warmgray-50 border-b border-warmgray-200 text-warmgray-700 divide-x divide-warmgray-200">
+                  <th className="py-4 px-6 font-semibold text-sm">Hình ảnh</th>
+                  <th className="py-4 px-6 font-semibold text-sm">Tiêu đề</th>
+                  <th className="py-4 px-6 font-semibold text-sm">Ngày đăng</th>
+                  <th className="py-4 px-6 font-semibold text-sm">Trạng thái</th>
+                  <th className="py-4 px-6 font-semibold text-sm">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-warmgray-200">
+                {filteredListings.map((listing) => (
+                  <tr
+                    key={listing._id || listing.id}
+                    className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200"
                   >
-                    Chỉnh sửa
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleView(listing._id || listing.id)}
-                  >
-                    Xem tin
-                  </Button>
-
-                  {listing.status === 'active' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleStatus(listing._id || listing.id, listing.status)}
-                    >
-                      Ẩn tin
-                    </Button>
-                  )}
-                  {listing.status === 'hidden' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleStatus(listing._id || listing.id, listing.status)}
-                    >
-                      Hiện tin
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-danger-600"
-                    onClick={() => handleDelete(listing._id || listing.id)}
-                  >
-                    Xóa
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {filteredListings.length === 0 && (
+                    <td className="py-4 px-6 align-middle">
+                      <img
+                        src={listing.media?.mainImage || listing.image || '/placeholder-bike.png'}
+                        alt={listing.title || listing.name}
+                        className="w-20 h-16 object-cover rounded-[8px]"
+                      />
+                    </td>
+                    <td className="py-4 px-6 align-middle">
+                      <span className="font-medium text-lg text-primary-900 line-clamp-2">
+                        {listing.title || listing.name}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 align-middle text-warmgray-600 text-sm whitespace-nowrap">
+                      {new Date(listing.createdAt).toLocaleDateString('vi-VN')}
+                    </td>
+                    <td className="py-4 px-6 align-middle whitespace-nowrap">
+                      {getStatusBadge(listing.status)}
+                    </td>
+                    <td className="py-4 px-6 align-middle">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleEdit(listing._id || listing.id)}
+                        >
+                          Chỉnh sửa
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleView(listing._id || listing.id)}
+                        >
+                          Xem tin
+                        </Button>
+                        {listing.status === 'active' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleStatus(listing._id || listing.id, listing.status)}
+                          >
+                            Ẩn tin
+                          </Button>
+                        )}
+                        {listing.status === 'hidden' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleStatus(listing._id || listing.id, listing.status)}
+                          >
+                            Hiện tin
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-danger-600 hover:bg-danger-50"
+                          onClick={() => handleDelete(listing._id || listing.id)}
+                        >
+                          Xóa
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : (
         <Card className="p-12 text-center">
           <p className="text-warmgray-600 mb-4">Không có tin đăng nào</p>
           <Button variant="primary" onClick={() => navigate('/seller/create-listing')}>

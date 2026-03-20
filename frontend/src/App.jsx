@@ -28,6 +28,11 @@ import Favourites from './pages/buyer/Favourites';
 import ZaloPayReturn from './pages/payment/ZaloPayReturn';
 import TransactionDetail from './pages/buyer/TransactionDetail';
 import Wallet from './pages/buyer/Wallet';
+import WalletPayment from './pages/buyer/WalletPayment';
+import CreateDispute from './pages/buyer/CreateDispute';
+import MyDisputes from './pages/buyer/MyDisputes';
+import DisputeDetail from './pages/buyer/DisputeDetail';
+
 import ChatPage from './pages/buyer/ChatPage';
 
 // Seller Pages
@@ -37,6 +42,7 @@ import EditListing from './pages/seller/EditListing';
 // import CreateListingEnhanced from './pages/seller/CreateListingEnhanced';
 import ManageListings from './pages/seller/ManageListings';
 import SellerOrders from './pages/seller/SellerOrders';
+import SellerFees from './pages/seller/SellerFees';
 import Reputation from './pages/seller/Reputation';
 import InspectionRequests from './pages/seller/InspectionRequests';
 import Messages from './pages/seller/Messages';
@@ -53,6 +59,7 @@ import TransactionManagement from './pages/admin/TransactionManagement';
 import SystemReports from './pages/admin/SystemReports';
 import SystemSettings from './pages/admin/SystemSettings';
 import UserManagement from './pages/admin/UserManagement';
+import WithdrawalApprovals from './pages/admin/WithdrawalApprovals';
 
 // Route Guard
 import PrivateRoute from './routes/PrivateRoute';
@@ -98,6 +105,8 @@ const pageToPath = (page, productId = null, role = 'buyer') => {
       if (role === 'seller') return '/seller/wallet';
       if (role === 'admin') return '/admin/wallet';
       return '/buyer/wallet';
+    case 'disputes':
+      return '/buyer/disputes';
     case 'reputation':
       return '/seller/reputation';
     case 'inspection':
@@ -265,6 +274,38 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/buyer/disputes"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('disputes', <MyDisputes />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/disputes/create"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('disputes', <CreateDispute />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/buyer/disputes/:id"
+        element={
+          <PrivateRoute allowedRoles={['buyer']}>
+            {buyerShell('disputes', <DisputeDetail />)}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/wallet-payment"
+        element={
+          <PrivateRoute allowedRoles={['buyer', 'seller']}>
+            <WalletPayment />
+          </PrivateRoute>
+        }
+      />
+      <Route
         path="/chat"
         element={
           <PrivateRoute allowedRoles={['buyer', 'seller']}>
@@ -377,6 +418,22 @@ const AppRoutes = () => {
               isAuthenticated={isAuthenticated}
             >
               <SellerOrders />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/seller/fees"
+        element={
+          <PrivateRoute allowedRoles={['seller']}>
+            <DashboardLayout
+              role="seller"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <SellerFees />
             </DashboardLayout>
           </PrivateRoute>
         }
@@ -511,6 +568,23 @@ const AppRoutes = () => {
               isAuthenticated={isAuthenticated}
             >
               <Wallet />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/withdrawals"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <DashboardLayout
+              role="admin"
+              currentPage="withdrawals"
+              onNavigate={handleNavigate}
+              user={user}
+              onLogout={handleLogout}
+              isAuthenticated={isAuthenticated}
+            >
+              <WithdrawalApprovals />
             </DashboardLayout>
           </PrivateRoute>
         }

@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Rating, Button, ImageGallery, Avatar, Modal } from '../../components/ui';
 import ChatWithSellerButton from '../../components/chat/ChatWithSellerButton';
 import bicycleApi from '../../api/postNewsApi';
 import authApi from '../../api/authApi';
 import favouriteApi from '../../api/favouriteApi';
-import paymentApi from '../../api/paymentApi';
-import transactionApi from '../../api/transactionApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
 const ProductDetail = ({ productId }) => {
+  const navigate = useNavigate();
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState(50);
   const { isAuthenticated, user } = useAuth();
@@ -53,26 +53,6 @@ const ProductDetail = ({ productId }) => {
   const isSold = product?.isSold || ['sold', 'inactive', 'deactivated'].includes(productStatus);
   const isUnavailable = isReserved || isSold;
 
-  const pollPaymentStatus = async (txId) => {
-    const MAX_ATTEMPTS = 6;
-    const DELAY_MS = 3000;
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-      try {
-        const res = await paymentApi.getPaymentStatus(txId);
-        const rawStatus =
-          res?.data?.data?.status || res?.data?.status || res?.data?.data?.paymentStatus;
-        const status = (rawStatus || '').toLowerCase();
-        if (['paid', 'success', 'completed', 'payment_received', 'held_in_escrow'].includes(status))
-          return 'paid';
-        if (['failed', 'cancelled', 'canceled', 'payment_failed'].includes(status)) return 'failed';
-      } catch (err) {
-        console.error('Poll payment status error:', err);
-      }
-    }
-    return 'pending';
-  };
-
   const handleBuyNow = async (isDepositParam = false) => {
     const isDeposit = isDepositParam === true;
     try {
@@ -95,80 +75,26 @@ const ProductDetail = ({ productId }) => {
         return;
       }
 
-      const amount = Math.round(rawAmount); // ZaloPay cần số nguyên VND
+      const amount = Math.round(rawAmount);
 
-      setPaying(true);
-      setPaymentStatus('');
-      setPaymentUrl('');
-      setTransactionId('');
-
-      const transactionPayload = isDeposit
-        ? {
-            bicycleId: bikeId,
-            depositRate: Math.min(Math.max(depositAmount / 100, 0.1), 0.9),
-            paymentMethod: 'e_wallet',
-          }
-        : {
-            bicycleId: bikeId,
-            amount,
-            type: 'full_payment',
-            paymentMethod: 'e_wallet',
-          };
-
-      const txRes = isDeposit
-        ? await transactionApi.createDeposit(transactionPayload)
-        : await transactionApi.create(transactionPayload);
-      const txData = txRes?.data?.data || txRes?.data;
-
-      // BE trả về trực tiếp order_url/app_trans_id từ ZaloPay; transactionId có thể không nằm trong body
-      const txId = txData?.transactionId || txData?._id || txData?.id || txData?.app_trans_id;
-      const directPayUrl = txData?.order_url || txData?.orderUrl;
-      setTransactionId(txId || '');
-      if (txId) localStorage.setItem('pendingTransactionId', txId);
-
-      if (directPayUrl) {
-        setPaymentUrl(directPayUrl);
-        window.open(directPayUrl, '_blank', 'noopener');
-      } else {
-        // Fallback: tự tạo order nếu BE không trả order_url
-        const zaloRes = await paymentApi.createZaloPayOrder(txId);
-        const zaloData = zaloRes?.data?.data || zaloRes?.data;
-        const payUrl = zaloData?.orderUrl || zaloData?.payUrl || zaloData?.deeplink;
-        if (!payUrl) throw new Error('Không lấy được link thanh toán');
-        setPaymentUrl(payUrl);
-        window.open(payUrl, '_blank', 'noopener');
+      // Chuyển sang trang xác nhận thanh toán ví
+      const params = new URLSearchParams({
+        type: isDeposit ? 'deposit' : 'full_payment',
+        amount: String(amount),
+        bicycleId: bikeId,
+        title: product.name || '',
+        returnUrl: `/product/${productId}`,
+      });
+      if (isDeposit) {
+        params.set('depositRate', String(Math.min(Math.max(depositAmount / 100, 0.1), 0.9)));
       }
 
-      if (txId) {
-        const status = await pollPaymentStatus(txId);
-        setPaymentStatus(status);
-        if (status === 'paid') {
-          try {
-            if (isDeposit) {
-              await transactionApi.confirmDepositPayment(txId, { transactionId: txId });
-            } else {
-              await transactionApi.confirmPayment(txId, { transactionId: txId });
-            }
-          } catch (err) {
-            console.error('confirm-payment error:', err);
-            toast.error(err?.response?.data?.message || 'Xác nhận thanh toán thất bại');
-          }
-          toast.success('Thanh toán thành công');
-          fetchProduct(); // cập nhật trạng thái xe (reserved/sold)
-        } else if (status === 'failed') {
-          toast.error('Thanh toán thất bại hoặc bị hủy');
-        } else {
-          toast.info('Thanh toán đang chờ xác nhận');
-        }
-      } else {
-        toast.info('Đã mở trang thanh toán. Vui lòng kiểm tra trạng thái sau ít phút.');
-      }
+      if (isDeposit) setShowDepositModal(false);
+      navigate(`/wallet-payment?${params.toString()}`);
+      return;
     } catch (err) {
       console.error('Buy now error:', err);
       toast.error(err.response?.data?.message || err.message || 'Không thể tạo giao dịch');
-    } finally {
-      setPaying(false);
-      if (isDeposit) setShowDepositModal(false);
     }
   };
 
