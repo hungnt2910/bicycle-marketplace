@@ -35,7 +35,9 @@ export class AdminService {
 
   //-------------------------------------------
   // Seller verification workflow
-  async getSellerRequests(status: 'pending' | 'approved' | 'rejected' = 'pending') {
+  async getSellerRequests(
+    status: 'pending' | 'approved' | 'rejected' = 'pending',
+  ) {
     const filter: Record<string, any> = {};
 
     if (status === 'pending') {
@@ -250,7 +252,11 @@ export class AdminService {
       } as any);
     }
 
-    if (!legacyContainer && targetDocId && Types.ObjectId.isValid(targetDocId)) {
+    if (
+      !legacyContainer &&
+      targetDocId &&
+      Types.ObjectId.isValid(targetDocId)
+    ) {
       legacyContainer = await collection.findOne({
         _id: new Types.ObjectId(targetDocId),
       } as any);
@@ -499,3 +505,5 @@ export interface MoneyFlowSummary {
     count: number;
   }[];
 }
+
+// toi laf admin service, toi se quan ly tat ca cac chuc nang lien quan den admin nhu: duyet seller, quan ly system setting, quan ly user, xem thong ke doanh thu,...
