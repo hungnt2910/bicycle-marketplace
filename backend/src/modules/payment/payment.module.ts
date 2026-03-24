@@ -8,6 +8,8 @@ import {
   BicycleSchema,
   Transaction,
   TransactionSchema,
+  User,
+  UserSchema,
 } from 'src/entities';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TransactionsService } from '../transactions/transactions.service';
@@ -28,6 +30,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: Wallet.name, schema: WalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
+      {name: User.name, schema: UserSchema}
     ]),
   ],
   controllers: [PaymentController],

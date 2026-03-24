@@ -12,6 +12,8 @@ import {
   BicycleSchema,
   Transaction,
   TransactionSchema,
+  User,
+  UserSchema,
 } from 'src/entities';
 import { WalletService } from '../wallet/wallet.service';
 import { Wallet, WalletSchema } from 'src/entities/wallet.entity';
@@ -23,6 +25,7 @@ import { PaymentService } from '../payment/payment.service';
 import { ZaloPayService } from '../payment/zalopay/zalopay.service';
 import { PaymentModule } from '../payment/payment.module';
 import { TransactionsScheduler } from './transactions.scheduler';
+import { UsersService } from '../users/users.service';
 
 @Module({
   imports: [
@@ -33,6 +36,7 @@ import { TransactionsScheduler } from './transactions.scheduler';
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: Wallet.name, schema: WalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
+      {name: User.name, schema: UserSchema}
     ]),
   ],
   providers: [
@@ -43,7 +47,8 @@ import { TransactionsScheduler } from './transactions.scheduler';
     WalletService,
     PaymentService,
     ZaloPayService,
-    TransactionsScheduler
+    TransactionsScheduler,
+    UsersService
   ],
   controllers: [TransactionsController],
 })

@@ -14,6 +14,8 @@ import {
   InspectionReportSchema,
   Transaction,
   TransactionSchema,
+  User,
+  UserSchema,
 } from 'src/entities';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Wallet, WalletSchema } from 'src/entities/wallet.entity';
@@ -32,7 +34,8 @@ import { WalletService } from '../wallet/wallet.service';
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: Wallet.name, schema: WalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
-      {name : Bicycle.name, schema: BicycleSchema}
+      {name : Bicycle.name, schema: BicycleSchema},
+      {name: User.name, schema: UserSchema}
     ]),
   ],
   providers: [DisputesService, EscrowService, NotificationsService, WalletService],

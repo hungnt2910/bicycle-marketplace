@@ -9,6 +9,8 @@ import {
   BicycleSchema,
   Transaction,
   TransactionSchema,
+  User,
+  UserSchema,
 } from 'src/entities';
 import { TransactionsService } from '../transactions/transactions.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -29,6 +31,7 @@ import { ZaloPayService } from '../payment/zalopay/zalopay.service';
       { name: Bicycle.name, schema: BicycleSchema },
       { name: Wallet.name, schema: WalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
+      {name: User.name, schema: UserSchema}
       // { name: Dispute.name, schema: DisputeSchema },
     ]),
   ],
@@ -38,7 +41,8 @@ import { ZaloPayService } from '../payment/zalopay/zalopay.service';
     NotificationsService,
     WalletService,
     PaymentService,
-    ZaloPayService
+    ZaloPayService,
+    
   ],
   controllers: [EscrowController],
 })

@@ -11,6 +11,7 @@ import {
   WalletTransactionDocument,
   WalletTransactionType,
 } from 'src/entities/wallet-transaction.entity';
+import { User, UserDocument } from 'src/entities';
 
 // Placeholder system actor used in audit logs for automated operations
 const SYSTEM_ACTOR_ID = new Types.ObjectId('000000000000000000000000');
@@ -24,6 +25,7 @@ export class EscrowService {
     private transactionModel: Model<TransactionDocument>,
     @InjectModel(AuditLog.name)
     private auditLogModel: Model<AuditLogDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private walletService: WalletService,
   ) {}
 

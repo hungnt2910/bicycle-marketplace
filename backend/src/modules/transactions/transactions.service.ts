@@ -20,6 +20,7 @@ import {
   BicycleDocument,
   BicycleStatus,
 } from '../../entities/bicycle.entity';
+import { User, UserDocument, UserRole } from '../../entities/user.entity';
 import { EscrowService } from '../escrow/escrow.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ConfigService } from '@nestjs/config';
@@ -36,6 +37,7 @@ export class TransactionsService {
     @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
     @InjectModel(Bicycle.name) private bicycleModel: Model<BicycleDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private escrowService: EscrowService,
     private walletService: WalletService,
     private notificationsService: NotificationsService,
@@ -653,7 +655,13 @@ export class TransactionsService {
       throw new NotFoundException('Transaction not found');
     }
 
-    // Check if user has access to this transaction
+    // Check if user is admin
+    const user = await this.userModel.findById(userId);
+    if (user && user.role === UserRole.ADMIN) {
+      return transaction;
+    }
+
+    // Check if user has access to this transaction (buyer or seller)
     const isBuyer = transaction.buyerId._id.toString() === userId;
     const isSeller = transaction.sellerId._id.toString() === userId;
 
