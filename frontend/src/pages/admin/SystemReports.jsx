@@ -1,274 +1,266 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import ReactApexChart from 'react-apexcharts';
+import adminApi from '../../api/adminApi';
+
+const PERIOD_OPTIONS = [
+  { value: '7d', label: '7 ngày qua' },
+  { value: '30d', label: '30 ngày qua' },
+  { value: '12m', label: '12 tháng qua' },
+];
+
+const TYPE_LABELS = {
+  full_payment: 'Thanh toán toàn phần',
+  deposit: 'Đặt cọc',
+  fee: 'Phí nền tảng',
+  inspection_fee: 'Phí kiểm định',
+  penalty: 'Phí phạt',
+  commission: 'Hoa hồng',
+  refund: 'Hoàn tiền',
+  dispute_refund: 'Hoàn tiền tranh chấp',
+};
+
+const formatCurrency = (value) =>
+  typeof value === 'number'
+    ? value.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫'
+    : '—';
+
+const formatDate = (value) => (value ? new Date(value).toLocaleDateString('vi-VN') : '—');
 
 const SystemReports = () => {
-  const [dateRange, setDateRange] = useState('7days');
+  const [period, setPeriod] = useState('30d');
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const stats = {
-    revenue: {
-      total: 1250000000,
-      growth: 18.5,
-      transactions: 156,
-      avgTransaction: 8012820,
+  const loadSummary = async (nextPeriod) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await adminApi.getRevenueSummary(nextPeriod);
+      setSummary(res.data);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không tải được dữ liệu doanh thu');
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSummary(period);
+  }, [period]);
+
+  const categories = useMemo(() => (summary?.breakdown || []).map((item) => item.type), [summary]);
+
+  const areaSeries = useMemo(() => {
+    const breakdown = summary?.breakdown || [];
+    return [
+      {
+        name: 'Tiền vào',
+        data: categories.map((type) => {
+          const found = breakdown.find((b) => b.type === type && b.direction === 'in');
+          return found ? found.total : 0;
+        }),
+      },
+      // {
+      //   name: 'Tiền ra',
+      //   data: categories.map((type) => {
+      //     const found = breakdown.find((b) => b.type === type && b.direction === 'out');
+      //     return found ? found.total : 0;
+      //   }),
+      // },
+    ];
+  }, [categories, summary]);
+
+  const areaOptions = useMemo(
+    () => ({
+      chart: {
+        type: 'area',
+        stacked: false,
+        height: 350,
+        zoom: { enabled: false },
+        toolbar: { show: false },
+      },
+      colors: ['#2563eb', '#f97316'],
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth', width: 2 },
+      markers: { size: 0 },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          inverseColors: false,
+          opacityFrom: 0.45,
+          opacityTo: 0.05,
+          stops: [20, 100, 100, 100],
+        },
+      },
+      yaxis: {
+        labels: {
+          style: { colors: '#8e8da4' },
+          formatter: (val) => `${(val / 1_000_000).toFixed(2)}M`,
+        },
+      },
+      xaxis: {
+        categories,
+        tickAmount: Math.min(categories.length, 8),
+        labels: {
+          rotate: -15,
+          rotateAlways: true,
+          style: { fontSize: '12px' },
+        },
+      },
+      tooltip: {
+        shared: true,
+        y: {
+          formatter: (val) => formatCurrency(val),
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+        offsetX: -10,
+      },
+    }),
+    [categories]
+  );
+
+  const donutSeries = [summary?.totalIn || 0, summary?.totalOut || 0];
+  const donutOptions = {
+    labels: ['Tiền vào', 'Tiền ra'],
+    colors: ['#22c55e', '#ef4444'],
+    legend: {
+      position: 'bottom',
     },
-    users: {
-      total: 10234,
-      new: 245,
-      active: 8456,
-      retention: 82.6,
-    },
-    listings: {
-      total: 2567,
-      approved: 2234,
-      pending: 156,
-      rejected: 177,
-    },
-    performance: {
-      responseTime: 245,
-      uptime: 99.8,
-      errorRate: 0.12,
-      apiCalls: 125678,
+    dataLabels: {
+      formatter: (val, opts) =>
+        `${val.toFixed(1)}% • ${formatCurrency(opts.w.globals.series[opts.seriesIndex])}`,
     },
   };
 
-  const revenueData = [
-    { date: '14/12', value: 125000000 },
-    { date: '15/12', value: 145000000 },
-    { date: '16/12', value: 132000000 },
-    { date: '17/12', value: 178000000 },
-    { date: '18/12', value: 156000000 },
-    { date: '19/12', value: 189000000 },
-    { date: '20/12', value: 195000000 },
-  ];
-
-  const topSellers = [
-    { name: 'Trần Thị B', sales: 12, revenue: 350000000, rating: 4.9 },
-    { name: 'Nguyễn Văn A', sales: 10, revenue: 280000000, rating: 4.8 },
-    { name: 'Lê Văn C', sales: 8, revenue: 220000000, rating: 4.7 },
-    { name: 'Phạm Minh D', sales: 7, revenue: 195000000, rating: 4.6 },
-    { name: 'Hoàng Thị E', sales: 6, revenue: 175000000, rating: 4.8 },
-  ];
-
-  const topProducts = [
-    { name: 'Giant XTC SLR 29', views: 2456, sales: 15, conversion: 0.61 },
-    { name: 'Trek Domane AL 2', views: 1890, sales: 12, conversion: 0.63 },
-    { name: 'Specialized Tarmac SL7', views: 2134, sales: 10, conversion: 0.47 },
-    { name: 'Cannondale Quick 4', views: 1567, sales: 9, conversion: 0.57 },
-  ];
-
   return (
     <div className="dash-content">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-primary-900 mb-2">Báo cáo hệ thống</h1>
-            <p className="text-warmgray-600">Thống kê và phân tích hoạt động hệ thống</p>
-          </div>
-          <div className="flex gap-3">
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
-            >
-              <option value="7days">7 ngày qua</option>
-              <option value="30days">30 ngày qua</option>
-              <option value="90days">90 ngày qua</option>
-              <option value="year">Năm nay</option>
-            </select>
-            <button className="bg-primary-700 text-white px-6 py-2 rounded-[16px] hover:bg-primary-800 font-medium">
-              Xuất báo cáo
-            </button>
-          </div>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-primary-900 mb-2">Báo cáo doanh thu</h1>
+          <p className="text-warmgray-600">
+            Tổng hợp tiền vào/ra platform theo kỳ: 7 ngày, 30 ngày, 12 tháng
+          </p>
+        </div>
+        <div className="flex gap-3 items-center">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
+          >
+            {PERIOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <span className="text-sm text-warmgray-500">
+            {summary ? `${formatDate(summary.from)} – ${formatDate(summary.to)}` : 'Đang tải...'}
+          </span>
         </div>
       </div>
 
-      {/* Revenue Stats */}
       <div className="lux-panel mb-6">
-        <h2 className="text-xl font-bold text-primary-900 mb-6">Doanh thu</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-4 bg-primary-800/5 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Tổng doanh thu</p>
-            <p className="text-2xl font-bold text-primary-900">
-              {(stats.revenue.total / 1000000000).toFixed(2)}B ₫
-            </p>
-            <p className="text-sm text-success mt-1">+{stats.revenue.growth}%</p>
-          </div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-xl font-bold text-primary-900">Tổng quan dòng tiền</h2>
+          {loading && <span className="text-sm text-warmgray-500">Đang tải...</span>}
+          {error && <span className="text-sm text-danger">{error}</span>}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
           <div className="p-4 bg-success/5 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Số giao dịch</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.revenue.transactions}</p>
-            <p className="text-sm text-warmgray-500 mt-1">giao dịch</p>
-          </div>
-          <div className="p-4 bg-info/5 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Trung bình/GD</p>
+            <p className="text-sm text-warmgray-600 mb-1">Tiền vào</p>
             <p className="text-2xl font-bold text-primary-900">
-              {(stats.revenue.avgTransaction / 1000000).toFixed(1)}M ₫
+              {formatCurrency(summary?.totalIn)}
             </p>
           </div>
-          <div className="p-4 bg-gold/5 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Hoa hồng (5%)</p>
+          {/* <div className="p-4 bg-danger/5 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Tiền ra</p>
             <p className="text-2xl font-bold text-primary-900">
-              {((stats.revenue.total * 0.05) / 1000000).toFixed(0)}M ₫
+              {formatCurrency(summary?.totalOut)}
+            </p>
+          </div> */}
+          <div className="p-4 bg-primary-800/5 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Lãi ròng</p>
+            <p
+              className={`text-2xl font-bold ${
+                (summary?.net || 0) >= 0 ? 'text-success' : 'text-danger'
+              }`}
+            >
+              {formatCurrency(summary?.net)}
+            </p>
+          </div>
+          <div className="p-4 bg-warmgray-50 rounded-[16px]">
+            <p className="text-sm text-warmgray-600 mb-1">Khoảng thời gian</p>
+            <p className="text-base font-semibold text-primary-900">
+              {summary ? `${formatDate(summary.from)} → ${formatDate(summary.to)}` : '—'}
             </p>
           </div>
         </div>
 
-        {/* Simple Revenue Chart */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+          <div className="bg-white rounded-[16px] p-4 border border-warmgray-100">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-warmgray-700">Biểu đồ in/out theo loại</h3>
+              <span className="text-xs text-warmgray-500">Area chart</span>
+            </div>
+            {categories.length === 0 ? (
+              <div className="text-center text-warmgray-500 py-8">Chưa có dữ liệu</div>
+            ) : (
+              <ReactApexChart options={areaOptions} series={areaSeries} type="area" height={350} />
+            )}
+          </div>
+
+          <div className="bg-white rounded-[16px] p-4 border border-warmgray-100">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-warmgray-700">Tỷ trọng in/out</h3>
+              <span className="text-xs text-warmgray-500">Donut</span>
+            </div>
+            <ReactApexChart options={donutOptions} series={donutSeries} type="donut" height={350} />
+          </div>
+        </div>
+
         <div className="mt-6">
-          <h3 className="text-sm font-semibold text-warmgray-700 mb-4">Doanh thu theo ngày</h3>
-          <div className="flex items-end gap-2 h-48">
-            {revenueData.map((data, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-full bg-primary-800/10 rounded-t relative group cursor-pointer hover:bg-primary-800/15 transition-colors"
-                  style={{ height: `${(data.value / 200000000) * 100}%` }}
-                >
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-primary-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {(data.value / 1000000).toFixed(0)}M ₫
-                  </div>
-                </div>
-                <p className="text-xs text-warmgray-600 mt-2">{data.date}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Users & Listings */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
-        {/* Users */}
-        <div className="lux-panel">
-          <h2 className="text-xl font-bold text-primary-900 mb-6">Người dùng</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-warmgray-50 rounded-[16px]">
-              <div>
-                <p className="text-sm text-warmgray-600">Tổng người dùng</p>
-                <p className="text-2xl font-bold text-primary-900">{stats.users.total}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-success font-medium">+{stats.users.new} mới</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-warmgray-50 rounded-[16px]">
-              <div>
-                <p className="text-sm text-warmgray-600">Người dùng hoạt động</p>
-                <p className="text-2xl font-bold text-primary-900">{stats.users.active}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-primary-700 font-medium">{stats.users.retention}%</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Listings */}
-        <div className="lux-panel">
-          <h2 className="text-xl font-bold text-primary-900 mb-6">Tin đăng</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-warmgray-50 rounded-[16px]">
-              <div>
-                <p className="text-sm text-warmgray-600">Tổng tin đăng</p>
-                <p className="text-2xl font-bold text-primary-900">{stats.listings.total}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="p-3 bg-success/5 rounded-[16px] text-center">
-                <p className="text-xs text-warmgray-600">Đã duyệt</p>
-                <p className="text-lg font-bold text-success">{stats.listings.approved}</p>
-              </div>
-              <div className="p-3 bg-gold/5 rounded-[16px] text-center">
-                <p className="text-xs text-warmgray-600">Chờ duyệt</p>
-                <p className="text-lg font-bold text-gold">{stats.listings.pending}</p>
-              </div>
-              <div className="p-3 bg-danger/5 rounded-[16px] text-center">
-                <p className="text-xs text-warmgray-600">Từ chối</p>
-                <p className="text-lg font-bold text-danger">{stats.listings.rejected}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Performers */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
-        {/* Top Sellers */}
-        <div className="lux-panel">
-          <h2 className="text-xl font-bold text-primary-900 mb-6">Top người bán</h2>
-          <div className="space-y-3">
-            {topSellers.map((seller, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between p-3 bg-warmgray-50 rounded-[16px]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary-700 text-white rounded-full flex items-center justify-center font-bold">
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-primary-900">{seller.name}</p>
-                    <p className="text-xs text-warmgray-600">
-                      {seller.sales} đơn hàng • ⭐ {seller.rating}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-primary-900">
-                    {(seller.revenue / 1000000).toFixed(0)}M ₫
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Top Products */}
-        <div className="lux-panel">
-          <h2 className="text-xl font-bold text-primary-900 mb-6">Sản phẩm phổ biến</h2>
-          <div className="space-y-3">
-            {topProducts.map((product, idx) => (
-              <div key={idx} className="p-3 bg-warmgray-50 rounded-[16px]">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-primary-900">{product.name}</p>
-                  <span className="text-xs bg-success/10 text-green-800 px-2 py-1 rounded">
-                    {product.sales} đã bán
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-warmgray-600">{product.views} lượt xem</span>
-                  <span className="text-primary-700 font-medium">
-                    {(product.conversion * 100).toFixed(1)}% chuyển đổi
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* System Performance */}
-      <div className="lux-panel">
-        <h2 className="text-xl font-bold text-primary-900 mb-6">Hiệu năng hệ thống</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-warmgray-50 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Thời gian phản hồi</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.performance.responseTime}ms</p>
-            <p className="text-sm text-success mt-1">Tốt</p>
-          </div>
-          <div className="p-4 bg-warmgray-50 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Uptime</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.performance.uptime}%</p>
-            <p className="text-sm text-success mt-1">Xuất sắc</p>
-          </div>
-          <div className="p-4 bg-warmgray-50 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">Tỷ lệ lỗi</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.performance.errorRate}%</p>
-            <p className="text-sm text-success mt-1">Rất thấp</p>
-          </div>
-          <div className="p-4 bg-warmgray-50 rounded-[16px]">
-            <p className="text-sm text-warmgray-600 mb-1">API Calls</p>
-            <p className="text-2xl font-bold text-primary-900">
-              {(stats.performance.apiCalls / 1000).toFixed(0)}K
-            </p>
-            <p className="text-sm text-warmgray-600 mt-1">7 ngày</p>
+          <h3 className="text-base font-semibold text-primary-900 mb-3">Breakdown theo loại</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-warmgray-600 border-b">
+                  <th className="py-2 pr-4">Loại</th>
+                  <th className="py-2 pr-4">Chiều</th>
+                  <th className="py-2 pr-4">Tổng tiền</th>
+                  <th className="py-2 pr-4">Số giao dịch</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(summary?.breakdown || []).map((item, idx) => (
+                  <tr key={`${item.type}-${idx}`} className="border-b last:border-0">
+                    <td className="py-2 pr-4 font-semibold text-primary-900">
+                      {TYPE_LABELS[item.type] || item.type}
+                      <span className="ml-2 text-xs text-warmgray-500">({item.type})</span>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.direction === 'in'
+                            ? 'bg-success/10 text-success'
+                            : 'bg-danger/10 text-danger'
+                        }`}
+                      >
+                        {item.direction === 'in' ? 'Tiền vào' : 'Tiền ra'}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4">{formatCurrency(item.total)}</td>
+                    <td className="py-2 pr-4 text-warmgray-700">{item.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

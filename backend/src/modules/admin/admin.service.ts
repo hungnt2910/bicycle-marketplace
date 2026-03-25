@@ -35,7 +35,9 @@ export class AdminService {
 
   //-------------------------------------------
   // Seller verification workflow
-  async getSellerRequests(status: 'pending' | 'approved' | 'rejected' = 'pending') {
+  async getSellerRequests(
+    status: 'pending' | 'approved' | 'rejected' = 'pending',
+  ) {
     const filter: Record<string, any> = {};
 
     if (status === 'pending') {
