@@ -92,8 +92,7 @@ export class TransactionsService {
 
     const autoReleaseDeadline = new Date();
     autoReleaseDeadline.setDate(
-      autoReleaseDeadline.getDate() +
-        this.configService.get<number>('ESCROW_AUTO_RELEASE_DAYS', 7),
+      autoReleaseDeadline.getDate() + 3
     );
 
     const transaction = await this.transactionModel.create({
@@ -938,6 +937,7 @@ export class TransactionsService {
             TransactionStatus.HELD_IN_ESCROW,
             TransactionStatus.AWAITING_DELIVERY,
             TransactionStatus.DELIVERED,
+            TransactionStatus.BUYER_CONFIRMED,
           ],
         },
       })
