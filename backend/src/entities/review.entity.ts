@@ -31,10 +31,10 @@ class Response {
 @Schema({ timestamps: true })
 export class Review {
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  reviewerId: Types.ObjectId;
+  reviewerId?: Types.ObjectId;
 
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  reviewedUserId: Types.ObjectId;
+  sellerId?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Transaction' })
   transactionId?: Types.ObjectId;
@@ -51,7 +51,8 @@ export class Review {
   @Prop({ type: Aspects })
   aspects?: Aspects;
 
-  @Prop({ default: false })
+  //đã mua hàng
+  @Prop({ default: true })
   isVerifiedPurchase?: boolean;
 
   @Prop({ type: Response })
