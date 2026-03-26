@@ -24,11 +24,14 @@ export class ReviewsService {
       throw new Error('Transaction not found');
     }
 
-    const existingReview = await this.reviewsModel.findOne({
-      reviewerId,
-    });
+    const checkExistingReview = await this.reviewsModel
+      .findOne({
+        reviewerId: reviewerId,
+        transactionId: checkTransaction._id,
+      })
+      .exec();
 
-    if (existingReview) {
+    if (checkExistingReview) {
       throw new Error('You have already reviewed this transaction');
     }
 

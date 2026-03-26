@@ -30,13 +30,6 @@ export class CreateReviewDto {
   sellerId: string;
 
   @IsOptional()
-  @ApiProperty({
-    example: '60d0fe4f5311236168a109cd',
-    description: 'Listing ID',
-  })
-  listingId: string;
-
-  @IsOptional()
   @ApiProperty({ example: 4, description: 'Rating from 1 to 5' })
   rating: number;
 
