@@ -33,9 +33,6 @@ export class Review {
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   reviewerId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  reviewedUserId: Types.ObjectId;
-
   @Prop({ type: Types.ObjectId, ref: 'Transaction' })
   transactionId?: Types.ObjectId;
 
