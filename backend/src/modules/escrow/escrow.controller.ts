@@ -40,12 +40,7 @@ export class EscrowController {
     @GetUser() admin: User,
     @Body('reason') reason: string,
   ) {
-    const transaction = await this.transactionsService.getTransactionById(
-      transactionId,
-      admin._id.toString(),
-    );
-
-    await this.escrowService.releaseFunds(transaction);
+    await this.escrowService.releaseFunds(transactionId);
 
     return {
       message: 'Funds manually released by admin',
@@ -70,12 +65,7 @@ export class EscrowController {
     @GetUser() admin: User,
     @Body('reason') reason: string,
   ) {
-    const transaction = await this.transactionsService.getTransactionById(
-      transactionId,
-      admin._id.toString(),
-    );
-
-    await this.escrowService.refundFunds(transaction);
+    await this.escrowService.refundFunds(transactionId);
 
     return {
       message: 'Funds manually refunded by admin',
