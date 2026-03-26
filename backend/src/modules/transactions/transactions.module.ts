@@ -36,7 +36,7 @@ import { UsersService } from '../users/users.service';
       { name: AuditLog.name, schema: AuditLogSchema },
       { name: Wallet.name, schema: WalletSchema },
       { name: WalletTransaction.name, schema: WalletTransactionSchema },
-      {name: User.name, schema: UserSchema}
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   providers: [
@@ -48,8 +48,10 @@ import { UsersService } from '../users/users.service';
     PaymentService,
     ZaloPayService,
     TransactionsScheduler,
-    UsersService
+    UsersService,
   ],
   controllers: [TransactionsController],
+
+  exports: [MongooseModule],
 })
 export class TransactionsModule {}
