@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import {
   Transaction,
   TransactionDocument,
+  TransactionStatus,
 } from '../../entities/transaction.entity';
 import { AuditLog, AuditLogDocument } from '../../entities/audit-log.entity';
 import { WalletService } from '../wallet/wallet.service';
@@ -111,17 +112,24 @@ export class EscrowService {
    * if `fees.commissionAmount` is set on the transaction.
    */
   async releaseFunds(
-    transaction: TransactionDocument | string,
+    transactionId: TransactionDocument | string,
   ): Promise<WalletTransactionDocument> {
-    const tx = await this.resolveTransaction(transaction);
+    const tx = await this.transactionModel.findById(transactionId);
+
+    if(!tx) {
+      throw new NotFoundException(`Transaction ${transactionId} not found`);
+    }
 
     const commissionAmount = tx.fees?.commissionAmount ?? 0;
-    const sellerAmount = tx.amount - commissionAmount;
+    const sellerAmount = tx.amount;
 
     this.logger.log(
       `Releasing ${sellerAmount} VND to seller ${tx.sellerId} ` +
         `(commission: ${commissionAmount} VND) for transaction ${tx._id}`,
     );
+
+    tx.status = TransactionStatus.COMPLETED;
+    await tx.save();
 
     const walletTx = await this.walletService.releaseFromEscrow(
       tx.sellerId.toString(),
@@ -143,13 +151,20 @@ export class EscrowService {
    * resolved in the buyer's favour.
    */
   async refundFunds(
-    transaction: TransactionDocument | string,
+    transactionId: TransactionDocument | string,
   ): Promise<WalletTransactionDocument> {
-    const tx = await this.resolveTransaction(transaction);
+    const tx = await this.transactionModel.findById(transactionId);
+
+    if (!tx) {
+      throw new NotFoundException(`Transaction ${transactionId} not found`);
+    }
 
     this.logger.log(
       `Refunding ${tx.amount} VND to buyer ${tx.buyerId} for transaction ${tx._id}`,
     );
+
+    tx.status = TransactionStatus.REFUNDED;
+    await tx.save();
 
     const walletTx = await this.walletService.credit(
       tx.buyerId.toString(),

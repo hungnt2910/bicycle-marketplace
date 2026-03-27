@@ -249,7 +249,7 @@ export class DisputesService {
       dispute.status = DisputeStatus.RESOLVED_SELLER_FAVOR;
 
       // Release funds to seller
-      await this.escrowService.releaseFunds(transaction);
+      await this.escrowService.releaseFunds(transaction._id.toString());
       transaction.status = TransactionStatus.COMPLETED;
       
       // Reset bicycle to ACTIVE so seller can sell again

@@ -92,8 +92,7 @@ export class TransactionsService {
 
     const autoReleaseDeadline = new Date();
     autoReleaseDeadline.setDate(
-      autoReleaseDeadline.getDate() +
-        this.configService.get<number>('ESCROW_AUTO_RELEASE_DAYS', 7),
+      autoReleaseDeadline.getDate() + 3
     );
 
     const transaction = await this.transactionModel.create({
@@ -458,7 +457,7 @@ export class TransactionsService {
       );
     }
 
-    await this.escrowService.releaseFunds(transaction);
+    await this.escrowService.releaseFunds(transaction?._id.toString() ?? '');
 
     const commissionAmount = transaction.fees?.commissionAmount || 0;
     const sellerAmount = transaction.amount - commissionAmount;
@@ -565,7 +564,7 @@ export class TransactionsService {
       transaction.buyerConfirmation.confirmedAt = new Date();
       transaction.buyerConfirmation.notes = 'Auto-confirmed after 7 days';
 
-      await this.escrowService.releaseFunds(transaction);
+      await this.escrowService.releaseFunds(transaction._id.toString());
 
       transaction.status = TransactionStatus.COMPLETED;
       transaction.completedAt = new Date();
@@ -938,6 +937,7 @@ export class TransactionsService {
             TransactionStatus.HELD_IN_ESCROW,
             TransactionStatus.AWAITING_DELIVERY,
             TransactionStatus.DELIVERED,
+            TransactionStatus.BUYER_CONFIRMED,
           ],
         },
       })
