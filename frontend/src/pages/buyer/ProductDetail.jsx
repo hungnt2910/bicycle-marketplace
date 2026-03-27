@@ -61,36 +61,21 @@ const ProductDetail = ({ productId }) => {
     try {
       if (!product) return;
       if (!isAuthenticated) {
-        <Button
-          variant="primary"
-          className="w-full py-3 font-semibold rounded-[16px]"
-          onClick={() => {
-            const sellerIdForNav =
-              product?.seller?.id || product?.sellerId || product?.seller?.sellerId;
-            if (!sellerIdForNav) return;
-            navigate(`/seller/${sellerIdForNav}`);
-          }}
-        >
-          Xem trang người bán
-        </Button>;
         toast.info('Vui lòng đăng nhập để mua hàng');
-        {
-          (transactionId || paymentStatus || paymentUrl) && (
-            <div className="p-3 rounded-[16px] bg-neutral-offwhite border border-warmgray-200 text-sm text-warmgray-700 space-y-1">
-              {transactionId && (
-                <div>
-                  Mã giao dịch: <span className="font-semibold">{transactionId}</span>
-                </div>
-              )}
-              {paymentStatus && (
-                <div>
-                  Trạng thái thanh toán: <span className="font-semibold">{paymentStatus}</span>
-                </div>
-              )}
-              {paymentUrl && <div className="break-all text-primary-800">{paymentUrl}</div>}
-            </div>
-          );
-        }
+        return;
+      }
+
+      const bikeId = product?.id || productId;
+      const basePrice = Number(product?.price) || 0;
+      const depositRate = Math.min(Math.max(depositAmount / 100, 0.1), 0.9);
+      const rawAmount = isDeposit ? basePrice * depositRate : basePrice;
+
+      if (!bikeId || rawAmount <= 0) {
+        toast.error('Thông tin sản phẩm không hợp lệ để thanh toán');
+        return;
+      }
+
+      if (rawAmount > MAX_PAYMENT_AMOUNT) {
         toast.error('Số tiền vượt giới hạn thanh toán cho phép');
         return;
       }
@@ -101,12 +86,12 @@ const ProductDetail = ({ productId }) => {
       const params = new URLSearchParams({
         type: isDeposit ? 'deposit' : 'full_payment',
         amount: String(amount),
-        bicycleId: bikeId,
+        bicycleId: String(bikeId),
         title: product.name || '',
         returnUrl: `/product/${productId}`,
       });
       if (isDeposit) {
-        params.set('depositRate', String(Math.min(Math.max(depositAmount / 100, 0.1), 0.9)));
+        params.set('depositRate', String(depositRate));
       }
 
       if (isDeposit) setShowDepositModal(false);
@@ -276,13 +261,13 @@ const ProductDetail = ({ productId }) => {
         },
         inspectionReport: bike?.inspection?.isInspected
           ? {
-            score: bike?.inspection?.score || 0,
-            date: bike?.inspection?.inspectionDate
-              ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
-              : '—',
-            inspector: bike?.inspection?.inspectorName || '—',
-            notes: bike?.inspection?.label || 'Đã kiểm định',
-          }
+              score: bike?.inspection?.score || 0,
+              date: bike?.inspection?.inspectionDate
+                ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
+                : '—',
+              inspector: bike?.inspection?.inspectorName || '—',
+              notes: bike?.inspection?.label || 'Đã kiểm định',
+            }
           : null,
         rawType: bike?.specifications?.type || '',
         videos,
@@ -481,8 +466,9 @@ const ProductDetail = ({ productId }) => {
                 {Object.entries(product.specs).map(([key, value], index) => (
                   <div
                     key={key}
-                    className={`flex items-center justify-between py-4 px-5 rounded-[16px] transition-colors ${index % 2 === 0 ? 'bg-neutral-offwhite' : 'bg-white'
-                      } hover:bg-primary-800/5`}
+                    className={`flex items-center justify-between py-4 px-5 rounded-[16px] transition-colors ${
+                      index % 2 === 0 ? 'bg-neutral-offwhite' : 'bg-white'
+                    } hover:bg-primary-800/5`}
                   >
                     <span className="font-semibold text-warmgray-700 text-sm">{key}</span>
                     <span className="text-primary-900 font-medium text-sm">{value}</span>
@@ -829,8 +815,6 @@ const ProductDetail = ({ productId }) => {
                     </svg>
                     {isFavourite ? 'Đã yêu thích' : 'Thêm vào yêu thích'}
                   </Button>
-
-
 
                   {(transactionId || paymentStatus || paymentUrl) && (
                     <div className="p-3 rounded-[16px] bg-neutral-offwhite border border-warmgray-200 text-sm text-warmgray-700 space-y-1">
