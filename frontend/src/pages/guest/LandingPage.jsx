@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Button, Card, Badge, Rating, Input, Select } from '../../components/ui';
 import { Header, Footer } from '../../components/common';
 import bicycleApi from '../../api/postNewsApi';
+import { isBikePubliclySellable } from '../../utils/bicycleVisibility';
 import BicycleFolder from '../../component/BicycleFolder';
 /* ─── Clockwise Orbiting Bicycles ─── */
 const OrbitingBicycles = ({ bikes, onBikeClick }) => {
@@ -184,7 +185,7 @@ const LandingPage = ({
         const response = await bicycleApi.getAllBicycles();
         const apiData = response?.data?.data || response?.data || [];
         const mapped = apiData
-          .filter((bike) => bike?.status === 'active')
+          .filter((bike) => isBikePubliclySellable(bike))
           .slice(0, 30)
           .map((bike) => ({
             id: bike?._id || bike?.id,
@@ -319,13 +320,6 @@ const LandingPage = ({
                 >
                   Khám phá marketplace
                 </Button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate && onNavigate('register')}
-                  className="text-sm font-semibold text-white/80 hover:text-white underline-offset-4 hover:underline"
-                >
-                  Đăng ký người bán →
-                </button>
               </div>
 
               <div className="flex items-center justify-center gap-2 pt-2">
@@ -553,257 +547,91 @@ const LandingPage = ({
       {/* ===========================ENd Orbit ==================================================== */}
 
       {/* 2️⃣ FEATURED COLLECTION – CURATED */}
-      <section className="section">
+      <section className="py-16 md:py-24">
         <div className="container-custom">
-          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 mb-14">
-            <div className="space-y-3 max-w-2xl">
-              <p className="text-sm font-semibold text-gold uppercase tracking-widest">
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 mb-12">
+            <div>
+              <p className="text-sm font-semibold text-gold uppercase tracking-wider mb-3">
                 Bộ sưu tập nổi bật
               </p>
-              <h2 className="text-3xl md:text-4xl font-bold font-display">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
                 Những chiếc xe được chọn lọc kỹ
               </h2>
-              <p className="text-warmgray-500">
+              <p className="text-gray-500 mt-3 max-w-xl">
                 Danh sách những tin đăng nổi bật, được kiểm định và yêu thích bởi cộng đồng
                 Bicycle-Marketplace.
               </p>
             </div>
-            <Button variant="outline" onClick={handleSearch}>
+            <Button
+              variant="outline"
+              onClick={handleSearch}
+              className="border-gray-300 text-gray-700 hover:border-black hover:text-black transition-colors"
+            >
               Xem tất cả →
             </Button>
           </div>
 
           {featuredBikes.length === 0 ? (
-            <p className="text-warmgray-500">Chưa có xe nổi bật. Hãy quay lại sau.</p>
+            <p className="text-gray-500 text-center py-12">Chưa có xe nổi bật. Hãy quay lại sau.</p>
           ) : (
-            <div className="grid lg:grid-cols-5 gap-8 items-start">
-              {/* Left: 2 vertical cards (image on top, details below) */}
-              <div className="lg:col-span-2 space-y-6">
-                {leftBikes.map((bike) => (
-                  <Card
-                    key={bike.id}
-                    variant="product"
-                    className="overflow-hidden cursor-pointer hover-lift card-surface"
-                    onClick={() => handleProductClick(bike.id)}
-                  >
-                    <div className="relative aspect-[4/3] bg-warmgray-100">
-                      <img
-                        src={bike.image}
-                        alt={bike.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {bike.verified && (
-                        <Badge variant="verified" className="absolute top-3 right-3">
-                          ✓ Đã kiểm định
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <h4 className="font-semibold text-lg mb-2 line-clamp-2">{bike.name}</h4>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Rating value={bike.rating} size="sm" readonly />
-                        <span className="text-sm text-warmgray-600">({bike.reviews})</span>
-                      </div>
-                      <div className="flex items-baseline gap-2 mb-3">
-                        <span className="price">{bike.price.toLocaleString('vi-VN')} ₫</span>
-                        {bike.oldPrice && (
-                          <span className="price-old">
-                            {bike.oldPrice.toLocaleString('vi-VN')} ₫
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="success">{bike.condition}</Badge>
-                        <span className="text-sm text-warmgray-600">Bởi {bike.seller}</span>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Right: 3 horizontal rectangular cards */}
-              <div className="lg:col-span-3 space-y-6">
-                {rightBikes.map((bike) => (
-                  <Card
-                    key={bike.id}
-                    variant="product"
-                    className="overflow-hidden cursor-pointer hover-lift card-surface flex flex-row"
-                    onClick={() => handleProductClick(bike.id)}
-                  >
-                    <div className="relative w-2/5 min-h-[160px] bg-warmgray-100">
-                      <img
-                        src={bike.image}
-                        alt={bike.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {bike.verified && (
-                        <Badge variant="verified" className="absolute top-3 right-3">
-                          ✓ Đã kiểm định
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg md:text-xl mb-2 line-clamp-2">
-                          {bike.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Rating value={bike.rating} size="sm" readonly />
-                          <span className="text-sm text-warmgray-600">({bike.reviews})</span>
-                        </div>
-                        <div className="flex items-baseline gap-2 mb-3">
-                          <span className="price">{bike.price.toLocaleString('vi-VN')} ₫</span>
-                          {bike.oldPrice && (
-                            <span className="price-old">
-                              {bike.oldPrice.toLocaleString('vi-VN')} ₫
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="success">{bike.condition}</Badge>
-                        <span className="text-sm text-warmgray-600">Bởi {bike.seller}</span>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* 3️⃣ CATEGORY SHOWCASE – EDITORIAL BLOCKS */}
-      <section className="section">
-        <div className="container-custom">
-          <div className="flex flex-col gap-4 mb-14 text-center">
-            <p className="text-sm font-semibold text-gold uppercase tracking-widest">
-              Khám phá nhanh
-            </p>
-            <h3 className="text-3xl md:text-4xl font-bold">Danh Mục Xe Đạp</h3>
-            <p className="text-warmgray-500 max-w-lg mx-auto">
-              Khám phá các bộ sưu tập xe đạp theo phong cách đạp, địa hình và mục đích sử dụng.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 auto-rows-[220px]">
-            {/* Wide hero category */}
-            {mainCategory && (
-              <button
-                type="button"
-                onClick={handleSearch}
-                className="relative md:col-span-2 row-span-2 overflow-hidden rounded-[24px] group text-left bg-warmgray-900/5"
-              >
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+              {featuredBikes.slice(0, 8).map((bike) => (
                 <div
-                  className={`absolute inset-0 bg-gradient-to-r ${mainCategory.color} opacity-90`}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/10 to-transparent" />
-                <div className="relative p-8 lg:p-10 h-full flex flex-col justify-between text-white">
-                  <div className="space-y-4">
-                    <span className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-white/10 text-2xl">
-                      {mainCategory.icon}
-                    </span>
-                    <div className="space-y-2">
-                      <h4 className="text-2xl lg:text-3xl font-bold font-display">
-                        {mainCategory.name}
-                      </h4>
-                      <p className="text-sm text-white/80 max-w-md">
-                        Bộ sưu tập được yêu thích nhất với đa dạng kích thước khung và cấu hình.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm mt-6">
-                    <span className="text-white/80">
-                      {mainCategory.count}+ tin đăng đang hoạt động
-                    </span>
-                    <span className="underline underline-offset-4 text-white">
-                      Xem bộ sưu tập →
-                    </span>
-                  </div>
-                </div>
-              </button>
-            )}
-
-            {/* Secondary categories */}
-            {secondaryCategories.map((category) => (
-              <button
-                key={category.name}
-                type="button"
-                onClick={handleSearch}
-                className="relative overflow-hidden rounded-[24px] group text-left bg-warmgray-50"
-              >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-70 group-hover:opacity-90 transition-opacity`}
-                />
-                <div className="absolute inset-0 bg-black/35" />
-                <div className="relative p-6 h-full flex flex-col justify-between text-white">
-                  <div className="space-y-3">
-                    <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-white/10 text-2xl">
-                      {category.icon}
-                    </span>
-                    <h4 className="text-lg font-semibold">{category.name}</h4>
-                  </div>
-                  <span className="text-sm text-white/80 mt-3">{category.count}+ xe đang bán</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {remainingCategories.length > 0 && (
-            <div className="mt-10 flex flex-wrap gap-3 justify-center text-sm text-warmgray-600">
-              {remainingCategories.map((category) => (
-                <button
-                  key={category.name}
-                  type="button"
-                  onClick={handleSearch}
-                  className="px-4 py-2 rounded-full bg-warmgray-100 hover:bg-warmgray-200 transition-colors"
+                  key={bike.id}
+                  className="group cursor-pointer"
+                  onClick={() => handleProductClick(bike.id)}
                 >
-                  {category.name} · {category.count} xe
-                </button>
+                  {/* Image container */}
+                  <div className="relative aspect-square bg-gray-100 overflow-hidden mb-4">
+                    <img
+                      src={bike.image}
+                      alt={bike.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    {bike.verified && (
+                      <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wider px-2 py-1 bg-white text-black shadow-sm">
+                        KIỂM ĐỊNH
+                      </span>
+                    )}
+                    {bike.oldPrice && (
+                      <span className="absolute bottom-3 left-3 text-[10px] font-semibold px-2 py-1 bg-black text-white">
+                        -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Product info */}
+                  <h3 className="font-medium text-base line-clamp-1 mb-1 group-hover:text-gray-600 transition-colors">
+                    {bike.name}
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-2">{bike.seller}</p>
+
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-bold text-lg">{bike.price.toLocaleString('vi-VN')}₫</span>
+                    {bike.oldPrice && (
+                      <span className="text-xs text-gray-400 line-through">
+                        {bike.oldPrice.toLocaleString('vi-VN')}₫
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <Rating value={bike.rating} size="sm" readonly />
+                    <span className="text-xs text-gray-400">({bike.reviews})</span>
+                    <span className="text-xs text-gray-300 mx-1">•</span>
+                    <Badge
+                      variant="success"
+                      className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-none"
+                    >
+                      {bike.condition}
+                    </Badge>
+                  </div>
+                </div>
               ))}
             </div>
           )}
         </div>
       </section>
-
-      {/* 4️⃣ TRUST EXPERIENCE – HORIZONTAL LUXURY STRIP */}
-      {/* <section className="py-20 border-y border-warmgray-100/60 bg-white">
-        <div className="container-custom">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-12">
-            <div className="max-w-md space-y-4">
-              <p className="text-sm font-semibold text-gold uppercase tracking-widest">
-                An tâm giao dịch
-              </p>
-              <h3 className="text-3xl md:text-4xl font-bold font-display">
-                Minh bạch. An toàn. Có trách nhiệm.
-              </h3>
-              <p className="text-warmgray-500">
-                Từ kiểm định, ký quỹ đến vận chuyển, mỗi bước đều được thiết kế để bảo vệ cả người
-                mua và người bán.
-              </p>
-            </div>
-
-            <div className="flex-1 grid md:grid-cols-3 gap-8">
-              {trustPoints.map((item) => (
-                <div key={item.title} className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="h-8 w-8 rounded-full bg-primary-800/8 text-primary-800 flex items-center justify-center text-lg">
-                      {item.icon}
-                    </span>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-gold font-semibold">
-                        {item.pill}
-                      </p>
-                      <h4 className="text-base font-semibold">{item.title}</h4>
-                    </div>
-                  </div>
-                  <p className="text-sm text-warmgray-600 leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section> */}
 
       {/* 5️⃣ PROCESS – VERTICAL STORY TIMELINE */}
       <section id="how-it-works" className="section bg-warmgray-50">

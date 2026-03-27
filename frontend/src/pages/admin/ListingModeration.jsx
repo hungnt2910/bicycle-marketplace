@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Badge } from '../../components/ui';
 import { toast } from 'react-toastify';
 import bicycleApi from '../../api/postNewsApi';
+import { isReturnedDraftReadyForRelist } from '../../utils/bicycleVisibility';
+import disputeApi from '../../api/disputeApi';
+import transactionApi from '../../api/transactionApi';
 
 const ListingModeration = () => {
   const [filterStatus, setFilterStatus] = useState('all');
@@ -10,11 +13,13 @@ const ListingModeration = () => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const normalizeStatus = (status) => {
+  const normalizeStatus = (bike) => {
+    const status = (bike?.status || '').toLowerCase();
     if (status === 'active') return 'approved';
     if (status === 'reserved') return 'approved';
     if (status === 'sold') return 'sold';
     if (status === 'rejected') return 'rejected';
+    if (status === 'draft' && isReturnedDraftReadyForRelist(bike)) return 'approved';
     if (status === 'draft') return 'draft';
     if (status === 'pending_review') return 'pending';
     return 'pending';
@@ -51,7 +56,7 @@ const ListingModeration = () => {
     name: bike?.title || 'Không có tiêu đề',
     seller: getSellerName(bike),
     price: bike?.price || 0,
-    status: normalizeStatus(bike?.status),
+    status: normalizeStatus(bike),
     rawStatus: bike?.status,
     submitDate: formatDate(bike?.createdAt || bike?.submitDate),
     approvedDate: formatDate(bike?.approvedDate),
@@ -70,8 +75,74 @@ const ListingModeration = () => {
         setLoading(true);
         const response = await bicycleApi.getAllBicycles();
         const apiData = response?.data?.data || response?.data || [];
-        const mapped = apiData
-          .filter((bike) => normalizeStatus(bike?.status) !== 'draft')
+
+        // Sync trả hàng: nếu dispute đã return_received thì mở bán lại xe và bỏ kiểm định
+        const disputesRes = await disputeApi.getAll({
+          status: 'return_received',
+          page: 1,
+          limit: 200,
+        });
+        const disputes = disputesRes?.data?.data || [];
+
+        const txIds = disputes
+          .map((d) => d?.transactionId?._id || d?.transactionId?.id || d?.transactionId)
+          .filter(Boolean);
+
+        const txDetails = await Promise.all(
+          txIds.map(async (txId) => {
+            try {
+              const txRes = await transactionApi.getById(txId);
+              return txRes?.data?.data || txRes?.data || null;
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const returnedBikeIds = new Set(
+          txDetails
+            .map((tx) => tx?.bicycleId?._id || tx?.bicycleId?.id || tx?.bicycleId)
+            .filter(Boolean)
+        );
+
+        const needRelist = (Array.isArray(apiData) ? apiData : []).filter((bike) => {
+          const bikeId = bike?._id || bike?.id;
+          if (!bikeId || !returnedBikeIds.has(bikeId)) return false;
+          const status = (bike?.status || '').toLowerCase();
+          const isInspected = bike?.inspection?.isInspected === true;
+          return status !== 'active' || isInspected;
+        });
+
+        if (needRelist.length > 0) {
+          await Promise.allSettled(
+            needRelist.map((bike) =>
+              bicycleApi.updateBicycle(bike?._id || bike?.id, {
+                status: 'active',
+                inspection: {
+                  isInspected: false,
+                  label: '',
+                },
+              })
+            )
+          );
+        }
+
+        const normalizedSource = (Array.isArray(apiData) ? apiData : []).map((bike) => {
+          const bikeId = bike?._id || bike?.id;
+          if (!bikeId || !returnedBikeIds.has(bikeId)) return bike;
+          return {
+            ...bike,
+            status: 'active',
+            inspection: {
+              ...(bike?.inspection || {}),
+              isInspected: false,
+              label: '',
+            },
+          };
+        });
+
+        const mapped = normalizedSource
+          .filter((bike) => normalizeStatus(bike) !== 'draft')
           .map(mapListing);
         setListings(mapped);
       } catch (error) {

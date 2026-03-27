@@ -4,6 +4,7 @@ import { Card, Badge, Button, Avatar, Modal, Input } from '../../components/ui';
 import { toast } from 'react-toastify';
 import transactionApi from '../../api/transactionApi';
 import disputeApi from '../../api/disputeApi';
+import bicycleApi from '../../api/postNewsApi';
 
 const statusLabels = {
   pending_payment: 'Chờ thanh toán',
@@ -52,6 +53,14 @@ const SellerOrders = () => {
   const [shippingForm, setShippingForm] = useState({ provider: '', trackingNumber: '' });
   const [shippingErrors, setShippingErrors] = useState({});
 
+  const relistPayload = {
+    status: 'active',
+    inspection: {
+      isInspected: false,
+      label: '',
+    },
+  };
+
   const normalizeDispute = (tx) => {
     const d = tx?.dispute;
     if (!d)
@@ -79,6 +88,9 @@ const SellerOrders = () => {
           const dispute = normalizeDispute(tx);
           return {
             id: tx?._id || tx?.id,
+            bicycleId: tx?.bicycleId?._id || tx?.bicycleId?.id || tx?.bicycleId,
+            bicycleStatus: (tx?.bicycleId?.status || '').toLowerCase(),
+            bicycleIsInspected: tx?.bicycleId?.inspection?.isInspected === true,
             bike: tx?.bicycleId?.title || 'Xe đạp',
             buyer:
               `${tx?.buyerId?.profile?.firstName || ''} ${tx?.buyerId?.profile?.lastName || ''}`.trim() ||
@@ -122,6 +134,19 @@ const SellerOrders = () => {
         })
       );
 
+      const relistTargets = withDisputeDetails.filter(
+        (order) =>
+          order?.bicycleId &&
+          order?.disputeStatus === 'return_received' &&
+          (order?.bicycleStatus !== 'active' || order?.bicycleIsInspected)
+      );
+
+      if (relistTargets.length > 0) {
+        await Promise.allSettled(
+          relistTargets.map((order) => bicycleApi.updateBicycle(order.bicycleId, relistPayload))
+        );
+      }
+
       setOrders(withDisputeDetails);
     } catch (err) {
       console.error('Fetch seller orders error:', err);
@@ -160,6 +185,9 @@ const SellerOrders = () => {
     }
     await runAction(`confirm-${order.disputeId}`, async () => {
       await disputeApi.sellerConfirm(order.disputeId);
+      if (order?.bicycleId) {
+        await bicycleApi.updateBicycle(order.bicycleId, relistPayload);
+      }
       toast.success('Đã xác nhận đã nhận lại xe.');
     });
   };
@@ -329,7 +357,7 @@ const SellerOrders = () => {
                                 order.disputeStatus
                               )
                                 ? 'warning'
-                                : order.disputeStatus === 'return_receivedddd'
+                                : order.disputeStatus === 'return_received'
                                   ? 'success'
                                   : 'secondary'
                             }

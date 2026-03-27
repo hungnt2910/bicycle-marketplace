@@ -42,10 +42,24 @@ const adminApi = {
   refundEscrow: (transactionId) => axiosClient.post(`/api/v1/escrow/${transactionId}/refund`),
 
   // Danh sách các giao dịch đang bị giữ escrow
-  getEscrowHeld: () => axiosClient.get('/api/v1/escrow/held'),
+  getEscrowHeld: () =>
+    axiosClient.get('/api/v1/escrow/held', {
+      params: { _t: Date.now() },
+      headers: {
+        'Cache-Control': 'no-cache, no-store',
+        Pragma: 'no-cache',
+      },
+    }),
 
   // Thống kê tổng quan escrow
-  getEscrowStatistics: () => axiosClient.get('/api/v1/escrow/statistics'),
+  getEscrowStatistics: () =>
+    axiosClient.get('/api/v1/escrow/statistics', {
+      params: { _t: Date.now() },
+      headers: {
+        'Cache-Control': 'no-cache, no-store',
+        Pragma: 'no-cache',
+      },
+    }),
 
   // ==================== REPORTING ====================
   // Tổng hợp dòng tiền vào/ra theo kỳ
