@@ -13,6 +13,7 @@ export class ReviewsService {
 
   async createReview(data: CreateReviewDto) {
     const reviewerId = data.reviewerId;
+    const transactionId = data.transactionId;
 
     const checkTransaction = await this.transactionModel
       .findOne({
@@ -20,18 +21,14 @@ export class ReviewsService {
       })
       .exec();
 
-    if (!checkTransaction) {
-      throw new Error('Transaction not found');
-    }
-
-    const checkExistingReview = await this.reviewsModel
+    const existingReview = await this.reviewsModel
       .findOne({
         reviewerId: reviewerId,
-        transactionId: checkTransaction._id,
+        transactionId: transactionId,
       })
       .exec();
 
-    if (checkExistingReview) {
+    if (existingReview) {
       throw new Error('You have already reviewed this transaction');
     }
 
