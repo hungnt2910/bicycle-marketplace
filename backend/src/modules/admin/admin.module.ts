@@ -25,8 +25,9 @@ import { Transaction, TransactionSchema } from 'src/entities';
       },
     ]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    MongooseModule.forFeature([{ name: Transaction.name, schema: TransactionSchema }]),
-
+    MongooseModule.forFeature([
+      { name: Transaction.name, schema: TransactionSchema },
+    ]),
   ],
   providers: [AdminService],
   controllers: [AdminController],

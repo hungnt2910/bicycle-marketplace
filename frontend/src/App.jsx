@@ -46,6 +46,7 @@ import SellerFees from './pages/seller/SellerFees';
 import Reputation from './pages/seller/Reputation';
 import InspectionRequests from './pages/seller/InspectionRequests';
 import Messages from './pages/seller/Messages';
+import SellerPublicPage from './pages/public/SellerPublicPage';
 
 // Inspector Pages
 import InspectorDashboard from './pages/inspector/InspectorDashboard';
@@ -247,6 +248,7 @@ const AppRoutes = () => {
         path="/product/:id"
         element={buyerShell('product-detail', <ProductDetailRoute onNavigate={handleNavigate} />)}
       />
+      <Route path="/seller-profile/:sellerId" element={<SellerPublicPage />} />
       <Route path="/payment/zalopay-return" element={<ZaloPayReturn />} />
       <Route path="/payment/checking" element={<ZaloPayReturn />} />
 

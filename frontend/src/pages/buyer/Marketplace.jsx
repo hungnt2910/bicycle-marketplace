@@ -5,10 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import bicycleApi from '../../api/postNewsApi';
 import favouriteApi from '../../api/favouriteApi';
+import { getPublicListingStatus, isBikePubliclySellable } from '../../utils/bicycleVisibility';
 
 const Marketplace = ({ onNavigate }) => {
   const { isAuthenticated, user } = useAuth();
-  const [viewMode, setViewMode] = useState('grid'); // grid or list
+  const [viewMode, setViewMode] = useState('grid');
   const [bikes, setBikes] = useState([]);
   const [loadingBikes, setLoadingBikes] = useState(false);
   const [favouriteIds, setFavouriteIds] = useState([]);
@@ -148,20 +149,7 @@ const Marketplace = ({ onNavigate }) => {
         const response = await bicycleApi.getAllBicycles();
         const apiData = response?.data?.data || response?.data || [];
         const mapped = apiData
-          // Chỉ hiển thị xe còn bán: trạng thái active và không thuộc các trạng thái đã cọc/đang giao dich
-          .filter((bike) => {
-            const statusRaw = (bike?.status || '').toLowerCase();
-            const reservedStatuses = [
-              'reserved',
-              'pending_payment',
-              'payment_received',
-              'held_in_escrow',
-              'awaiting_delivery',
-              'buyer_confirmed',
-              'completed',
-            ];
-            return statusRaw === 'active' && !reservedStatuses.includes(statusRaw);
-          })
+          .filter((bike) => isBikePubliclySellable(bike))
           .map((bike) => {
             const location = [bike?.location?.district, bike?.location?.city]
               .filter(Boolean)
@@ -190,7 +178,7 @@ const Marketplace = ({ onNavigate }) => {
               condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
               conditionValue: bike?.condition?.overall || '',
               verified: !!bike?.inspection?.isInspected,
-              status: bike?.status,
+              status: getPublicListingStatus(bike),
               isReserved: reservedStatuses.includes(statusRaw),
               rating: bike?.rating || 0,
               reviews: bike?.reviewsCount || 0,
@@ -231,11 +219,9 @@ const Marketplace = ({ onNavigate }) => {
     fetchFavourites();
   }, [currentUserId]);
 
-  // Filter bikes based on selected filters
   const getFilteredBikes = () => {
     let filtered = [...bikes];
 
-    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -246,12 +232,10 @@ const Marketplace = ({ onNavigate }) => {
       );
     }
 
-    // Filter by type
     if (filters.type) {
       filtered = filtered.filter((bike) => bike.type === filters.type);
     }
 
-    // Filter by price range
     if (filters.priceRange) {
       const priceInMillions = (price) => price / 1000000;
       filtered = filtered.filter((bike) => {
@@ -273,26 +257,22 @@ const Marketplace = ({ onNavigate }) => {
       });
     }
 
-    // Filter by brand
     if (filters.brand) {
       filtered = filtered.filter((bike) =>
         (bike.brand || '').toLowerCase().includes(filters.brand.toLowerCase())
       );
     }
 
-    // Filter by condition
     if (filters.condition) {
       filtered = filtered.filter((bike) => bike.conditionValue === filters.condition);
     }
 
-    // Filter by frame size
     if (filters.frame) {
       filtered = filtered.filter(
         (bike) => (bike.frame || '').toLowerCase() === filters.frame.toLowerCase()
       );
     }
 
-    // Filter by verified status
     if (filters.verified) {
       filtered = filtered.filter((bike) => bike.verified === true);
     }
@@ -300,7 +280,6 @@ const Marketplace = ({ onNavigate }) => {
     return filtered;
   };
 
-  // Sort bikes based on selected sort option
   const getSortedBikes = (bikesToSort) => {
     let sorted = [...bikesToSort];
 
@@ -316,33 +295,27 @@ const Marketplace = ({ onNavigate }) => {
         break;
       case 'newest':
       default:
-        // Keep original order (newest first)
         break;
     }
 
     return sorted;
   };
 
-  // Get filtered and sorted bikes
   const filteredBikes = getFilteredBikes();
   const displayedBikes = getSortedBikes(filteredBikes);
 
-  // Pagination
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
   const totalPages = Math.ceil(displayedBikes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentBikes = displayedBikes.slice(startIndex, endIndex);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, sortBy, searchQuery]);
 
-  // Count active filters
   const activeFiltersCount = Object.values(filters).filter((v) => v && v !== '').length;
 
-  // Clear all filters
   const clearAllFilters = () => {
     setFilters({
       type: '',
@@ -357,12 +330,11 @@ const Marketplace = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--lux-gray-50)' }}>
-      {/* ── Hero Header ── */}
+      {/* Hero Header */}
       <div
         className="relative overflow-hidden"
         style={{ backgroundColor: 'var(--lux-primary-900)' }}
       >
-        {/* Ambient glows */}
         <div
           className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-10 pointer-events-none"
           style={{ background: 'radial-gradient(circle, var(--lux-gold) 0%, transparent 70%)' }}
@@ -392,8 +364,8 @@ const Marketplace = ({ onNavigate }) => {
                 Marketplace <span style={{ color: 'var(--lux-gold)' }}>xe đạp cao cấp</span>
               </h1>
               <p className="text-sm max-w-xl" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Khám phá những chiếc xe đạp cao cấp từ các nhà cung cấp đã được xác minh trên
-                toàn quốc. Chất lượng được đảm bảo, trải nghiệm được nâng tầm.
+                Khám phá những chiếc xe đạp cao cấp từ các nhà cung cấp đã được xác minh trên toàn
+                quốc. Chất lượng được đảm bảo, trải nghiệm được nâng tầm.
               </p>
             </div>
           </div>
@@ -401,16 +373,15 @@ const Marketplace = ({ onNavigate }) => {
       </div>
 
       <div className="container-custom py-10 relative z-10">
-
-        {/* Advanced Search Section */}
+        {/* Advanced Search Section - SQUARE CORNERS */}
         <div className="mb-10">
           <div className="relative group">
             <div
-              className="absolute -inset-1 rounded-[20px] blur opacity-25 group-hover:opacity-40 transition duration-300"
+              className="absolute -inset-1 blur opacity-25 group-hover:opacity-40 transition duration-300"
               style={{ backgroundColor: 'var(--lux-primary-800)' }}
             ></div>
             <div
-              className="relative bg-white rounded-[20px] shadow-elevated overflow-hidden"
+              className="relative bg-white shadow-elevated overflow-hidden"
               style={{ border: '1px solid var(--lux-gray-200)' }}
             >
               <div className="flex items-center p-2">
@@ -452,7 +423,7 @@ const Marketplace = ({ onNavigate }) => {
                   </button>
                 ) : (
                   <Button
-                    className="px-6 py-3 mr-2 rounded-[16px] font-semibold hover:shadow-soft transition-all duration-300 border-none"
+                    className="px-6 py-3 mr-2 font-semibold hover:shadow-soft transition-all duration-300 border-none"
                     style={{
                       background:
                         'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
@@ -468,11 +439,11 @@ const Marketplace = ({ onNavigate }) => {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Modern Filters Sidebar */}
+          {/* Modern Filters Sidebar - SQUARE CORNERS */}
           <div className={`lg:col-span-1 ${showFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="space-y-4">
               <div
-                className="bg-white rounded-[20px] shadow-soft overflow-hidden"
+                className="bg-white shadow-soft overflow-hidden"
                 style={{ border: '1px solid var(--lux-gray-200)' }}
               >
                 <div
@@ -482,7 +453,6 @@ const Marketplace = ({ onNavigate }) => {
                       'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
                   }}
                 >
-                  {/* Decorative faint glow inside header */}
                   <div
                     className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10 pointer-events-none"
                     style={{ backgroundColor: 'var(--lux-gold)' }}
@@ -529,11 +499,19 @@ const Marketplace = ({ onNavigate }) => {
                     >
                       Loại xe
                     </label>
-                    <Select
-                      options={bikeTypes}
+                    <select
                       value={filters.type}
                       onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                    />
+                      className="w-full px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all bg-white"
+                      style={{
+                        borderColor: 'var(--lux-gray-200)',
+                        color: 'var(--lux-gray-700)',
+                      }}
+                    >
+                      {bikeTypes.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
@@ -543,11 +521,19 @@ const Marketplace = ({ onNavigate }) => {
                     >
                       Khoảng giá
                     </label>
-                    <Select
-                      options={priceRanges}
+                    <select
                       value={filters.priceRange}
                       onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-                    />
+                      className="w-full px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all bg-white"
+                      style={{
+                        borderColor: 'var(--lux-gray-200)',
+                        color: 'var(--lux-gray-700)',
+                      }}
+                    >
+                      {priceRanges.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
@@ -557,11 +543,19 @@ const Marketplace = ({ onNavigate }) => {
                     >
                       Thương hiệu
                     </label>
-                    <Select
-                      options={brands}
+                    <select
                       value={filters.brand}
                       onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
-                    />
+                      className="w-full px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all bg-white"
+                      style={{
+                        borderColor: 'var(--lux-gray-200)',
+                        color: 'var(--lux-gray-700)',
+                      }}
+                    >
+                      {brands.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
@@ -571,11 +565,19 @@ const Marketplace = ({ onNavigate }) => {
                     >
                       Tình trạng
                     </label>
-                    <Select
-                      options={conditions}
+                    <select
                       value={filters.condition}
                       onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
-                    />
+                      className="w-full px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all bg-white"
+                      style={{
+                        borderColor: 'var(--lux-gray-200)',
+                        color: 'var(--lux-gray-700)',
+                      }}
+                    >
+                      {conditions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
@@ -585,11 +587,19 @@ const Marketplace = ({ onNavigate }) => {
                     >
                       Kích thước khung
                     </label>
-                    <Select
-                      options={frameSizes}
+                    <select
                       value={filters.frame}
                       onChange={(e) => setFilters({ ...filters, frame: e.target.value })}
-                    />
+                      className="w-full px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all bg-white"
+                      style={{
+                        borderColor: 'var(--lux-gray-200)',
+                        color: 'var(--lux-gray-700)',
+                      }}
+                    >
+                      {frameSizes.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
@@ -598,7 +608,7 @@ const Marketplace = ({ onNavigate }) => {
                         type="checkbox"
                         checked={filters.verified}
                         onChange={(e) => setFilters({ ...filters, verified: e.target.checked })}
-                        className="w-5 h-5 rounded focus:ring-primary-600"
+                        className="w-5 h-5 focus:ring-primary-600"
                         style={{
                           color: 'var(--lux-primary-800)',
                           borderColor: 'var(--lux-gray-300)',
@@ -634,7 +644,7 @@ const Marketplace = ({ onNavigate }) => {
 
                   <Button
                     onClick={clearAllFilters}
-                    className="w-full px-4 py-3 font-semibold rounded-[16px] transition-colors duration-300 flex items-center justify-center gap-2 border-none"
+                    className="w-full px-4 py-3 font-semibold transition-colors duration-300 flex items-center justify-center gap-2 border-none"
                     style={{ backgroundColor: 'var(--lux-gray-100)', color: 'var(--lux-gray-700)' }}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -656,14 +666,14 @@ const Marketplace = ({ onNavigate }) => {
           <div className="lg:col-span-3">
             {/* Advanced Toolbar */}
             <div
-              className="bg-white rounded-[20px] shadow-soft p-5 mb-6"
+              className="bg-white shadow-soft p-5 mb-6"
               style={{ border: '1px solid var(--lux-gray-200)' }}
             >
               <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="lg:hidden px-5 py-2.5 text-white rounded-[16px] font-semibold hover:shadow-soft transition-all duration-300 flex items-center gap-2"
+                    className="lg:hidden px-5 py-2.5 text-white font-semibold hover:shadow-soft transition-all duration-300 flex items-center gap-2"
                     style={{ backgroundColor: 'var(--lux-primary-800)' }}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -693,7 +703,7 @@ const Marketplace = ({ onNavigate }) => {
 
                   {searchQuery && (
                     <div
-                      className="px-4 py-2 rounded-[16px] text-sm font-medium"
+                      className="px-4 py-2 text-sm font-medium"
                       style={{
                         backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                         color: 'var(--lux-primary-800)',
@@ -709,7 +719,7 @@ const Marketplace = ({ onNavigate }) => {
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="appearance-none pl-4 pr-12 py-3 bg-white rounded-[16px] font-semibold transition-all cursor-pointer focus:outline-none"
+                      className="appearance-none pl-4 pr-12 py-3 bg-white font-semibold transition-all cursor-pointer focus:outline-none"
                       style={{
                         border: '2px solid var(--lux-gray-200)',
                         color: 'var(--lux-gray-700)',
@@ -739,14 +749,13 @@ const Marketplace = ({ onNavigate }) => {
                   </div>
 
                   <div
-                    className="flex items-center gap-2 rounded-[16px] p-1.5"
+                    className="flex items-center gap-2 p-1.5"
                     style={{ backgroundColor: 'var(--lux-gray-100)' }}
                   >
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`p-2.5 rounded-[16px] transition-all duration-300 ${
-                        viewMode === 'grid' ? 'bg-white shadow-soft' : ''
-                      }`}
+                      className={`p-2.5 transition-all duration-300 ${viewMode === 'grid' ? 'bg-white shadow-soft' : ''
+                        }`}
                       style={{
                         color:
                           viewMode === 'grid' ? 'var(--lux-primary-800)' : 'var(--lux-gray-500)',
@@ -768,9 +777,8 @@ const Marketplace = ({ onNavigate }) => {
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`p-2.5 rounded-[16px] transition-all duration-300 ${
-                        viewMode === 'list' ? 'bg-white shadow-soft' : ''
-                      }`}
+                      className={`p-2.5 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-soft' : ''
+                        }`}
                       style={{
                         color:
                           viewMode === 'list' ? 'var(--lux-primary-800)' : 'var(--lux-gray-500)',
@@ -808,7 +816,7 @@ const Marketplace = ({ onNavigate }) => {
                   </span>
                   {filters.type && (
                     <span
-                      className="px-4 py-2 rounded-[16px] text-sm font-medium flex items-center gap-2"
+                      className="px-4 py-2 text-sm font-medium flex items-center gap-2"
                       style={{
                         backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                         border: '1px solid rgba(var(--lux-primary-800), 0.3)',
@@ -839,7 +847,7 @@ const Marketplace = ({ onNavigate }) => {
                   )}
                   {filters.priceRange && (
                     <span
-                      className="px-4 py-2 rounded-[16px] text-sm font-medium flex items-center gap-2"
+                      className="px-4 py-2 text-sm font-medium flex items-center gap-2"
                       style={{
                         backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                         border: '1px solid rgba(var(--lux-primary-800), 0.3)',
@@ -870,7 +878,7 @@ const Marketplace = ({ onNavigate }) => {
                   )}
                   {filters.brand && (
                     <span
-                      className="px-4 py-2 rounded-[16px] text-sm font-medium flex items-center gap-2"
+                      className="px-4 py-2 text-sm font-medium flex items-center gap-2"
                       style={{
                         backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                         border: '1px solid rgba(var(--lux-primary-800), 0.3)',
@@ -900,7 +908,7 @@ const Marketplace = ({ onNavigate }) => {
                   )}
                   {filters.condition && (
                     <span
-                      className="px-4 py-2 rounded-[16px] text-sm font-medium flex items-center gap-2"
+                      className="px-4 py-2 text-sm font-medium flex items-center gap-2"
                       style={{
                         backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                         border: '1px solid rgba(var(--lux-primary-800), 0.3)',
@@ -931,7 +939,7 @@ const Marketplace = ({ onNavigate }) => {
                   )}
                   {filters.frame && (
                     <span
-                      className="px-4 py-2 rounded-[16px] text-sm font-medium flex items-center gap-2"
+                      className="px-4 py-2 text-sm font-medium flex items-center gap-2"
                       style={{
                         backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                         border: '1px solid rgba(var(--lux-primary-800), 0.3)',
@@ -962,7 +970,7 @@ const Marketplace = ({ onNavigate }) => {
                   )}
                   {filters.verified && (
                     <span
-                      className="px-4 py-2 rounded-[16px] text-sm font-medium flex items-center gap-2"
+                      className="px-4 py-2 text-sm font-medium flex items-center gap-2"
                       style={{
                         backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                         border: '1px solid rgba(var(--lux-primary-800), 0.3)',
@@ -993,7 +1001,7 @@ const Marketplace = ({ onNavigate }) => {
                   )}
                   <button
                     onClick={clearAllFilters}
-                    className="px-4 py-2 rounded-[16px] text-sm font-medium transition-colors border-none"
+                    className="px-4 py-2 text-sm font-medium transition-colors border-none"
                     style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}
                   >
                     Clear All
@@ -1005,164 +1013,129 @@ const Marketplace = ({ onNavigate }) => {
             {/* Products */}
             <div
               className={
-                viewMode === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-6'
+                viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10' : 'space-y-6'
               }
             >
               {currentBikes.length > 0 ? (
                 currentBikes.map((bike) =>
                   viewMode === 'grid' ? (
-                    <Card
+                    <article
                       key={bike.id}
-                      variant="product"
-                      className="overflow-hidden group cursor-pointer card-surface hover:shadow-elevated transition-all duration-300 border-2 border-transparent hover:border-primary-800/30 rounded-[20px]"
+                      className="group cursor-pointer"
                       onClick={() => handleProductClick(bike.id)}
+                      aria-label={bike.name}
                     >
-                      <div className="relative aspect-product bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden">
+                      <div className="relative overflow-hidden bg-neutral-100 aspect-[3/4] mb-3">
                         <img
                           src={bike.image}
                           alt={bike.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                          loading="lazy"
+                          onError={(e) => { e.currentTarget.src = '/mountain_bike_hero_1768417732962.png'; }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                         {bike.verified && (
-                          <Badge
-                            variant="verified"
-                            className="absolute top-3 right-3 shadow-soft backdrop-blur-sm"
+                          <span
+                            className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 tracking-wider"
+                            style={{ background: 'rgba(255,255,255,0.92)', color: 'var(--lux-primary-900)' }}
                           >
-                            ✓ Kiểm định
-                          </Badge>
+                            ✓ KIỂM ĐỊNH
+                          </span>
                         )}
 
                         {bike.isReserved && (
-                          <Badge
-                            variant="warning"
-                            className="absolute top-3 left-3 shadow-soft backdrop-blur-sm"
+                          <span
+                            className="absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 tracking-wider"
+                            style={{ background: 'rgba(251,191,36,0.92)', color: '#78350f' }}
                           >
-                            Đã đặt cọc
-                          </Badge>
+                            ĐẶT CỌC
+                          </span>
                         )}
 
                         {bike.oldPrice && (
-                          <div
-                            className={`absolute ${bike.isReserved ? 'top-12' : 'top-3'} left-3`}
+                          <span
+                            className="absolute bottom-3 left-3 text-[10px] font-bold px-2 py-0.5"
+                            style={{ background: 'rgba(220,38,38,0.85)', color: 'white' }}
                           >
-                            <span className="px-3 py-1.5 bg-danger/50 text-white rounded-full text-xs font-bold shadow-soft">
-                              -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
-                            </span>
-                          </div>
+                            -{Math.round(((bike.oldPrice - bike.price) / bike.oldPrice) * 100)}%
+                          </span>
                         )}
 
-                        <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
-                          <button
-                            onClick={(e) => handleFavouriteToggle(e, bike)}
-                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-[16px] transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-soft ${isFavourite(bike.id)
-                              ? 'bg-danger/50 text-white hover:bg-danger'
-                              : 'bg-white/95 hover:bg-white'
-                              }`}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill={isFavourite(bike.id) ? 'currentColor' : 'none'}
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                              />
-                            </svg>
-                            {isFavourite(bike.id) ? 'Đã thích' : 'Yêu thích'}
-                          </button>
-                          <button
-                            onClick={(e) => handleCompareToggle(e, bike)}
-                            className={`flex-1 px-3 py-2 backdrop-blur-sm rounded-[16px] transition-colors text-xs font-semibold flex items-center justify-center gap-1 shadow-soft ${isInCompare(bike.id)
-                              ? 'bg-primary-800 text-white hover:bg-primary-800/90'
-                              : 'bg-white/95 hover:bg-white'
-                              }`}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                              />
-                            </svg>
-                            {isInCompare(bike.id) ? 'Đã chọn' : 'So sánh'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="p-5">
-                        <div className="flex items-start justify-between mb-3">
-                          <h4
-                            className="font-bold text-lg mb-1 line-clamp-2 flex-1 transition-colors"
-                            style={{ color: 'var(--lux-gray-800)' }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.color = 'var(--lux-primary-800)')
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.color = 'var(--lux-gray-800)')
-                            }
-                          >
-                            {bike.name}
-                          </h4>
-                        </div>
-
-                        {/* <div className="flex items-center gap-2 mb-4">
-                          <Rating value={bike.rating} size="sm" readonly />
-                          <span className="text-sm font-medium" style={{ color: 'var(--lux-gray-700)' }}>
-                            {bike.rating}
-                          </span>
-                          <span className="text-xs" style={{ color: 'var(--lux-gray-500)' }}>({bike.reviews})</span>
-                        </div> */}
-
-                        <div className="flex items-baseline gap-2 mb-4">
-                          <span
-                            className="price text-2xl font-bold"
-                            style={{ color: 'var(--lux-primary-800)' }}
-                          >
-                            {bike.price.toLocaleString('vi-VN')} ₫
-                          </span>
-                          {bike.oldPrice && (
-                            <span
-                              className="price-old text-sm line-through"
-                              style={{ color: 'var(--lux-gray-400)' }}
-                            >
-                              {bike.oldPrice.toLocaleString('vi-VN')} ₫
-                            </span>
-                          )}
-                        </div>
-
                         <div
-                          className="flex items-center justify-between mb-4 pb-4"
-                          style={{ borderBottom: '1px solid var(--lux-gray-100)' }}
+                          className="absolute inset-0 flex flex-col items-center justify-end pb-4 gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 60%)' }}
                         >
-                          <Badge variant="success" className="px-3 py-1.5">
-                            {bike.condition}
-                          </Badge>
+                          <div className="flex gap-2 w-full px-3">
+                            <button
+                              onClick={(e) => handleFavouriteToggle(e, bike)}
+                              aria-label={isFavourite(bike.id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                              className="flex-1 py-2 text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur-sm transition-colors"
+                              style={{
+                                background: isFavourite(bike.id) ? 'rgba(220,38,38,0.8)' : 'rgba(255,255,255,0.92)',
+                                color: isFavourite(bike.id) ? 'white' : 'var(--lux-primary-900)',
+                              }}
+                            >
+                              <svg className="w-3.5 h-3.5" fill={isFavourite(bike.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              {isFavourite(bike.id) ? 'Đã thích' : 'Yêu thích'}
+                            </button>
+                            <button
+                              onClick={(e) => handleCompareToggle(e, bike)}
+                              aria-label={isInCompare(bike.id) ? 'Bỏ so sánh' : 'So sánh'}
+                              className="flex-1 py-2 text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur-sm transition-colors"
+                              style={{
+                                background: isInCompare(bike.id) ? 'var(--lux-primary-800)' : 'rgba(255,255,255,0.92)',
+                                color: isInCompare(bike.id) ? 'var(--lux-gold)' : 'var(--lux-primary-900)',
+                              }}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                              {isInCompare(bike.id) ? 'Đã chọn' : 'So sánh'}
+                            </button>
+                          </div>
                         </div>
-
-                        <Button
-                          className="w-full py-3 font-semibold rounded-[16px] border-none"
-                          style={{
-                            background:
-                              'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
-                            color: 'var(--lux-gold)',
-                          }}
-                        >
-                          Xem chi tiết →
-                        </Button>
                       </div>
-                    </Card>
+
+                      <div className="space-y-1">
+                        <h4
+                          className="text-sm font-medium leading-snug line-clamp-2 transition-colors group-hover:text-[var(--lux-primary-800)]"
+                          style={{ color: 'var(--lux-gray-900)' }}
+                        >
+                          {bike.name}
+                        </h4>
+
+                        {bike.oldPrice && (
+                          <p className="text-xs line-through" style={{ color: 'var(--lux-gray-400)' }}>
+                            {bike.oldPrice.toLocaleString('vi-VN')} ₫
+                          </p>
+                        )}
+
+                        <p className="text-sm font-semibold" style={{ color: 'var(--lux-gray-800)' }}>
+                          {bike.price.toLocaleString('vi-VN')} ₫
+                        </p>
+
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{
+                              backgroundColor: ({
+                                'Mới 100%': '#22c55e',
+                                'Như mới': '#86efac',
+                                'Tốt': '#f59e0b',
+                                'Khá': '#fb923c',
+                                'Cần sửa chữa': '#ef4444',
+                              })[bike.condition] || '#94a3b8',
+                            }}
+                            aria-hidden="true"
+                          />
+                          <span className="text-[11px]" style={{ color: 'var(--lux-gray-500)' }}>
+                            {bike.condition}
+                          </span>
+                        </div>
+                      </div>
+                    </article>
                   ) : (
                     <Card
                       key={bike.id}
@@ -1171,7 +1144,7 @@ const Marketplace = ({ onNavigate }) => {
                       onClick={() => handleProductClick(bike.id)}
                     >
                       <div className="flex flex-col md:flex-row gap-5 p-5">
-                        <div className="relative w-full md:w-64 h-48 bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-[16px] overflow-hidden flex-shrink-0 group">
+                        <div className="relative w-full md:w-64 h-48 bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden flex-shrink-0 group">
                           <img
                             src={bike.image}
                             alt={bike.name}
@@ -1222,7 +1195,7 @@ const Marketplace = ({ onNavigate }) => {
                               onClick={(e) => {
                                 e.stopPropagation();
                               }}
-                              className="px-4 py-2 rounded-[16px] transition-colors text-sm font-medium flex items-center gap-2"
+                              className="px-4 py-2 transition-colors text-sm font-medium flex items-center gap-2"
                               style={{
                                 border: '1px solid var(--lux-gray-200)',
                                 color: 'var(--lux-gray-700)',
@@ -1362,7 +1335,7 @@ const Marketplace = ({ onNavigate }) => {
 
                           <div className="flex items-center gap-2 mb-4">
                             <span
-                              className="px-3 py-1.5 rounded-[16px] text-xs font-medium"
+                              className="px-3 py-1.5 text-xs font-medium"
                               style={{
                                 backgroundColor: 'var(--lux-gray-100)',
                                 color: 'var(--lux-gray-700)',
@@ -1371,7 +1344,7 @@ const Marketplace = ({ onNavigate }) => {
                               Khung: {(bike.frame || '').toUpperCase() || '—'}
                             </span>
                             <span
-                              className="px-3 py-1.5 rounded-[16px] text-xs font-medium"
+                              className="px-3 py-1.5 text-xs font-medium"
                               style={{
                                 backgroundColor: 'rgba(var(--lux-primary-800), 0.1)',
                                 color: 'var(--lux-primary-800)',
@@ -1383,7 +1356,7 @@ const Marketplace = ({ onNavigate }) => {
 
                           <div className="flex gap-3">
                             <Button
-                              className="flex-1 py-3 font-semibold rounded-[16px] border-none"
+                              className="flex-1 py-3 font-semibold border-none"
                               style={{
                                 background:
                                   'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
@@ -1394,9 +1367,8 @@ const Marketplace = ({ onNavigate }) => {
                             </Button>
                             <button
                               onClick={(e) => handleCompareToggle(e, bike)}
-                              className={`px-6 py-3 border-2 rounded-[16px] transition-all font-medium ${
-                                isInCompare(bike.id) ? 'text-white' : ''
-                              }`}
+                              className={`px-6 py-3 border-2 transition-all font-medium ${isInCompare(bike.id) ? 'text-white' : ''
+                                }`}
                               style={{
                                 backgroundColor: isInCompare(bike.id)
                                   ? 'var(--lux-primary-800)'
@@ -1429,7 +1401,7 @@ const Marketplace = ({ onNavigate }) => {
                 )
               ) : (
                 <div
-                  className="col-span-full text-center py-20 bg-white rounded-[20px]"
+                  className="col-span-full text-center py-20 bg-white"
                   style={{ border: '2px dashed var(--lux-gray-200)' }}
                 >
                   <div className="max-w-md mx-auto">
@@ -1464,7 +1436,7 @@ const Marketplace = ({ onNavigate }) => {
                     </p>
                     <Button
                       onClick={clearAllFilters}
-                      className="px-8 py-3 rounded-[16px] font-semibold border-none"
+                      className="px-8 py-3 font-semibold border-none"
                       style={{
                         background:
                           'linear-gradient(135deg, var(--lux-primary-900) 0%, var(--lux-primary-800) 100%)',
@@ -1495,7 +1467,7 @@ const Marketplace = ({ onNavigate }) => {
             {totalPages > 1 && (
               <div className="mt-8">
                 <div
-                  className="bg-white rounded-[20px] p-4"
+                  className="bg-white p-4"
                   style={{
                     border: '1px solid var(--lux-gray-200)',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
@@ -1517,7 +1489,7 @@ const Marketplace = ({ onNavigate }) => {
       {compareItems.length > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up max-w-4xl w-full px-4">
           <div
-            className="bg-white rounded-[16px] shadow-elevated overflow-hidden"
+            className="bg-white shadow-elevated overflow-hidden"
             style={{ border: '2px solid rgba(var(--lux-primary-800), 0.3)' }}
           >
             <div
@@ -1529,7 +1501,7 @@ const Marketplace = ({ onNavigate }) => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-white/20 rounded-[16px] flex items-center justify-center">
+                  <div className="w-8 h-8 bg-white/20 flex items-center justify-center">
                     <svg
                       className="w-5 h-5 text-white"
                       fill="none"
@@ -1555,7 +1527,7 @@ const Marketplace = ({ onNavigate }) => {
                   <Button
                     onClick={() => onNavigate && onNavigate('compare')}
                     disabled={compareItems.length < 1}
-                    className="font-bold px-4 py-1.5 text-sm rounded-[16px] disabled:opacity-50 disabled:cursor-not-allowed border-none"
+                    className="font-bold px-4 py-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed border-none"
                     style={{ backgroundColor: 'white', color: 'var(--lux-primary-800)' }}
                   >
                     {compareItems.length === 2 ? 'So sánh ngay' : 'Xem'}
@@ -1564,7 +1536,7 @@ const Marketplace = ({ onNavigate }) => {
                     onClick={() => {
                       compareItems.forEach((bike) => removeFromCompare(bike.id));
                     }}
-                    className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-[16px] flex items-center justify-center transition-colors"
+                    className="w-8 h-8 bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
                     title="Xóa tất cả"
                   >
                     <svg
@@ -1590,7 +1562,7 @@ const Marketplace = ({ onNavigate }) => {
                 {compareItems.map((bike) => (
                   <div
                     key={bike.id}
-                    className="flex-1 rounded-[16px] p-2 flex items-center gap-2 transition-colors border"
+                    className="flex-1 p-2 flex items-center gap-2 transition-colors border"
                     style={{
                       backgroundColor: 'var(--lux-gray-50)',
                       borderColor: 'rgba(var(--lux-primary-800), 0.1)',
@@ -1605,7 +1577,7 @@ const Marketplace = ({ onNavigate }) => {
                     <img
                       src={bike.image}
                       alt={bike.name}
-                      className="w-10 h-10 object-cover rounded-md flex-shrink-0"
+                      className="w-10 h-10 object-cover flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <h4
@@ -1620,7 +1592,7 @@ const Marketplace = ({ onNavigate }) => {
                     </div>
                     <button
                       onClick={() => removeFromCompare(bike.id)}
-                      className="w-6 h-6 rounded-md flex items-center justify-center transition-colors group"
+                      className="w-6 h-6 flex items-center justify-center transition-colors group"
                       style={{ backgroundColor: 'var(--lux-gray-200)' }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')
@@ -1648,7 +1620,7 @@ const Marketplace = ({ onNavigate }) => {
                 ))}
                 {compareItems.length === 1 && (
                   <div
-                    className="flex-1 border-2 border-dashed rounded-[16px] p-2 flex items-center justify-center h-14"
+                    className="flex-1 border-2 border-dashed p-2 flex items-center justify-center h-14"
                     style={{
                       backgroundColor: 'var(--lux-gray-50)',
                       borderColor: 'var(--lux-gray-300)',

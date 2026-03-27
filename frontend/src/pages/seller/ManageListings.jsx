@@ -1,9 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button, Select } from '../../components/ui';
 import bicycleApi from '../../api/postNewsApi';
 import transactionApi from '../../api/transactionApi';
+import disputeApi from '../../api/disputeApi';
 import { toast } from 'react-toastify';
+
+const normalizeId = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value?._id || value?.id || String(value);
+};
+
+const extractListingId = (listing) => normalizeId(listing?._id || listing?.id);
+
+const getDisputeInfoFromTx = (tx) => {
+  const d = tx?.dispute;
+  if (!d) {
+    return {
+      disputeId: tx?.disputeId || tx?.dispute_id || '',
+      disputeStatus: tx?.disputeStatus || tx?.dispute_status || '',
+    };
+  }
+
+  if (typeof d === 'string') {
+    return { disputeId: d, disputeStatus: '' };
+  }
+
+  return {
+    disputeId: d?.disputeId || d?.dispute_id || d?._id || d?.id || '',
+    disputeStatus: d?.status || tx?.disputeStatus || tx?.dispute_status || '',
+  };
+};
+
+const clearInspectionPayload = {
+  isInspected: false,
+  label: '',
+};
 
 const ManageListings = () => {
   const navigate = useNavigate();
@@ -12,12 +45,85 @@ const ManageListings = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch listings on component mount
-  useEffect(() => {
-    fetchListings();
+  const syncReturnedBicyclesToActive = useCallback(async (sellerListings) => {
+    const txRes = await transactionApi.getMyTransactions({ role: 'seller' });
+    const txData = txRes?.data?.data || txRes?.data || [];
+    const transactions = Array.isArray(txData) ? txData : [];
+
+    const sellerBikeIdSet = new Set(sellerListings.map(extractListingId).filter(Boolean));
+
+    const disputeCandidates = transactions
+      .map((tx) => {
+        const bicycleId = normalizeId(tx?.bicycleId);
+        const { disputeId, disputeStatus } = getDisputeInfoFromTx(tx);
+        return {
+          bicycleId,
+          disputeId,
+          disputeStatus: (disputeStatus || '').toLowerCase(),
+        };
+      })
+      .filter((item) => item.bicycleId && sellerBikeIdSet.has(item.bicycleId) && item.disputeId);
+
+    const enriched = await Promise.all(
+      disputeCandidates.map(async (item) => {
+        if (item.disputeStatus) return item;
+        try {
+          const res = await disputeApi.getById(item.disputeId);
+          const detail = res?.data?.data;
+          return {
+            ...item,
+            disputeStatus: (detail?.status || '').toLowerCase(),
+          };
+        } catch {
+          return item;
+        }
+      })
+    );
+
+    const returnedBikeIds = new Set(
+      enriched
+        .filter((item) => item.disputeStatus === 'return_received')
+        .map((item) => item.bicycleId)
+    );
+
+    if (returnedBikeIds.size === 0) {
+      return sellerListings;
+    }
+
+    const toReactivate = sellerListings.filter((listing) => {
+      const id = extractListingId(listing);
+      if (!id || !returnedBikeIds.has(id)) return false;
+      const isActive = (listing?.status || '').toLowerCase() === 'active';
+      const stillInspected = listing?.inspection?.isInspected === true;
+      return !isActive || stillInspected;
+    });
+
+    if (toReactivate.length > 0) {
+      await Promise.allSettled(
+        toReactivate.map((listing) =>
+          bicycleApi.updateBicycle(extractListingId(listing), {
+            status: 'active',
+            inspection: clearInspectionPayload,
+          })
+        )
+      );
+    }
+
+    return sellerListings.map((listing) => {
+      const id = extractListingId(listing);
+      if (!id || !returnedBikeIds.has(id)) return listing;
+      return {
+        ...listing,
+        status: 'active',
+        inspection: {
+          ...(listing?.inspection || {}),
+          ...clearInspectionPayload,
+        },
+      };
+    });
   }, []);
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     try {
       setLoading(true);
       const storedUser = localStorage.getItem('user') || localStorage.getItem('userInfo');
@@ -32,14 +138,20 @@ const ManageListings = () => {
 
       const response = await bicycleApi.getMyBicycles(sellerId);
       const data = response?.data?.data || response?.data || [];
-      setListings(data);
+      const syncedListings = await syncReturnedBicyclesToActive(Array.isArray(data) ? data : []);
+      setListings(syncedListings);
     } catch (error) {
       console.error('Error fetching listings:', error);
       toast.error('Không thể tải danh sách tin đăng');
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, syncReturnedBicyclesToActive]);
+
+  // Fetch listings on component mount
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa tin đăng này?')) {
@@ -109,7 +221,6 @@ const ManageListings = () => {
   };
 
   const filteredListings = listings.filter((l) => {
-    // Filter by status
     if (filter !== 'all' && l.status !== filter) return false;
 
     // Filter by search term
@@ -202,75 +313,92 @@ const ManageListings = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-warmgray-200">
-                {filteredListings.map((listing) => (
-                  <tr
-                    key={listing._id || listing.id}
-                    className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200"
-                  >
-                    <td className="py-4 px-6 align-middle">
-                      <img
-                        src={listing.media?.mainImage || listing.image || '/placeholder-bike.png'}
-                        alt={listing.title || listing.name}
-                        className="w-20 h-16 object-cover rounded-[8px]"
-                      />
-                    </td>
-                    <td className="py-4 px-6 align-middle">
-                      <span className="font-medium text-lg text-primary-900 line-clamp-2">
-                        {listing.title || listing.name}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 align-middle text-warmgray-600 text-sm whitespace-nowrap">
-                      {new Date(listing.createdAt).toLocaleDateString('vi-VN')}
-                    </td>
-                    <td className="py-4 px-6 align-middle whitespace-nowrap">
-                      {getStatusBadge(listing.status)}
-                    </td>
-                    <td className="py-4 px-6 align-middle">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleEdit(listing._id || listing.id)}
-                        >
-                          Chỉnh sửa
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleView(listing._id || listing.id)}
-                        >
-                          Xem tin
-                        </Button>
-                        {listing.status === 'active' && (
+                {filteredListings.map((listing) => {
+                  const isSold = listing.status === 'sold';
+
+                  return (
+                    <tr
+                      key={listing._id || listing.id}
+                      className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200"
+                    >
+                      <td className="py-4 px-6 align-middle">
+                        <img
+                          src={listing.media?.mainImage || listing.image || '/placeholder-bike.png'}
+                          alt={listing.title || listing.name}
+                          className="w-20 h-16 object-cover rounded-[8px]"
+                        />
+                      </td>
+                      <td className="py-4 px-6 align-middle">
+                        <span className="font-medium text-lg text-primary-900 line-clamp-2">
+                          {listing.title || listing.name}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 align-middle text-warmgray-600 text-sm whitespace-nowrap">
+                        {new Date(listing.createdAt).toLocaleDateString('vi-VN')}
+                      </td>
+                      <td className="py-4 px-6 align-middle whitespace-nowrap">
+                        {getStatusBadge(listing.status)}
+                      </td>
+                      <td className="py-4 px-6 align-middle">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={isSold}
+                            className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
+                            onClick={() => handleEdit(listing._id || listing.id)}
+                          >
+                            Chỉnh sửa
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleToggleStatus(listing._id || listing.id, listing.status)}
+                            disabled={isSold}
+                            className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
+                            onClick={() => handleView(listing._id || listing.id)}
                           >
-                            Ẩn tin
+                            Xem tin
                           </Button>
-                        )}
-                        {listing.status === 'hidden' && (
+                          {listing.status === 'active' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isSold}
+                              className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
+                              onClick={() =>
+                                handleToggleStatus(listing._id || listing.id, listing.status)
+                              }
+                            >
+                              Ẩn tin
+                            </Button>
+                          )}
+                          {listing.status === 'hidden' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isSold}
+                              className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
+                              onClick={() =>
+                                handleToggleStatus(listing._id || listing.id, listing.status)
+                              }
+                            >
+                              Hiện tin
+                            </Button>
+                          )}
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            onClick={() => handleToggleStatus(listing._id || listing.id, listing.status)}
+                            disabled={isSold}
+                            className={`text-danger-600 hover:bg-danger-50 ${isSold ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            onClick={() => handleDelete(listing._id || listing.id)}
                           >
-                            Hiện tin
+                            Xóa
                           </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-danger-600 hover:bg-danger-50"
-                          onClick={() => handleDelete(listing._id || listing.id)}
-                        >
-                          Xóa
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
