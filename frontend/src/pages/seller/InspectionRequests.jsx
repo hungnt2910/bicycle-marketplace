@@ -5,6 +5,7 @@ import transactionApi from '../../api/transactionApi';
 import inspectorApi from '../../api/inspectorApi';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import adminApi from '../../api/adminApi';
 
 const InspectionRequests = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const InspectionRequests = () => {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [isFirstInspection, setIsFirstInspection] = useState(false);
+  const [ inspection_fee, setInspectionFee ] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -85,6 +87,31 @@ const InspectionRequests = () => {
     }
   };
 
+  const fetchInspectionFee = async () => {
+    try {
+      const res = await adminApi.getSystemSettings();
+      const inspectionFee =
+        (res?.data?.data || res?.data || [])[0]?.name_value?.find(
+          (i) => i.key === 'inspection_fee'
+        )?.value;
+        console.log('💰 Fetched inspection fee from system settings:', inspectionFee);
+      if (inspectionFee) {        
+        setInspectionFee(inspectionFee);
+      } else {
+        setInspectionFee(200000); // Default fee if not set in system settings
+      }
+    } catch (error) {
+      console.error('Error fetching inspection fee:', error);
+      setInspectionFee(200000); // Default fee on error
+    }
+  };
+  console.log('💰 Current inspection fee:', inspection_fee);
+
+   useEffect(() => {
+    fetchInspectionFee();
+  }, []);
+
+
   const getStatusBadge = (bike) => {
     if (
       bike.inspection?.isInspected &&
@@ -107,8 +134,8 @@ const InspectionRequests = () => {
   };
 
   const handleRequestInspection = async (bicycleId, title) => {
-    const INSPECTION_FEE = isFirstInspection ? 0 : 200000;
-    const feeText = isFirstInspection ? 'MIỄN PHÍ (Lần đầu tiên)' : '200.000₫';
+    const INSPECTION_FEE = isFirstInspection ? 0 : inspection_fee || 200000;
+    const feeText = isFirstInspection ? 'MIỄN PHÍ (Lần đầu tiên)' : inspection_fee?.toLocaleString('vi-VN') + '₫';
 
     if (
       !window.confirm(
@@ -407,7 +434,7 @@ const InspectionRequests = () => {
                   </>
                 ) : (
                   <>
-                    <div className="text-3xl font-bold text-primary-800">200.000₫</div>
+                    <div className="text-3xl font-bold text-primary-800">{inspection_fee?.toLocaleString('vi-VN')}₫</div>
                     <p className="text-xs text-warmgray-500 mt-1">Có giá trị 1 năm</p>
                   </>
                 )}
@@ -519,7 +546,7 @@ const InspectionRequests = () => {
                     )}
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-primary-800">200.000₫</div>
+                    <div className="text-2xl font-bold text-primary-800">{inspection_fee?.toLocaleString('vi-VN')}₫</div>
                   </div>
                 </div>
 
