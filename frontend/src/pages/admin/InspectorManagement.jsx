@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
 import userApi from '../../api/userApi';
+import inspectorApi from '../../api/inspectorApi';
 
 const InspectorManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,10 +19,28 @@ const InspectorManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await userApi.getAllUsers();
-      const users = Array.isArray(response?.data)
-        ? response.data
-        : response?.data?.data || [];
+
+      const [usersResponse, inspectionsResponse] = await Promise.all([
+        userApi.getAllUsers(),
+        inspectorApi.getAllInspector(),
+      ]);
+
+      const users = Array.isArray(usersResponse?.data)
+        ? usersResponse.data
+        : usersResponse?.data?.data || [];
+
+      const inspections = Array.isArray(inspectionsResponse?.data?.data)
+        ? inspectionsResponse.data.data
+        : Array.isArray(inspectionsResponse?.data)
+          ? inspectionsResponse.data
+          : [];
+
+      const inspectionsByInspector = inspections.reduce((acc, inspection) => {
+        const inspectorId = String(inspection?.inspectorId?._id || inspection?.inspectorId || '').trim();
+        if (!inspectorId) return acc;
+        acc[inspectorId] = (acc[inspectorId] || 0) + 1;
+        return acc;
+      }, {});
 
       const transformedData = users
         .filter((u) => String(u?.role || '').toLowerCase() === 'inspector')
@@ -42,7 +61,10 @@ const InspectorManagement = () => {
           lastLogin: inspector?.updatedAt
             ? new Date(inspector.updatedAt).toLocaleDateString('vi-VN')
             : '--',
-          totalInspections: inspector?.reputation?.totalInspections || 0,
+          totalInspections:
+            inspectionsByInspector[String(inspector?._id || inspector?.id || '').trim()] ||
+            inspector?.reputation?.totalInspections ||
+            0,
           rating: inspector?.reputation?.rating || 0,
         }));
 
