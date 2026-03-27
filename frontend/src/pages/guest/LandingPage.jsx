@@ -223,26 +223,7 @@ const LandingPage = ({
 
   const searchSuggestions = ['Trek Domane size M', 'Giant TCR dưới 20 triệu', 'Hybrid daily ride'];
 
-  const trustPoints = [
-    {
-      title: 'Kiểm định chuyên sâu',
-      desc: 'Báo cáo 18 hạng mục khung, phanh, truyền động và bánh.',
-      pill: 'Bởi chuyên gia',
-      icon: '🛠️',
-    },
-    {
-      title: 'Ký quỹ an toàn',
-      desc: 'Giữ tiền đến khi xác nhận xe đúng mô tả; hoàn tiền nếu sai.',
-      pill: 'Escrow',
-      icon: '🛡️',
-    },
-    {
-      title: 'Vận chuyển & bảo hiểm',
-      desc: 'Giao nhận có bảo hiểm, cập nhật trạng thái theo thời gian thực.',
-      pill: 'Shipping+',
-      icon: '📦',
-    },
-  ];
+
 
   const mainCategory = categories[0];
   const secondaryCategories = categories.slice(1, 3);
@@ -327,11 +308,10 @@ const LandingPage = ({
                   <button
                     key={slide.title}
                     onClick={() => setActiveSlide(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === activeSlide
-                        ? 'w-8 bg-white'
-                        : 'w-2 bg-white/50 hover:bg-white/90 backdrop-blur-md'
-                    }`}
+                    className={`h-2 rounded-full transition-all duration-300 ${index === activeSlide
+                      ? 'w-8 bg-white'
+                      : 'w-2 bg-white/50 hover:bg-white/90 backdrop-blur-md'
+                      }`}
                     aria-label={`Chuyển tới slide ${index + 1}`}
                   />
                 ))}
@@ -604,7 +584,7 @@ const LandingPage = ({
                   <h3 className="font-medium text-base line-clamp-1 mb-1 group-hover:text-gray-600 transition-colors">
                     {bike.name}
                   </h3>
-                  <p className="text-xs text-gray-400 mb-2">{bike.seller}</p>
+
 
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-lg">{bike.price.toLocaleString('vi-VN')}₫</span>
@@ -616,9 +596,6 @@ const LandingPage = ({
                   </div>
 
                   <div className="flex items-center gap-2 mt-2">
-                    <Rating value={bike.rating} size="sm" readonly />
-                    <span className="text-xs text-gray-400">({bike.reviews})</span>
-                    <span className="text-xs text-gray-300 mx-1">•</span>
                     <Badge
                       variant="success"
                       className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-none"
