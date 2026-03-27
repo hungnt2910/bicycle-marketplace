@@ -17,6 +17,7 @@ const CreateListing = () => {
   const [loadingPostCount, setLoadingPostCount] = useState(true);
   const [typeOptions, setTypeOptions] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
+  const [post_fee, setPostFee] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -66,7 +67,6 @@ const CreateListing = () => {
     status: 'draft',
   });
 
-  const POST_FEE = 15000;
   const FREE_POST_LIMIT = 2; // Miễn phí 2 bài đầu
   const isFirstPost = userPostCount < FREE_POST_LIMIT;
 
@@ -127,6 +127,29 @@ const CreateListing = () => {
     fetchCategories();
   }, []);
 
+  const fetchPostFee = async () => {
+    try {
+      const res = await adminApi.getSystemSettings();
+      const postFee =
+        (res?.data?.data || res?.data || [])[0]?.name_value?.find(
+          (i) => i.key === 'post_fee'
+        )?.value;
+        console.log('💰 Fetched post fee from system settings:', postFee);
+      if (postFee) {        
+        setPostFee(postFee);
+      } else {
+        setPostFee(15000); // Default fee if not set in system settings
+      }
+    } catch (error) {
+      console.error('Error fetching post fee:', error);
+      setPostFee(15000); // Default fee on error
+    }
+  };
+
+  useEffect(() => {
+    fetchPostFee();
+  }, []);
+
   const pollPaymentStatus = async (transactionId) => {
     const MAX_ATTEMPTS = 6;
     const DELAY_MS = 3000;
@@ -152,7 +175,7 @@ const CreateListing = () => {
 
   const calculateTotal = () => {
     let total = 0;
-    if (!isFirstPost) total += POST_FEE;
+    if (!isFirstPost) total += post_fee;
     return total;
   };
 
@@ -251,7 +274,7 @@ const CreateListing = () => {
       }
 
       // Prepare data for API
-      const listingFee = isFirstPost ? 0 : POST_FEE;
+      const listingFee = isFirstPost ? 0 : post_fee;
       const totalFee = listingFee;
       const requiresPayment = !isDraft && totalFee > 0;
 
@@ -821,7 +844,7 @@ const CreateListing = () => {
                     ) : isFirstPost ? (
                       <span className="text-gold flex items-center gap-2">
                         <span className="line-through text-warmgray-400">
-                          {POST_FEE.toLocaleString()}₫
+                          {post_fee.toLocaleString()}₫
                         </span>
                         <span>Miễn phí 🎉</span>
                         <span className="text-xs bg-gold/20 px-2 py-0.5 rounded">
@@ -829,7 +852,7 @@ const CreateListing = () => {
                         </span>
                       </span>
                     ) : (
-                      <span className="text-primary-900">{POST_FEE.toLocaleString()}₫</span>
+                      <span className="text-primary-900">{post_fee.toLocaleString()}₫</span>
                     )}
                   </span>
                 </div>

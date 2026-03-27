@@ -315,16 +315,16 @@ const SystemSettings = () => {
             <table className="min-w-full">
               <thead className="bg-warmgray-50 border-b border-warmgray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider border-r border-warmgray-200">
                     Key
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider border-r border-warmgray-200">
                     Value
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider border-r border-warmgray-200">
                     Mô tả
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider border-r border-warmgray-200">
                     Danh mục
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
@@ -342,20 +342,20 @@ const SystemSettings = () => {
                 ) : (
                   sortedSettings.map((setting, index) => (
                     <tr key={`${setting.key}-${index}`} className="hover:bg-warmgray-50/60">
-                      <td className="px-4 py-4 align-top">
+                      <td className="px-4 py-4 align-top border-r border-warmgray-100">
                         <code className="px-2 py-1 bg-primary-800/5 text-primary-800 rounded text-sm font-mono">
                           {setting.key}
                         </code>
                       </td>
-                      <td className="px-4 py-4 align-top text-primary-900 font-semibold whitespace-nowrap">
+                      <td className="px-4 py-4 align-top text-primary-900 font-semibold whitespace-nowrap border-r border-warmgray-100">
                         {formatValue(setting.value)}
                       </td>
-                      <td className="px-4 py-4 align-top text-warmgray-700 max-w-[420px]">
+                      <td className="px-4 py-4 align-top text-warmgray-700 max-w-[420px] border-r border-warmgray-100">
                         <p className="line-clamp-2" title={setting.description || ''}>
                           {setting.description || '--'}
                         </p>
                       </td>
-                      <td className="px-4 py-4 align-top text-warmgray-700 whitespace-nowrap">
+                      <td className="px-4 py-4 align-top text-warmgray-700 whitespace-nowrap border-r border-warmgray-100">
                         {setting.category?.title || 'Không có danh mục'}
                       </td>
                       <td className="px-4 py-4 align-top">
