@@ -42,7 +42,7 @@ export class ZaloPayService {
       // Build embed data
       const redirectUrl = this.configService.get<string>('ZALOPAY_REDIRECT_URL')!;
       const fullEmbedData: ZaloPayEmbedData = {
-        redirecturl: redirectUrl,
+        redirecturl: "https://bicycle-marketplace.vercel.app/",
         transactionId,
         ...embedData,
       };
