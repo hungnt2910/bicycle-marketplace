@@ -98,6 +98,15 @@ class Dispute {
 
   @Prop()
   filedAt?: Date;
+
+  @Prop()
+  raisedAt?: Date;
+
+  @Prop()
+  resolvedAt?: Date;
+
+  @Prop()
+  resolution?: string;
 }
 
 class BuyerConfirmation {

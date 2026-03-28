@@ -944,7 +944,7 @@ export class TransactionsService {
       .populate('buyerId', 'email profile.fullName')
       .populate('sellerId', 'email profile.fullName')
       .populate('bicycleId', 'title price')
-      .sort({ 'escrow.autoReleaseDeadline': 1 })
+      .sort({ 'createdAt': -1 })
       .exec();
   }
 
@@ -1271,5 +1271,85 @@ export class TransactionsService {
         console.error(`Failed to forfeit transaction ${transaction._id}:`, err);
       }
     }
+  }
+
+  /**
+   * SCHEDULER: Auto-refund if seller confirmed delivery but buyer didn't confirm within 7 days
+   * This handles "fake delivery" scenarios where seller marks as delivered but the item never reaches buyer
+   * Run every hour via cron
+   */
+  async autoRefundFakeDelivery(): Promise<void> {
+    const now = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Find transactions where:
+    // - Seller marked as DELIVERED (transaction.status = DELIVERED)
+    // - But buyer never confirmed within 7 days (buyerConfirmation.confirmed = false)
+    // - Delivery was marked 7+ days ago
+    const fakeDeliveries = await this.transactionModel.find({
+      status: TransactionStatus.DELIVERED,
+      'buyerConfirmation.confirmed': false,
+      'shipping.deliveredAt': { $lte: sevenDaysAgo },
+    });
+
+    for (const transaction of fakeDeliveries) {
+      try {
+        await this.autoRefundBuyerForFakeDelivery(transaction);
+        this.logger.log(
+          `Auto-refunded buyer for fake delivery on transaction ${transaction._id}`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Failed to auto-refund transaction ${transaction._id}: ${err.message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Helper: Process refund for fake delivery
+   */
+  private async autoRefundBuyerForFakeDelivery(
+    transaction: TransactionDocument,
+  ): Promise<void> {
+    // Release funds back to buyer (full amount)
+    await this.walletService.releaseFromEscrow(
+      transaction.buyerId.toString(),
+      transaction.amount,
+      transaction._id.toString(),
+    );
+
+    // Mark transaction as refunded
+    transaction.status = TransactionStatus.REFUNDED;
+    transaction.dispute = {
+      isDisputed: true,
+      reason: 'Seller marked as delivered but item not received after 7 days',
+      raisedAt: new Date(),
+      resolvedAt: new Date(),
+      resolution: 'Auto-refunded due to fake delivery',
+    };
+    transaction.markModified('dispute');
+    await transaction.save();
+
+    // Release bicycle back to market
+    await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
+      status: BicycleStatus.ACTIVE,
+    });
+
+    // // Notify buyer - refund processed
+    // await this.notificationsService.create({
+    //   userId: transaction.buyerId.toString(),
+    //   type: 'payment_refunded',
+    //   title: 'Refund Processed - Delivery Not Confirmed',
+    //   message:
+    //     'Since you did not confirm delivery within 7 days of seller marking it as delivered, your payment has been refunded to your wallet.',
+    //   relatedEntity: {
+    //     entityType: 'transaction',
+    //     entityId: transaction._id.toString(),
+    //   },
+    // });
+
+    // Notify seller - transaction cancelled and refunde
   }
 }

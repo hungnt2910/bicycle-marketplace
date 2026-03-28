@@ -20,4 +20,17 @@ export class TransactionsScheduler {
     this.logger.log('Running dispute window release check...');
     await this.transactionsService.autoReleaseAfterDisputeWindow();
   }
+
+  /**
+   * CRON JOB: Auto-refund for fake deliveries
+   * Run every hour to check if seller marked as delivered but buyer didn't confirm within 7 days
+   * If true, automatically refund the buyer and release the bicycle back to market
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async handleFakeDeliveryRefunds() {
+    this.logger.log(
+      'Running fake delivery detection and auto-refund check...',
+    );
+    await this.transactionsService.autoRefundFakeDelivery();
+  }
 }
