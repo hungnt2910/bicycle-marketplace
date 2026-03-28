@@ -38,24 +38,41 @@ const TransactionManagement = () => {
     deposit: 'Đặt cọc',
     full_payment: 'Thanh toán đủ',
     refund: 'Hoàn tiền',
-    escrow_release: 'Giải phóng escrow',
+    dispute_refund: 'Hoàn do tranh chấp',
+    fee: 'Phí đăng tin',
+    inspection_fee: 'Phí kiểm định',
+    commission: 'Hoa hồng',
+    penalty: 'Phạt',
   };
 
   const statusLabels = {
     pending_payment: 'Chờ thanh toán',
+    payment_received: 'Đã nhận tiền',
     held_in_escrow: 'Đang giữ escrow',
     awaiting_delivery: 'Chờ giao',
     delivered: 'Đã giao',
     completed: 'Hoàn thành',
     refunded: 'Hoàn tiền',
+    disputed: 'Đang tranh chấp',
     cancelled: 'Đã hủy',
+    deposit_paid: 'Đã đặt cọc',
+    deposit_forfeited: 'Tịch thu cọc',
+    buyer_confirmed: 'Người mua xác nhận',
   };
 
   const paymentMethodLabels = {
     bank_transfer: 'Chuyển khoản',
     e_wallet: 'Ví điện tử',
     credit_card: 'Thẻ tín dụng',
+    cash: 'Tiền mặt',
   };
+
+  const heldCount = useMemo(() => {
+    if (Array.isArray(stats?.byStatus)) {
+      return stats.byStatus.reduce((sum, item) => sum + (Number(item?.count) || 0), 0);
+    }
+    return escrowTransactions.length;
+  }, [stats, escrowTransactions]);
 
   const filteredTransactions = escrowTransactions.filter((txn) => {
     const matchStatus = filterStatus === 'all' || (txn.status || '').toLowerCase() === filterStatus;
@@ -64,6 +81,7 @@ const TransactionManagement = () => {
   });
 
   const totalHeldAmount = useMemo(() => {
+    if (stats?.totalHeld !== undefined) return Number(stats.totalHeld || 0);
     if (stats?.totalHeldAmount || stats?.totalEscrowAmount) {
       return Number(stats.totalHeldAmount || stats.totalEscrowAmount || 0);
     }
@@ -109,23 +127,20 @@ const TransactionManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[
           {
-            label: 'Tổng giao dịch',
-            value: stats?.totalTransactions ?? escrowTransactions.length,
+            label: 'Giao dịch đang giữ',
+            value: heldCount,
           },
           {
-            label: 'Đang escrow',
-            value: stats?.heldCount ?? stats?.escrowCount ?? escrowTransactions.length,
+            label: 'Tổng tiền giữ (M ₫)',
+            value: (totalHeldAmount / 1000000).toFixed(2),
           },
           {
-            label: 'Hoàn thành',
-            value:
-              stats?.completedCount ??
-              escrowTransactions.filter((t) => (t.status || '').toLowerCase() === 'completed')
-                .length,
+            label: 'Sắp giải ngân (≤2 ngày)',
+            value: stats?.expiringSoon ?? '—',
           },
           {
-            label: 'Tổng giá trị (B ₫)',
-            value: (totalHeldAmount / 1000000000).toFixed(2),
+            label: 'Giữ trung bình (ngày)',
+            value: stats?.averageHoldTimeDays !== undefined ? stats.averageHoldTimeDays : '—',
           },
         ].map((stat, idx) => (
           <div key={idx} className="lux-panel">
@@ -151,7 +166,11 @@ const TransactionManagement = () => {
               <option value="deposit">Đặt cọc</option>
               <option value="full_payment">Thanh toán đủ</option>
               <option value="refund">Hoàn tiền</option>
-              <option value="escrow_release">Giải phóng escrow</option>
+              <option value="dispute_refund">Hoàn tranh chấp</option>
+              <option value="fee">Phí</option>
+              <option value="inspection_fee">Phí kiểm định</option>
+              <option value="commission">Hoa hồng</option>
+              <option value="penalty">Phạt</option>
             </select>
           </div>
           <div>
@@ -163,12 +182,17 @@ const TransactionManagement = () => {
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="pending_payment">Chờ thanh toán</option>
+              <option value="payment_received">Đã nhận tiền</option>
               <option value="held_in_escrow">Đang giữ escrow</option>
               <option value="awaiting_delivery">Chờ giao</option>
               <option value="delivered">Đã giao</option>
               <option value="completed">Hoàn thành</option>
               <option value="refunded">Hoàn tiền</option>
+              <option value="disputed">Tranh chấp</option>
               <option value="cancelled">Đã hủy</option>
+              <option value="deposit_paid">Đã đặt cọc</option>
+              <option value="deposit_forfeited">Tịch thu cọc</option>
+              <option value="buyer_confirmed">Người mua xác nhận</option>
             </select>
           </div>
         </div>
@@ -186,7 +210,9 @@ const TransactionManagement = () => {
                 <th className="py-3 px-3 font-semibold text-xs whitespace-nowrap">Số tiền</th>
                 <th className="py-3 px-3 font-semibold text-xs whitespace-nowrap">Trạng thái</th>
                 <th className="py-3 px-3 font-semibold text-xs">Ngày GD</th>
-                <th className="py-3 px-3 font-semibold text-xs text-center whitespace-nowrap">Thao tác</th>
+                <th className="py-3 px-3 font-semibold text-xs text-center whitespace-nowrap">
+                  Thao tác
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-warmgray-200">
@@ -208,24 +234,33 @@ const TransactionManagement = () => {
                 filteredTransactions.map((txn) => {
                   const status = (txn.status || '').toLowerCase();
                   const type = (txn.type || '').toLowerCase();
-                  const buyer =
-                    `${txn?.buyerId?.profile?.firstName || ''} ${txn?.buyerId?.profile?.lastName || ''}`.trim() ||
-                    txn?.buyerId?.email ||
-                    'Người mua';
-                  const seller = txn?.sellerId?.email || 'Người bán';
+                  const buyerFullName =
+                    txn?.buyerId?.profile?.fullName ||
+                    `${txn?.buyerId?.profile?.firstName || ''} ${txn?.buyerId?.profile?.lastName || ''}`.trim();
+                  const buyer = buyerFullName || txn?.buyerId?.email || 'Người mua';
+                  const seller =
+                    txn?.sellerId?.profile?.fullName || txn?.sellerId?.email || 'Người bán';
                   const bikeName = txn?.bicycleId?.title || 'Xe đạp';
                   const amount = Number(txn?.amount || 0);
+                  const heldAmount = Number(txn?.escrow?.heldAmount ?? amount);
                   const displayId = txn._id || txn.id || '';
                   return (
-                    <tr key={displayId} className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200">
+                    <tr
+                      key={displayId}
+                      className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200"
+                    >
                       <td className="py-3 px-3 align-middle whitespace-nowrap">
-                        <div className="font-medium text-primary-900 font-mono text-sm" title={displayId}>
+                        <div
+                          className="font-medium text-primary-900 font-mono text-sm"
+                          title={displayId}
+                        >
                           {displayId.length > 6 ? `${displayId.slice(0, 6)}...` : displayId}
                         </div>
                         {txn?.orderId && (
-                           <div className="text-xs text-warmgray-500 mt-1" title={txn.orderId}>
-                             Ord: {txn.orderId.length > 6 ? `${txn.orderId.slice(0, 6)}...` : txn.orderId}
-                           </div>
+                          <div className="text-xs text-warmgray-500 mt-1" title={txn.orderId}>
+                            Ord:{' '}
+                            {txn.orderId.length > 6 ? `${txn.orderId.slice(0, 6)}...` : txn.orderId}
+                          </div>
                         )}
                       </td>
                       <td className="py-3 px-3 align-middle whitespace-nowrap">
@@ -242,20 +277,41 @@ const TransactionManagement = () => {
                         </Badge>
                       </td>
                       <td className="py-3 px-3 align-middle">
-                        <div className="text-sm font-medium text-primary-900 mb-1 leading-tight line-clamp-2" title={bikeName}>{bikeName}</div>
-                        <div className="text-xs text-warmgray-600 truncate max-w-[150px] sm:max-w-[200px]" title={buyer}><span className="font-medium text-warmgray-800">Mua:</span> {buyer}</div>
-                        <div className="text-xs text-warmgray-600 truncate max-w-[150px] sm:max-w-[200px]" title={seller}><span className="font-medium text-warmgray-800">Bán:</span> {seller}</div>
+                        <div
+                          className="text-sm font-medium text-primary-900 mb-1 leading-tight line-clamp-2"
+                          title={bikeName}
+                        >
+                          {bikeName}
+                        </div>
+                        <div
+                          className="text-xs text-warmgray-600 truncate max-w-[150px] sm:max-w-[200px]"
+                          title={buyer}
+                        >
+                          <span className="font-medium text-warmgray-800">Mua:</span> {buyer}
+                        </div>
+                        <div
+                          className="text-xs text-warmgray-600 truncate max-w-[150px] sm:max-w-[200px]"
+                          title={seller}
+                        >
+                          <span className="font-medium text-warmgray-800">Bán:</span> {seller}
+                        </div>
                         <div className="text-[11px] text-warmgray-500 mt-1 uppercase tracking-wider font-semibold">
-                          {paymentMethodLabels[txn.paymentMethod] || txn.paymentMethod || '—'}
+                          {paymentMethodLabels[txn.paymentMethod || txn.payment?.method] ||
+                            txn.paymentMethod ||
+                            txn.payment?.method ||
+                            '—'}
                         </div>
                       </td>
                       <td className="py-3 px-3 align-middle whitespace-nowrap">
                         <div className="text-sm font-bold text-primary-700">
-                          {(amount / 1000000).toFixed(2)}M ₫
+                          {(heldAmount / 1000000).toFixed(2)}M ₫
                         </div>
-                        {txn.escrow?.heldAmount && (
-                          <div className="text-[11px] text-warmgray-500 mt-0.5" title={`${txn.escrow.heldAmount} ₫`}>
-                            Giữ: {(Number(txn.escrow.heldAmount) / 1000000).toFixed(2)}M ₫
+                        {txn.escrow?.heldAmount && heldAmount !== amount && (
+                          <div
+                            className="text-[11px] text-warmgray-500 mt-0.5"
+                            title={`${txn.escrow.heldAmount} ₫`}
+                          >
+                            Tổng: {(amount / 1000000).toFixed(2)}M ₫
                           </div>
                         )}
                       </td>
@@ -275,13 +331,20 @@ const TransactionManagement = () => {
                         </Badge>
                         {txn.escrow?.autoReleaseDeadline && (
                           <div className="text-[11px] text-warmgray-500 mt-1 whitespace-nowrap">
-                            Ký quỹ đến:<br/>{txn.escrow.autoReleaseDeadline?.slice(0, 10)}
+                            Ký quỹ đến:
+                            <br />
+                            {txn.escrow.autoReleaseDeadline?.slice(0, 10)}
                           </div>
                         )}
                       </td>
                       <td className="py-3 px-3 align-middle whitespace-nowrap">
                         <div className="text-xs text-warmgray-800">
-                          {txn.createdAt ? new Date(txn.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                          {txn.createdAt
+                            ? new Date(txn.createdAt).toLocaleString('vi-VN', {
+                                dateStyle: 'short',
+                                timeStyle: 'short',
+                              })
+                            : '—'}
                         </div>
                         {txn.shipping?.deliveredAt && (
                           <div className="text-[11px] text-success-700 font-medium whitespace-nowrap mt-1">
@@ -315,9 +378,7 @@ const TransactionManagement = () => {
                               );
                             }}
                           >
-                            {actionLoading === `refund-${txn._id || txn.id}`
-                              ? 'Đang...'
-                              : 'Refund'}
+                            {actionLoading === `refund-${txn._id || txn.id}` ? 'Đang...' : 'Refund'}
                           </button>
                         </div>
                       </td>

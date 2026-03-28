@@ -9,6 +9,11 @@ export enum ReviewStatus {
   FLAGGED = 'flagged',
 }
 
+class Media {
+  @Prop()
+  images?: string[];
+}
+
 class Aspects {
   @Prop({ min: 1, max: 5 })
   communication?: number;
@@ -54,6 +59,9 @@ export class Review {
   //đã mua hàng
   @Prop({ default: true })
   isVerifiedPurchase?: boolean;
+
+  @Prop({ type: Media })
+  media?: Media;
 
   @Prop({ type: Response })
   response?: Response;

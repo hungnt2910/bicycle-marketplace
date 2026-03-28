@@ -5,8 +5,11 @@ import ChatWithSellerButton from '../../components/chat/ChatWithSellerButton';
 import bicycleApi from '../../api/postNewsApi';
 import authApi from '../../api/authApi';
 import favouriteApi from '../../api/favouriteApi';
+import userApi from '../../api/userApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import ReviewsSection from '../../components/reviews/ReviewsSection';
+import { getPublicListingStatus, isBikePubliclySellable } from '../../utils/bicycleVisibility';
 
 const ProductDetail = ({ productId }) => {
   const navigate = useNavigate();
@@ -61,12 +64,14 @@ const ProductDetail = ({ productId }) => {
         toast.info('Vui lòng đăng nhập để mua hàng');
         return;
       }
-      const bikeId = product.id;
-      const rawAmount = isDeposit
-        ? Number(((product.price || 0) * depositAmount) / 100)
-        : Number(product.price || 0);
-      if (!bikeId || !rawAmount) {
-        toast.error('Thiếu thông tin sản phẩm để thanh toán');
+
+      const bikeId = product?.id || productId;
+      const basePrice = Number(product?.price) || 0;
+      const depositRate = Math.min(Math.max(depositAmount / 100, 0.1), 0.9);
+      const rawAmount = isDeposit ? basePrice * depositRate : basePrice;
+
+      if (!bikeId || rawAmount <= 0) {
+        toast.error('Thông tin sản phẩm không hợp lệ để thanh toán');
         return;
       }
 
@@ -81,12 +86,12 @@ const ProductDetail = ({ productId }) => {
       const params = new URLSearchParams({
         type: isDeposit ? 'deposit' : 'full_payment',
         amount: String(amount),
-        bicycleId: bikeId,
+        bicycleId: String(bikeId),
         title: product.name || '',
         returnUrl: `/product/${productId}`,
       });
       if (isDeposit) {
-        params.set('depositRate', String(Math.min(Math.max(depositAmount / 100, 0.1), 0.9)));
+        params.set('depositRate', String(depositRate));
       }
 
       if (isDeposit) setShowDepositModal(false);
@@ -137,11 +142,11 @@ const ProductDetail = ({ productId }) => {
       }
 
       // Debug: Log toàn bộ bike data để xem cấu trúc
-      console.log('🚲 Full Bike Data:', bike);
-      console.log('🚲 bike.sellerId:', bike?.sellerId);
-      console.log('🚲 bike.seller:', bike?.seller);
-      console.log('🚲 bike.userId:', bike?.userId);
-      console.log('🚲 bike.createdBy:', bike?.createdBy);
+      // console.log('🚲 Full Bike Data:', bike);
+      // console.log('🚲 bike.sellerId:', bike?.sellerId);
+      // console.log('🚲 bike.seller:', bike?.seller);
+      // console.log('🚲 bike.userId:', bike?.userId);
+      // console.log('🚲 bike.createdBy:', bike?.createdBy);
 
       const location = [bike?.location?.district, bike?.location?.city].filter(Boolean).join(', ');
 
@@ -150,6 +155,16 @@ const ProductDetail = ({ productId }) => {
         : bike?.media?.mainImage
           ? [bike.media.mainImage]
           : [];
+
+      // Thu thập video từ nhiều trường có thể để tránh mất dữ liệu
+      const videoCandidates = [
+        ...(Array.isArray(bike?.media?.videos) ? bike.media.videos : []),
+        bike?.media?.video,
+        bike?.media?.videoUrl,
+        bike?.videoUrl,
+        bike?.video,
+      ].filter(Boolean);
+      const videos = Array.from(new Set(videoCandidates));
 
       const sellerProfile = bike?.seller?.profile || bike?.sellerProfile || bike?.profile;
       const sellerProfileName = sellerProfile
@@ -160,12 +175,31 @@ const ProductDetail = ({ productId }) => {
         ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
         : '';
 
+      const sellerEmail =
+        sellerFromId?.email || bike?.seller?.email || bike?.sellerEmail || bike?.contactEmail || '';
+      const sellerPhone =
+        sellerFromId?.phone ||
+        sellerProfile?.phone ||
+        bike?.seller?.phone ||
+        bike?.seller?.phoneNumber ||
+        bike?.sellerPhone ||
+        bike?.contactPhone ||
+        '';
+
+      const sellerDisplayName =
+        sellerIdName ||
+        sellerProfileName ||
+        bike?.seller?.fullName ||
+        bike?.sellerName ||
+        (sellerEmail ? sellerEmail.split('@')[0] : '') ||
+        'Người bán';
+
       // Tìm sellerId từ nhiều nguồn có thể
-      const extractedSellerId = 
-        bike?.sellerId?._id || 
-        bike?.sellerId?.id || 
+      const extractedSellerId =
+        bike?.sellerId?._id ||
+        bike?.sellerId?.id ||
         bike?.sellerId ||
-        bike?.seller?._id || 
+        bike?.seller?._id ||
         bike?.seller?.id ||
         bike?.userId?._id ||
         bike?.userId?.id ||
@@ -177,6 +211,7 @@ const ProductDetail = ({ productId }) => {
       console.log('✅ Extracted Seller ID:', extractedSellerId);
 
       const statusRaw = (bike?.status || '').toLowerCase();
+      const publicStatus = getPublicListingStatus(bike);
       const mappedProduct = {
         id: bike?._id || bike?.id,
         name: bike?.title || 'Không có tiêu đề',
@@ -190,31 +225,27 @@ const ProductDetail = ({ productId }) => {
         condition: conditionLabelMap[bike?.condition?.overall] || 'Chưa xác định',
         location: location || '—',
         views: bike?.views || 0,
-        status: bike?.status || 'unknown',
+        status: publicStatus || bike?.status || 'unknown',
         isReserved: ['reserved', 'pending_payment', 'payment_received', 'held_in_escrow'].includes(
           statusRaw
         ),
-        isSold: ['sold', 'inactive', 'deactivated'].includes(statusRaw),
+        isSold:
+          ['sold', 'inactive', 'deactivated'].includes(statusRaw) && !isBikePubliclySellable(bike),
         sellerId: extractedSellerId,
         seller: {
-          name:
-            sellerIdName ||
-            sellerProfileName ||
-            bike?.seller?.fullName ||
-            bike?.sellerName ||
-            'Người bán',
+          id: extractedSellerId || '',
+          name: sellerDisplayName,
           avatar: sellerFromId?.avatar || bike?.seller?.avatar || null,
-          rating: bike?.seller?.rating || 0,
-          responseTime: bike?.seller?.responseTime || '—',
-          successRate: bike?.seller?.successRate ? `${bike.seller.successRate}%` : '—',
-          totalSales: bike?.seller?.totalSales || 0,
-          phone:
-            sellerFromId?.phone ||
-            bike?.seller?.phone ||
-            bike?.seller?.phoneNumber ||
-            bike?.sellerPhone ||
-            '—',
-          email: sellerFromId?.email || bike?.seller?.email || bike?.sellerEmail || '—',
+          rating: bike?.seller?.rating || bike?.sellerRating || bike?.sellerStats?.rating || 0,
+          responseTime: bike?.seller?.responseTime || bike?.sellerStats?.responseTime || '—',
+          successRate: bike?.seller?.successRate
+            ? `${bike.seller.successRate}%`
+            : bike?.sellerStats?.successRate
+              ? `${bike.sellerStats.successRate}%`
+              : '—',
+          totalSales: bike?.seller?.totalSales || bike?.sellerStats?.totalSales || 0,
+          phone: sellerPhone || '—',
+          email: sellerEmail || '—',
         },
         specs: {
           'Loại xe': typeLabelMap[bike?.specifications?.type] || '—',
@@ -239,17 +270,43 @@ const ProductDetail = ({ productId }) => {
             }
           : null,
         rawType: bike?.specifications?.type || '',
+        videos,
       };
 
       console.log('📦 Mapped Product with sellerId:', mappedProduct.sellerId);
       console.log('📦 Full Mapped Product:', mappedProduct);
+
+      // Nếu thiếu thông tin seller (chỉ có id), cố gắng gọi thêm userApi để bổ sung
+      if (mappedProduct.seller && mappedProduct.seller.id && (!sellerEmail || !sellerPhone)) {
+        try {
+          const sellerRes = await userApi.getUserById(mappedProduct.seller.id);
+          const sellerData = sellerRes?.data?.data || sellerRes?.data;
+          if (sellerData) {
+            mappedProduct.seller.name =
+              sellerData.fullName ||
+              `${sellerData.firstName || ''} ${sellerData.lastName || ''}`.trim() ||
+              mappedProduct.seller.name;
+            mappedProduct.seller.email = sellerData.email || mappedProduct.seller.email;
+            mappedProduct.seller.phone =
+              sellerData.phoneNumber || sellerData.phone || mappedProduct.seller.phone;
+            mappedProduct.seller.avatar = sellerData.avatar || mappedProduct.seller.avatar;
+            mappedProduct.seller.rating = sellerData.rating || mappedProduct.seller.rating;
+            if (sellerData.totalSales) mappedProduct.seller.totalSales = sellerData.totalSales;
+          }
+        } catch (sellerErr) {
+          console.warn('Không lấy được thông tin seller chi tiết:', sellerErr);
+        }
+      }
 
       setProduct(mappedProduct);
 
       const allResponse = await bicycleApi.getAllBicycles();
       const allData = allResponse?.data?.data || allResponse?.data || [];
       const related = allData
-        .filter((item) => ['active', 'reserved'].includes(item?.status))
+        .filter(
+          (item) =>
+            isBikePubliclySellable(item) || (item?.status || '').toLowerCase() === 'reserved'
+        )
         .filter((item) => (item?._id || item?.id) !== mappedProduct.id)
         .filter((item) => item?.specifications?.type === mappedProduct.rawType)
         .slice(0, 4)
@@ -344,11 +401,15 @@ const ProductDetail = ({ productId }) => {
             {/* Images Gallery - Modern Card */}
             <div className="bg-white rounded-[20px] shadow-soft border border-warmgray-200/50 overflow-hidden">
               <div className="p-6">
-                {product.images?.length ? (
-                  <ImageGallery images={product.images} alt={product.name} />
+                {product.images?.length || product.videos?.length ? (
+                  <ImageGallery
+                    images={product.images}
+                    videos={product.videos}
+                    alt={product.name}
+                  />
                 ) : (
                   <div className="flex items-center justify-center h-64 text-warmgray-500">
-                    Chưa có hình ảnh
+                    Chưa có hình ảnh/video
                   </div>
                 )}
               </div>
@@ -509,12 +570,63 @@ const ProductDetail = ({ productId }) => {
               </div>
             )}
 
-            {/* Reviews - Modern Card Design */}
+            {/* ── No Inspection Warning ── */}
+            {!product.verified && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="bg-amber-50 border-2 border-amber-300 rounded-[20px] p-6 flex gap-4 shadow-soft"
+              >
+                {/* Icon */}
+                <div className="shrink-0 w-12 h-12 rounded-[16px] bg-amber-400 flex items-center justify-center shadow-sm">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                    />
+                  </svg>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-bold text-amber-900 mb-1">
+                    Xe chưa có nhãn mác kiểm định
+                  </h3>
+                  <p className="text-sm text-amber-800 leading-relaxed mb-3">
+                    Chiếc xe này <span className="font-semibold">chưa được kiểm định</span> bởi hệ
+                    thống Bicycle Marketplace. Chất lượng và tình trạng thực tế chưa được xác minh
+                    độc lập — hãy kiểm tra kỹ trước khi quyết định mua.
+                  </p>
+                  <ul className="space-y-1 text-xs text-amber-700 list-none">
+                    {[
+                      'Yêu cầu người bán cung cấp ảnh/video thực tế kỹ hơn',
+                      'Kiểm tra trực tiếp xe trước khi đặt cọc hoặc thanh toán',
+                      'Sử dụng tính năng Đặt cọc để bảo vệ quyền lợi của bạn',
+                    ].map((tip) => (
+                      <li key={tip} className="flex items-start gap-2">
+                        <span className="mt-0.5 text-amber-500 font-bold">⚠</span>
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Reviews - Social Proof Section */}
             <div className="bg-white rounded-[20px] shadow-soft border border-warmgray-200/50 p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-[16px] bg-primary-800/10 flex items-center justify-center">
                   <svg
-                    className="w-5 h-5 text-primary-800"
+                    className="w-5 h-5 text-primary-700"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -530,36 +642,10 @@ const ProductDetail = ({ productId }) => {
                 <h3 className="text-2xl font-bold text-primary-900">Đánh giá từ người mua</h3>
               </div>
 
-              <div className="space-y-4">
-                {reviews.length === 0 ? (
-                  <div className="text-warmgray-500">Chưa có đánh giá</div>
-                ) : (
-                  reviews.map((review) => (
-                    <div
-                      key={review.id || `${review.user}-${review.date}`}
-                      className="bg-neutral-offwhite rounded-[16px] p-5 hover:bg-warmgray-100 transition-colors"
-                    >
-                      <div className="flex items-start gap-4">
-                        <Avatar name={review.user || 'Ẩn danh'} size="sm" />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="font-semibold text-primary-900">
-                              {review.user || 'Ẩn danh'}
-                            </div>
-                            <span className="text-xs text-warmgray-500">{review.date || '—'}</span>
-                          </div>
-                          <div className="mb-2">
-                            <Rating value={review.rating || 0} size="sm" readonly />
-                          </div>
-                          <p className="text-warmgray-700 leading-relaxed">
-                            {review.comment || 'Không có nội dung'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+              <ReviewsSection
+                sellerId={product.sellerId}
+                transactionId={transactionId || undefined}
+              />
             </div>
           </div>
 
@@ -840,7 +926,16 @@ const ProductDetail = ({ productId }) => {
                   </div>
                 </div>
 
-                <Button variant="primary" className="w-full py-3 font-semibold rounded-[16px]">
+                <Button
+                  variant="primary"
+                  className="w-full py-3 font-semibold rounded-[16px]"
+                  onClick={() => {
+                    const sellerIdForNav =
+                      product?.seller?.id || product?.sellerId || product?.seller?.sellerId;
+                    if (!sellerIdForNav) return;
+                    navigate(`/seller-profile/${sellerIdForNav}`);
+                  }}
+                >
                   Xem trang người bán
                 </Button>
               </div>

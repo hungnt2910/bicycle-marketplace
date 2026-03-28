@@ -257,7 +257,9 @@ const SystemReports = () => {
             <p className="text-2xl font-bold text-primary-900">
               {revenueLoading ? 'Đang tải...' : formatCurrency(revenueSummary?.totalIn || 0)}
             </p>
-            <p className="text-sm text-success mt-1">Kỳ: {(revenueSummary?.period || selectedPeriod).toUpperCase()}</p>
+            <p className="text-sm text-success mt-1">
+              Kỳ: {(revenueSummary?.period || selectedPeriod).toUpperCase()}
+            </p>
           </div>
           <div className="p-4 bg-success/5 rounded-[16px]">
             <p className="text-sm text-warmgray-600 mb-1">Số giao dịch</p>
@@ -275,7 +277,10 @@ const SystemReports = () => {
                 ? '...'
                 : formatCurrency(
                     (revenueSummary?.totalIn || 0) /
-                      Math.max(revenueChartData.reduce((sum, item) => sum + (item.count || 0), 0), 1),
+                      Math.max(
+                        revenueChartData.reduce((sum, item) => sum + (item.count || 0), 0),
+                        1
+                      )
                   )}
             </p>
           </div>
@@ -289,7 +294,9 @@ const SystemReports = () => {
 
         {/* Revenue Charts */}
         <div className="mt-6">
-          <h3 className="text-sm font-semibold text-warmgray-700 mb-4">Doanh thu theo loại giao dịch</h3>
+          <h3 className="text-sm font-semibold text-warmgray-700 mb-4">
+            Doanh thu theo loại giao dịch
+          </h3>
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div className="xl:col-span-2 rounded-[16px] border border-warmgray-200 p-3 bg-white">
               <Chart
@@ -466,7 +473,9 @@ const SystemReports = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="p-4 bg-warmgray-50 rounded-[16px]">
             <p className="text-sm text-warmgray-600 mb-1">Thời gian phản hồi</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.performance.responseTime}ms</p>
+            <p className="text-2xl font-bold text-primary-900">
+              {stats.performance.responseTime}ms
+            </p>
             <p className="text-sm text-success mt-1">Tốt</p>
           </div>
           <div className="p-4 bg-warmgray-50 rounded-[16px]">
