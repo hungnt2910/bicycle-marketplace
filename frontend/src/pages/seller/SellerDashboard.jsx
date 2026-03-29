@@ -1,104 +1,166 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
+import bicycleApi from '../../api/postNewsApi';
+import transactionApi from '../../api/transactionApi';
+import reviewApi from '../../api/reviewApi';
+import walletApi from '../../api/walletApi';
+
+const fmt = (n) => Number(n || 0).toLocaleString('vi-VN');
+const fmtM = (n) => `${((Number(n) || 0) / 1_000_000).toFixed(1)}M`;
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
+
+const STATUS_LABEL = {
+  active: 'Đang bán',
+  sold: 'Đã bán',
+  pending_review: 'Chờ duyệt',
+  draft: 'Nháp',
+  hidden: 'Đã ẩn',
+  rejected: 'Bị từ chối',
+};
+
+const STATUS_CLASS = {
+  active: 'bg-green-50 text-green-800',
+  sold: 'bg-warmgray-100 text-warmgray-700',
+  pending_review: 'bg-gold/10 text-yellow-800',
+  draft: 'bg-blue-50 text-blue-700',
+  hidden: 'bg-warmgray-100 text-warmgray-500',
+  rejected: 'bg-red-50 text-red-700',
+};
+
+const TXN_STATUS_LABEL = {
+  deposit_paid: 'Đã đặt cọc',
+  confirmed: 'Đã xác nhận',
+  shipped: 'Đang giao',
+  delivered: 'Đã giao',
+  completed: 'Hoàn thành',
+  cancelled: 'Đã hủy',
+  pending: 'Chờ xử lý',
+};
+
+const TXN_STATUS_CLASS = {
+  deposit_paid: 'bg-gold/10 text-yellow-800',
+  confirmed: 'bg-green-50 text-green-800',
+  shipped: 'bg-blue-50 text-blue-700',
+  delivered: 'bg-green-100 text-green-900',
+  completed: 'bg-green-100 text-green-900',
+  cancelled: 'bg-red-50 text-red-700',
+  pending: 'bg-gold/10 text-yellow-800',
+};
 
 const SellerDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [loading, setLoading] = useState(true);
 
-  const [sellerStats] = useState({
-    totalListings: 12,
-    activeListings: 8,
-    soldListings: 4,
-    totalEarnings: 125000000,
-    pendingDeposits: 15000000,
-    trustScore: 4.8,
-    totalReviews: 47,
-  });
+  const [bicycles, setBicycles] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [walletSummary, setWalletSummary] = useState(null);
 
-  const [listings] = useState([
-    {
-      id: 1,
-      name: 'Giant XTC SLR 29',
-      price: 25000000,
-      status: 'active',
-      views: 245,
-      interests: 12,
-      image: 'https://via.placeholder.com/100',
-      createdDate: '2024-12-01',
-      inspectionStatus: 'passed',
-      inspectionDate: '2024-12-02',
-      inspectionExpiry: '2025-06-02',
-    },
-    {
-      id: 2,
-      name: 'Trek Domane SLR 7',
-      price: 30000000,
-      status: 'pending_inspection',
-      views: 189,
-      interests: 8,
-      image: 'https://via.placeholder.com/100',
-      createdDate: '2024-12-15',
-      inspectionStatus: 'pending',
-      inspectionDate: null,
-    },
-    {
-      id: 3,
-      name: 'Specialized Tarmac SL7',
-      price: 35000000,
-      status: 'sold',
-      views: 512,
-      interests: 25,
-      image: 'https://via.placeholder.com/100',
-      createdDate: '2024-11-20',
-      soldDate: '2024-12-10',
-      inspectionStatus: 'passed',
-    },
-  ]);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const stored = localStorage.getItem('user') || localStorage.getItem('userInfo');
+        const userInfo = JSON.parse(stored || '{}');
+        const sellerId = userInfo._id || userInfo.id || userInfo.userId;
 
-  const [orders] = useState([
-    {
-      id: 1,
-      bikeId: 'BIKE001',
-      bikeName: 'Giant XTC SLR 29',
-      buyer: 'Nguyễn Văn A',
-      depositAmount: 5000000,
-      totalPrice: 25000000,
-      status: 'confirmed',
-      depositDate: '2024-12-20',
-      expectedDeliveryDate: '2024-12-25',
-      paymentStatus: 'escrowed',
-    },
-    {
-      id: 2,
-      bikeId: 'BIKE002',
-      bikeName: 'Trek Domane SLR 7',
-      buyer: 'Trần Minh B',
-      depositAmount: 6000000,
-      totalPrice: 30000000,
-      status: 'pending',
-      depositDate: '2024-12-18',
-      expectedDeliveryDate: '2024-12-28',
-      paymentStatus: 'escrowed',
-    },
-  ]);
+        const [bikeRes, txnRes, revRes, walletRes] = await Promise.allSettled([
+          bicycleApi.getMyBicycles(sellerId),
+          transactionApi.getMyTransactions(),
+          reviewApi.getSellerReviews(sellerId),
+          walletApi.getSummary(),
+        ]);
 
-  const [reviews] = useState([
-    {
-      id: 1,
-      buyer: 'Trần Minh B',
-      rating: 5,
-      date: '2024-12-15',
-      text: 'Xe chất lượng, giao hàng nhanh, người bán rất tử tế!',
-      bikeId: 'BIKE001',
-    },
-    {
-      id: 2,
-      buyer: 'Lê Hải C',
-      rating: 4,
-      date: '2024-12-10',
-      text: 'Tốt nhưng có vết xước nhỏ trên khung',
-      bikeId: 'BIKE002',
-    },
-  ]);
+        if (bikeRes.status === 'fulfilled') {
+          const data = bikeRes.value?.data || [];
+          setBicycles(Array.isArray(data) ? data : []);
+        }
+
+        if (txnRes.status === 'fulfilled') {
+          const raw = txnRes.value?.data?.data || txnRes.value?.data || [];
+          const all = Array.isArray(raw) ? raw : [];
+          // Lọc transaction mà user là seller
+          const sellerTxns = all.filter((t) => {
+            const tSellerId = t.sellerId?._id || t.sellerId;
+            return tSellerId === sellerId;
+          });
+          setTransactions(sellerTxns);
+        }
+
+        if (revRes.status === 'fulfilled') {
+          const data = revRes.value?.data;
+          setReviews(Array.isArray(data) ? data : data?.data || []);
+        }
+
+        if (walletRes.status === 'fulfilled') {
+          setWalletSummary(walletRes.value?.data || null);
+        }
+      } catch (err) {
+        console.error('Dashboard load error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  // Derived stats
+  const activeListings = bicycles.filter((b) => b.status === 'active').length;
+  const soldListings = bicycles.filter((b) => b.status === 'sold').length;
+  // walletSummary.wallet.totalEarned là doanh thu từ bán hàng
+  const totalEarnings = walletSummary?.wallet?.totalEarned ?? walletSummary?.wallet?.balance ?? 0;
+  const avgRating =
+    reviews.length > 0
+      ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)
+      : '—';
+
+  const WALLET_TYPE_LABEL = {
+    escrow_release: 'Nhận tiền từ giao dịch',
+    inspection_fee: 'Phí kiểm định',
+    fee: 'Phí đăng tin',
+    withdrawal: 'Rút tiền',
+    deposit: 'Nạp tiền',
+    refund: 'Hoàn tiền',
+  };
+
+  // Recent activity: dùng recentTransactions từ wallet nếu có, fallback sang bicycles/orders
+  const walletTxns = walletSummary?.recentTransactions || [];
+  const recentActivities = walletTxns.length > 0
+    ? walletTxns.slice(0, 5).map((t) => ({
+        text: `${WALLET_TYPE_LABEL[t.type] || t.type}${t.description ? ` — ${t.description}` : ''}: ${t.amount > 0 ? '+' : ''}${fmt(t.amount)} ₫`,
+        date: t.createdAt,
+        positive: t.amount > 0,
+      }))
+    : [
+        ...bicycles.slice(0, 2).map((b) => ({
+          text: `Tin đăng "${b.title}" — ${STATUS_LABEL[b.status] || b.status}`,
+          date: b.createdAt,
+          positive: true,
+        })),
+        ...transactions.slice(0, 2).map((t) => ({
+          text: `Đơn hàng "${t.bicycleId?.title || 'xe đạp'}" — ${TXN_STATUS_LABEL[t.status] || t.status}`,
+          date: t.createdAt,
+          positive: true,
+        })),
+      ]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
+
+  // Need attention: pending review or draft bikes
+  const needAttention = bicycles.filter((b) =>
+    ['pending_review', 'draft', 'rejected'].includes(b.status)
+  );
+
+  if (loading) {
+    return (
+      <div className="dash-content flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="dash-content">
@@ -107,21 +169,16 @@ const SellerDashboard = () => {
         <p>Quản lý tin đăng, đơn hàng và uy tín của bạn</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards — chỉ hiển thị ở overview */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
-            { label: 'Tin đang bán', value: sellerStats.activeListings, icon: '' },
-            { label: 'Đã bán', value: sellerStats.soldListings, icon: '' },
-            {
-              label: 'Doanh thu',
-              value: `${(sellerStats.totalEarnings / 1000000).toFixed(0)}M`,
-              icon: '',
-            },
-            { label: 'Điểm uy tín', value: sellerStats.trustScore, icon: '' },
+            { label: 'Tin đang bán', value: activeListings },
+            { label: 'Đã bán', value: soldListings },
+            { label: 'Doanh thu', value: fmtM(totalEarnings) },
+            { label: 'Điểm uy tín', value: avgRating },
           ].map((stat, idx) => (
             <div key={idx} className="lux-panel">
-              <div className="text-2xl mb-3">{stat.icon}</div>
               <p className="text-warmgray-500 text-sm">{stat.label}</p>
               <p className="text-2xl font-bold text-primary-900 mt-1">{stat.value}</p>
             </div>
@@ -132,10 +189,10 @@ const SellerDashboard = () => {
       {/* Tabs */}
       <div className="flex gap-1 mb-10 border-b border-warmgray-200/60 flex-wrap">
         {[
-          { key: 'overview', label: ' Tổng quan' },
-          { key: 'listings', label: ' Quản lý tin đăng' },
-          { key: 'orders', label: ' Đơn hàng & Cọc' },
-          { key: 'reviews', label: ' Đánh giá' },
+          { key: 'overview', label: 'Tổng quan' },
+          { key: 'listings', label: 'Quản lý tin đăng' },
+          { key: 'orders', label: 'Đơn hàng & Cọc' },
+          { key: 'reviews', label: 'Đánh giá' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -151,163 +208,214 @@ const SellerDashboard = () => {
         ))}
       </div>
 
-      {/* Listings Tab */}
+      {/* ── OVERVIEW TAB ── */}
+      {activeTab === 'overview' && (
+        <div className="space-y-8">
+          <div className="lux-panel">
+            <h2 className="text-lg font-bold font-display text-primary-900 mb-6">
+              Hoạt động gần đây
+            </h2>
+            {recentActivities.length === 0 ? (
+              <p className="text-warmgray-500 text-sm">Chưa có hoạt động nào.</p>
+            ) : (
+              <div className="space-y-3">
+                {recentActivities.map((a, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <p className={a.positive ? 'text-warmgray-700' : 'text-rose-600'}>{a.text}</p>
+                    <span className="text-warmgray-400 text-xs ml-4 shrink-0">
+                      {fmtDate(a.date)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {needAttention.length > 0 && (
+            <div className="bg-gold/5 rounded-[20px] shadow-soft p-8 border border-gold/20">
+              <h2 className="text-lg font-bold font-display text-yellow-900 mb-4">Cần chú ý</h2>
+              <ul className="space-y-2 text-yellow-900 text-sm">
+                {needAttention.map((b) => (
+                  <li key={b._id}>
+                    Tin đăng "{b.title}" — {STATUS_LABEL[b.status] || b.status}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── LISTINGS TAB ── */}
       {activeTab === 'listings' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold font-display text-primary-900">
-              Quản lý tin đăng ({listings.length})
+              Quản lý tin đăng ({bicycles.length})
             </h2>
-            <button className="bg-primary-700 text-white px-5 py-2.5 rounded-full hover:bg-primary-800 font-medium text-sm transition-colors">
+            <button
+              onClick={() => navigate('/seller/create-listing')}
+              className="bg-primary-700 text-white px-5 py-2.5 rounded-full hover:bg-primary-800 font-medium text-sm transition-colors"
+            >
               + Đăng tin mới
             </button>
           </div>
 
-          {listings.map((listing) => (
-            <div key={listing.id} className="lux-panel">
-              <div className="flex gap-5">
-                <img
-                  src={listing.image}
-                  alt={listing.name}
-                  className="w-24 h-24 rounded-[16px] object-cover"
-                />
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-bold text-primary-900">{listing.name}</h3>
-                      <p className="text-sm text-warmgray-600">Đăng ngày: {listing.createdDate}</p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded text-sm font-bold ${
-                        listing.status === 'active'
-                          ? 'bg-success/10 text-green-800'
-                          : listing.status === 'pending_inspection'
-                            ? 'bg-gold/10 text-yellow-800'
-                            : 'bg-warmgray-100 text-warmgray-800'
-                      }`}
-                    >
-                      {listing.status === 'active'
-                        ? ' Đang bán'
-                        : listing.status === 'pending_inspection'
-                          ? ' Chờ kiểm định'
-                          : ' Đã bán'}
-                    </span>
-                  </div>
+          {bicycles.length === 0 && (
+            <div className="lux-panel text-center py-12 text-warmgray-500">
+              Chưa có tin đăng nào.
+            </div>
+          )}
 
-                  <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
-                    <div>
-                      <p className="text-warmgray-600">Giá bán</p>
-                      <p className="font-bold">{(listing.price / 1000000).toFixed(0)}M</p>
+          {bicycles.map((bike) => {
+            const mainImage =
+              bike.media?.mainImage ||
+              bike.media?.images?.[0] ||
+              'https://via.placeholder.com/100';
+            return (
+              <div key={bike._id} className="lux-panel">
+                <div className="flex gap-5">
+                  <img
+                    src={mainImage}
+                    alt={bike.title}
+                    className="w-24 h-24 rounded-[16px] object-cover shrink-0"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/100';
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-bold text-primary-900">{bike.title}</h3>
+                        <p className="text-sm text-warmgray-600">
+                          Đăng ngày: {fmtDate(bike.createdAt)}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded text-xs font-bold shrink-0 ml-3 ${
+                          STATUS_CLASS[bike.status] || 'bg-warmgray-100 text-warmgray-600'
+                        }`}
+                      >
+                        {STATUS_LABEL[bike.status] || bike.status}
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-warmgray-600">Lượt xem</p>
-                      <p className="font-bold">{listing.views}</p>
-                    </div>
-                    <div>
-                      <p className="text-warmgray-600">Quan tâm</p>
-                      <p className="font-bold">{listing.interests}</p>
-                    </div>
-                  </div>
 
-                  {listing.inspectionStatus === 'pending' && (
-                    <div className="bg-gold/5 p-2 rounded text-sm text-yellow-900 mb-2">
-                      <strong> Chờ kiểm định:</strong> Yêu cầu kiểm định để có thể nhận cọc
+                    <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
+                      <div>
+                        <p className="text-warmgray-600">Giá bán</p>
+                        <p className="font-bold">{fmt(bike.price)} ₫</p>
+                      </div>
+                      <div>
+                        <p className="text-warmgray-600">Thương hiệu</p>
+                        <p className="font-bold">{bike.specifications?.brand || '—'}</p>
+                      </div>
                     </div>
-                  )}
 
-                  {listing.inspectionStatus === 'passed' && (
-                    <div className="bg-success/5 p-2 rounded text-sm text-green-900 mb-2">
-                      <strong> Đã kiểm định:</strong> Hạn hữu hiệu đến {listing.inspectionExpiry}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button className="text-primary-700 hover:underline text-sm font-medium">
-                      Chỉnh sửa
-                    </Button>
-                    {listing.status === 'pending_inspection' && (
-                      <Button className="text-gold hover:underline text-sm font-medium">
-                        Yêu cầu kiểm định
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        className="text-primary-700 hover:underline text-sm font-medium"
+                        onClick={() => navigate(`/seller/edit-listing/${bike._id}`)}
+                      >
+                        Chỉnh sửa
                       </Button>
-                    )}
-                    {listing.status === 'active' && (
-                      <Button className="text-danger hover:underline text-sm font-medium">
-                        Ẩn tin
-                      </Button>
-                    )}
+                      {bike.status === 'active' && (
+                        <Button className="text-danger hover:underline text-sm font-medium">
+                          Ẩn tin
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Orders Tab */}
+      {/* ── ORDERS TAB ── */}
       {activeTab === 'orders' && (
         <div className="space-y-6">
           <h2 className="text-xl font-bold font-display text-primary-900 mb-4">
-            Quản lý đơn hàng & Tiền cọc
+            Quản lý đơn hàng & Tiền cọc ({transactions.length})
           </h2>
 
-          {orders.map((order) => (
-            <div key={order.id} className="lux-panel">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-primary-900">{order.bikeName}</h3>
-                  <p className="text-sm text-warmgray-600">Người mua: {order.buyer}</p>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded text-sm font-bold ${
-                    order.status === 'confirmed'
-                      ? 'bg-success/10 text-green-800'
-                      : 'bg-gold/10 text-yellow-800'
-                  }`}
-                >
-                  {order.status === 'confirmed' ? ' Xác nhận' : 'Chờ xác nhận'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
-                <div>
-                  <p className="text-warmgray-600">Tiền cọc</p>
-                  <p className="font-bold text-primary-700">
-                    {(order.depositAmount / 1000000).toFixed(0)}M
-                  </p>
-                </div>
-                <div>
-                  <p className="text-warmgray-600">Giá bán</p>
-                  <p className="font-bold">{(order.totalPrice / 1000000).toFixed(0)}M</p>
-                </div>
-                <div>
-                  <p className="text-warmgray-600">Dự kiến giao</p>
-                  <p className="font-bold">{order.expectedDeliveryDate}</p>
-                </div>
-                <div>
-                  <p className="text-warmgray-600">Trạng thái cọc</p>
-                  <p className="font-bold text-success">Ký quỹ</p>
-                </div>
-              </div>
-
-              <div className="bg-primary-800/5 p-2 rounded text-sm text-primary-900 mb-3">
-                <strong> Thanh toán:</strong> Tiền cọc được giữ an toàn bởi hệ thống. Sẽ được giải
-                ngân sau khi người mua xác nhận nhận xe.
-              </div>
-
-              <div className="flex gap-3">
-                <button className="flex-1 bg-primary-700 text-white py-2.5 rounded-full hover:bg-primary-800 font-medium text-sm transition-colors">
-                  Nhắn tin người mua
-                </button>
-                <button className="flex-1 border border-warmgray-200 py-2.5 rounded-full hover:bg-warmgray-50 font-medium text-sm transition-colors">
-                  Cập nhật trạng thái giao hàng
-                </button>
-              </div>
+          {transactions.length === 0 && (
+            <div className="lux-panel text-center py-12 text-warmgray-500">
+              Chưa có đơn hàng nào.
             </div>
-          ))}
+          )}
+
+          {transactions.map((txn) => {
+            const bikeName = txn.bicycleId?.title || 'Xe đạp';
+            const buyerName =
+              txn.buyerId?.firstName && txn.buyerId?.lastName
+                ? `${txn.buyerId.firstName} ${txn.buyerId.lastName}`
+                : txn.buyerId?.email || 'Người mua';
+
+            return (
+              <div key={txn._id} className="lux-panel">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-primary-900">{bikeName}</h3>
+                    <p className="text-sm text-warmgray-600">Người mua: {buyerName}</p>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded text-xs font-bold shrink-0 ml-3 ${
+                      TXN_STATUS_CLASS[txn.status] || 'bg-warmgray-100 text-warmgray-600'
+                    }`}
+                  >
+                    {TXN_STATUS_LABEL[txn.status] || txn.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
+                  <div>
+                    <p className="text-warmgray-600">Tiền cọc</p>
+                    <p className="font-bold text-primary-700">{fmt(txn.depositAmount)} ₫</p>
+                  </div>
+                  <div>
+                    <p className="text-warmgray-600">Tổng giá</p>
+                    <p className="font-bold">{fmt(txn.totalAmount || txn.totalPrice)} ₫</p>
+                  </div>
+                  <div>
+                    <p className="text-warmgray-600">Ngày đặt cọc</p>
+                    <p className="font-bold">{fmtDate(txn.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-warmgray-600">Dự kiến giao</p>
+                    <p className="font-bold">{fmtDate(txn.expectedDeliveryDate)}</p>
+                  </div>
+                </div>
+
+                {txn.escrowStatus === 'held' && (
+                  <div className="bg-primary-800/5 p-2 rounded text-sm text-primary-900 mb-3">
+                    Tiền cọc đang được giữ an toàn bởi hệ thống. Sẽ giải ngân sau khi người mua xác nhận nhận xe.
+                  </div>
+                )}
+
+                <div className="flex gap-3 flex-wrap">
+                  <button
+                    onClick={() => navigate('/seller/messages')}
+                    className="flex-1 min-w-[140px] bg-primary-700 text-white py-2.5 rounded-full hover:bg-primary-800 font-medium text-sm transition-colors"
+                  >
+                    Nhắn tin người mua
+                  </button>
+                  {['confirmed', 'deposit_paid'].includes(txn.status) && (
+                    <button
+                      className="flex-1 min-w-[140px] border border-warmgray-200 py-2.5 rounded-full hover:bg-warmgray-50 font-medium text-sm transition-colors"
+                      onClick={() => navigate(`/seller/orders`)}
+                    >
+                      Cập nhật giao hàng
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Reviews Tab */}
+      {/* ── REVIEWS TAB ── */}
       {activeTab === 'reviews' && (
         <div className="space-y-6">
           <h2 className="text-xl font-bold font-display text-primary-900 mb-4">
@@ -318,65 +426,54 @@ const SellerDashboard = () => {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-warmgray-600 text-sm">Đánh giá trung bình</p>
-                <p className="text-3xl font-bold text-gold">{sellerStats.trustScore}</p>
+                <p className="text-3xl font-bold text-gold">{avgRating}</p>
               </div>
               <div>
                 <p className="text-warmgray-600 text-sm">Tổng đánh giá</p>
-                <p className="text-3xl font-bold text-primary-900">{sellerStats.totalReviews}</p>
+                <p className="text-3xl font-bold text-primary-900">{reviews.length}</p>
               </div>
               <div>
                 <p className="text-warmgray-600 text-sm">Tỷ lệ hài lòng</p>
-                <p className="text-3xl font-bold text-success">98%</p>
+                <p className="text-3xl font-bold text-success">
+                  {reviews.length > 0
+                    ? `${Math.round(
+                        (reviews.filter((r) => r.rating >= 4).length / reviews.length) * 100
+                      )}%`
+                    : '—'}
+                </p>
               </div>
             </div>
           </div>
+
+          {reviews.length === 0 && (
+            <div className="lux-panel text-center py-12 text-warmgray-500">
+              Chưa có đánh giá nào.
+            </div>
+          )}
 
           {reviews.map((review) => (
-            <div key={review.id} className="lux-panel">
+            <div key={review._id} className="lux-panel">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <h4 className="font-bold text-primary-900">{review.buyer}</h4>
-                  <p className="text-xs text-warmgray-600">{review.date}</p>
+                  <h4 className="font-bold text-primary-900">
+                    {review.reviewerId?.firstName && review.reviewerId?.lastName
+                      ? `${review.reviewerId.firstName} ${review.reviewerId.lastName}`
+                      : 'Người mua'}
+                  </h4>
+                  <p className="text-xs text-warmgray-600">{fmtDate(review.createdAt)}</p>
                 </div>
-                <span className="text-gold font-bold">{'⭐'.repeat(review.rating)}</span>
+                <span className="text-gold font-bold text-sm">
+                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                </span>
               </div>
-              <p className="text-warmgray-700 mb-2">{review.text}</p>
-              <p className="text-xs text-warmgray-600">Sản phẩm: {review.bikeId}</p>
+              {review.comment && (
+                <p className="text-warmgray-700 text-sm mb-1">{review.comment}</p>
+              )}
+              {review.isVerifiedPurchase && (
+                <span className="text-xs text-emerald-600 font-medium">✓ Đã mua hàng</span>
+              )}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Overview Tab */}
-      {activeTab === 'overview' && (
-        <div className="space-y-8">
-          {/* Recent Activities */}
-          <div className="lux-panel">
-            <h2 className="text-lg font-bold font-display text-primary-900 mb-6">
-              Hoạt động gần đây
-            </h2>
-            <div className="space-y-4">
-              {[
-                ' Đăng tin mới: Giant XTC SLR 29 (ngày hôm nay)',
-                ' Tin đăng: Trek Domane SLR 7 vượt kiểm định',
-                ' Nhận cọc: 5M từ Nguyễn Văn A',
-                ' Nhận đánh giá 5 sao từ Trần Minh B',
-              ].map((activity, idx) => (
-                <p key={idx} className="text-warmgray-700 text-sm">
-                  {activity}
-                </p>
-              ))}
-            </div>
-          </div>
-
-          {/* Need Attention */}
-          <div className="bg-gold/5 backdrop-blur-sm rounded-[20px] shadow-soft p-8 border border-gold/20">
-            <h2 className="text-lg font-bold font-display text-yellow-900 mb-6"> Cần chú ý</h2>
-            <ul className="space-y-3 text-yellow-900 text-sm">
-              <li> Tin đăng "Trek Domane SLR 7" đang chờ kiểm định</li>
-              <li> Tin đăng "Specialized Tarmac SL7" sắp hết hạn kiểm định (5 ngày)</li>
-            </ul>
-          </div>
         </div>
       )}
     </div>

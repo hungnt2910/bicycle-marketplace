@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import transactionApi from '../../api/transactionApi';
 import disputeApi from '../../api/disputeApi';
 import bicycleApi from '../../api/postNewsApi';
+import userApi from '../../api/userApi';
 
 const statusLabels = {
   pending_payment: 'Chờ thanh toán',
@@ -52,6 +53,8 @@ const SellerOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [shippingForm, setShippingForm] = useState({ provider: '', trackingNumber: '' });
   const [shippingErrors, setShippingErrors] = useState({});
+  const [buyerAddress, setBuyerAddress] = useState('');
+  const [loadingBuyerAddress, setLoadingBuyerAddress] = useState(false);
 
   const relistPayload = {
     status: 'active',
@@ -88,6 +91,7 @@ const SellerOrders = () => {
           const dispute = normalizeDispute(tx);
           return {
             id: tx?._id || tx?.id,
+            buyerId: tx?.buyerId?._id || tx?.buyerId?.id || tx?.buyerId,
             bicycleId: tx?.bicycleId?._id || tx?.bicycleId?.id || tx?.bicycleId,
             bicycleStatus: (tx?.bicycleId?.status || '').toLowerCase(),
             bicycleIsInspected: tx?.bicycleId?.inspection?.isInspected === true,
@@ -197,9 +201,32 @@ const SellerOrders = () => {
     setSelectedOrder(null);
     setShippingForm({ provider: '', trackingNumber: '' });
     setShippingErrors({});
+    setBuyerAddress('');
+    setLoadingBuyerAddress(false);
   };
 
-  const handleUpdateShipping = (order) => {
+  const loadBuyerAddress = async (buyerId) => {
+    if (!buyerId) {
+      setBuyerAddress('Không có địa chỉ');
+      return;
+    }
+
+    try {
+      setLoadingBuyerAddress(true);
+      const res = await userApi.getUserById(buyerId);
+      const payload = res?.data?.data ?? res?.data;
+      const buyer = Array.isArray(payload) ? payload[0] : payload;
+      const address = (buyer?.address || '').toString().trim();
+      setBuyerAddress(address || 'Chưa cập nhật địa chỉ');
+    } catch (err) {
+      console.error('Load buyer address error:', err);
+      setBuyerAddress('Không tải được địa chỉ');
+    } finally {
+      setLoadingBuyerAddress(false);
+    }
+  };
+
+  const handleUpdateShipping = async (order) => {
     const allowed = ['held_in_escrow', 'awaiting_delivery', 'payment_received'];
     if (!allowed.includes(order.status)) {
       toast.warn('Chỉ cập nhật vận chuyển khi đơn đã được thanh toán và chờ giao.');
@@ -209,7 +236,9 @@ const SellerOrders = () => {
     setSelectedOrder(order);
     setShippingForm({ provider: '', trackingNumber: '' });
     setShippingErrors({});
+    setBuyerAddress('');
     setShippingModalOpen(true);
+    loadBuyerAddress(order?.buyerId);
   };
 
   const submitShipping = async () => {
@@ -473,6 +502,9 @@ const SellerOrders = () => {
             <div className="font-semibold text-primary-900 mt-1">{selectedOrder?.bike}</div>
             <div className="text-sm text-warmgray-600 mt-1">Mã: {selectedOrder?.id}</div>
             <div className="text-sm text-warmgray-600">Người mua: {selectedOrder?.buyer}</div>
+            <div className="text-sm text-warmgray-600">
+              Địa chỉ nhận: {loadingBuyerAddress ? 'Đang tải...' : buyerAddress || 'Chưa cập nhật'}
+            </div>
           </div>
 
           <Input

@@ -21,7 +21,8 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [typingUsers, setTypingUsers] = useState(new Map());
-  const [loading, setLoading] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState(null);
 
   // Kết nối Socket.IO khi user đăng nhập
@@ -66,36 +67,30 @@ export const ChatProvider = ({ children }) => {
   // Load conversations
   const loadConversations = async () => {
     try {
-      setLoading(true);
-      console.log('📡 Fetching conversations...');
+      setLoadingConversations(true);
       const data = await chatApi.getConversations();
-      console.log('Conversations loaded:', data);
       setConversations(data);
     } catch (err) {
       setError(err.message);
       console.error('Error loading conversations:', err);
     } finally {
-      setLoading(false);
+      setLoadingConversations(false);
     }
   };
 
   // Load messages của một conversation
   const loadMessages = async (conversationId) => {
     try {
-      setLoading(true);
+      setLoadingMessages(true);
       const data = await chatApi.getMessages(conversationId);
-      setMessages(data.reverse()); // Reverse để hiển thị từ cũ đến mới
-      
-      // Join conversation room
+      setMessages(data.reverse());
       socketService.joinConversation(conversationId);
-      
-      // Đánh dấu đã đọc
       await chatApi.markAsRead(conversationId);
     } catch (err) {
       setError(err.message);
       console.error('Error loading messages:', err);
     } finally {
-      setLoading(false);
+      setLoadingMessages(false);
     }
   };
 
@@ -202,21 +197,9 @@ export const ChatProvider = ({ children }) => {
 
   // Handle Socket events
   const handleNewMessage = useCallback((data) => {
-    console.log('📨 Received new message event:', data);
     const { message, conversationId } = data;
 
-    if (!message) {
-      console.error('❌ Message is undefined in event data');
-      return;
-    }
-
-    console.log('📝 Message details:', {
-      conversationId,
-      messageId: message._id,
-      text: message.content?.text,
-      senderId: message.senderId,
-      activeConversationId: activeConversation?._id
-    });
+    if (!message) return;
 
     // Thêm message vào danh sách nếu đang xem conversation đó
     if (activeConversation?._id === conversationId) {
@@ -305,7 +288,8 @@ export const ChatProvider = ({ children }) => {
     messages,
     onlineUsers,
     typingUsers,
-    loading,
+    loading: loadingConversations,
+    loadingMessages,
     error,
     loadConversations,
     loadMessages,

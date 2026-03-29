@@ -18,6 +18,8 @@ const CreateListing = () => {
   const [typeOptions, setTypeOptions] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [post_fee, setPostFee] = useState(0);
+  const [wardOptions, setWardOptions] = useState([]);
+  const [loadingWards, setLoadingWards] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -59,8 +61,8 @@ const CreateListing = () => {
 
     // Location
     location: {
-      city: '',
-      district: '',
+      city: 'TP. Hồ Chí Minh',
+      ward: '',
       address: '',
     },
 
@@ -148,6 +150,30 @@ const CreateListing = () => {
 
   useEffect(() => {
     fetchPostFee();
+  }, []);
+
+  useEffect(() => {
+    const fetchHcmWards = async () => {
+      setLoadingWards(true);
+      try {
+        const response = await fetch('https://provinces.open-api.vn/api/v2/p/79?depth=2');
+        const data = await response.json();
+
+        const wardOpts = (Array.isArray(data?.wards) ? data.wards : [])
+          .map((ward) => ({ value: ward?.name || '', label: ward?.name || '' }))
+          .filter((item) => item.value)
+          .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+
+        setWardOptions(wardOpts);
+      } catch (error) {
+        console.error('Error fetching HCM wards:', error);
+        setWardOptions([]);
+      } finally {
+        setLoadingWards(false);
+      }
+    };
+
+    fetchHcmWards();
   }, []);
 
   const pollPaymentStatus = async (transactionId) => {
@@ -312,7 +338,7 @@ const CreateListing = () => {
         },
         location: {
           city: formData.location.city || undefined,
-          district: formData.location.district || undefined,
+          district: formData.location.ward || undefined,
           address: formData.location.address || undefined,
         },
         status: isDraft ? 'draft' : 'pending_review',
@@ -812,15 +838,16 @@ const CreateListing = () => {
                   label="Tỉnh/Thành phố"
                   name="city"
                   value={formData.location.city}
-                  onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: TP. Hồ Chí Minh"
+                  readOnly
+                  disabled
                 />
-                <Input
-                  label="Quận/Huyện"
-                  name="district"
-                  value={formData.location.district}
+                <Select
+                  label="Phường/Xã"
+                  name="ward"
+                  value={formData.location.ward}
                   onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: Quận 1"
+                  placeholder={loadingWards ? 'Đang tải danh sách phường/xã...' : 'Chọn phường/xã'}
+                  options={wardOptions}
                 />
               </div>
               <Input
