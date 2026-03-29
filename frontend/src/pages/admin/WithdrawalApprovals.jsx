@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Input, Badge, Select, Pagination } from '../../components/ui';
 import walletApi from '../../api/walletApi';
+import userApi from '../../api/userApi';
 import { toast } from 'react-toastify';
 
 const WithdrawalApprovals = () => {
@@ -14,6 +15,7 @@ const WithdrawalApprovals = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [pagination, setPagination] = useState({ total: 0, pages: 0 });
+  const [userLookup, setUserLookup] = useState({});
 
   const statusOptions = [
     { value: 'pending', label: 'Pending' },
@@ -33,6 +35,50 @@ const WithdrawalApprovals = () => {
   const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
   const formatDateTime = (value) => (value ? new Date(value).toLocaleString('vi-VN') : '—');
 
+  const fetchMissingUserProfiles = async (items) => {
+    const candidateIds = (items || [])
+      .map((w) => {
+        const u = w.user || w.userId || w.accountOwner;
+        if (!u) return null;
+        if (typeof u === 'string') return u;
+        return u._id || u.id || u.userId || u.uid || null;
+      })
+      .filter(Boolean);
+
+    const uniqueIds = Array.from(new Set(candidateIds)).filter((id) => !userLookup[id]);
+    if (!uniqueIds.length) return;
+
+    try {
+      const responses = await Promise.allSettled(uniqueIds.map((id) => userApi.getUserById(id)));
+
+      const next = {};
+      responses.forEach((res, idx) => {
+        const id = uniqueIds[idx];
+        if (res.status !== 'fulfilled') return;
+        const data = res.value?.data?.data || res.value?.data || {};
+        next[id] = {
+          name:
+            data.profile?.fullName ||
+            data.fullName ||
+            data.name ||
+            data.username ||
+            data.email ||
+            data.phone ||
+            '',
+          email: data.email,
+          phone: data.phone,
+          username: data.username,
+        };
+      });
+
+      if (Object.keys(next).length) {
+        setUserLookup((prev) => ({ ...prev, ...next }));
+      }
+    } catch (err) {
+      console.error('Fetch user profiles error:', err);
+    }
+  };
+
   const fetchWithdrawals = async (pageParam = page, statusParam = statusFilter) => {
     setLoadingList(true);
     try {
@@ -47,7 +93,9 @@ const WithdrawalApprovals = () => {
         ? data
         : data.items || data.withdrawals || data.results || data.transactions || [];
 
-      setWithdrawals(Array.isArray(items) ? items : []);
+      const normalizedItems = Array.isArray(items) ? items : [];
+      setWithdrawals(normalizedItems);
+      fetchMissingUserProfiles(normalizedItems);
 
       const pg = res?.data?.pagination ||
         data?.pagination || {
@@ -223,8 +271,36 @@ const WithdrawalApprovals = () => {
                   const id = w._id || w.id;
                   const status = w.status || w.withdrawalStatus;
                   const user = w.user || w.userId || w.accountOwner;
+                  const userId =
+                    (typeof user === 'string' && user) ||
+                    user?._id ||
+                    user?.id ||
+                    user?.userId ||
+                    user?.uid ||
+                    null;
+                  const lookedUp = userId ? userLookup[userId] : undefined;
                   const userName =
-                    (user?.email || user?.phone || user?.username || '').trim() || '—';
+                    (
+                      lookedUp?.name ||
+                      user?.profile?.fullName ||
+                      user?.fullName ||
+                      user?.name ||
+                      user?.username ||
+                      user?.email ||
+                      user?.phone ||
+                      (typeof user === 'string' ? user : '') ||
+                      ''
+                    ).trim() || '—';
+                  const userSecondary = (
+                    lookedUp?.email ||
+                    lookedUp?.phone ||
+                    lookedUp?.username ||
+                    user?.email ||
+                    user?.phone ||
+                    user?.username ||
+                    (typeof user === 'string' ? user : '') ||
+                    ''
+                  ).trim();
                   const amount = formatMoney(w.amount || w.money || w.value || 0);
                   const bank = w.withdrawalDetails || w.bankDetails || w.bank || {};
                   const bankName = bank.bankName || w.bankName;
@@ -232,7 +308,10 @@ const WithdrawalApprovals = () => {
                   const accountHolder = bank.accountHolder || w.accountHolder;
 
                   return (
-                    <tr key={id || w.reference || idx} className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200">
+                    <tr
+                      key={id || w.reference || idx}
+                      className="hover:bg-warmgray-50 transition-colors divide-x divide-warmgray-200"
+                    >
                       <td className="py-4 px-6 align-middle">
                         <div className="font-medium text-primary-900">{id || '—'}</div>
                         {w.reference && (
@@ -241,22 +320,24 @@ const WithdrawalApprovals = () => {
                       </td>
                       <td className="py-4 px-6 align-middle">
                         <div className="font-medium text-primary-900">{userName}</div>
-                        {user?.profile?.fullName && (
-                          <div className="text-sm text-warmgray-600 mt-1">{user.profile.fullName}</div>
-                        )}
+                        {/* {userSecondary && (
+                          <div className="text-sm text-warmgray-600 mt-1">{userSecondary}</div>
+                        )} */}
                       </td>
                       <td className="py-4 px-6 align-middle font-semibold text-primary-700 whitespace-nowrap">
                         {amount}
                       </td>
                       <td className="py-4 px-6 align-middle">
                         <div className="font-medium text-warmgray-800">{bankName || '—'}</div>
-                        <div className="text-sm text-warmgray-600 mt-0.5">{accountHolder || '—'}</div>
-                        <div className="text-sm text-warmgray-600 font-mono mt-0.5">{accountNumber || '—'}</div>
+                        <div className="text-sm text-warmgray-600 mt-0.5">
+                          {accountHolder || '—'}
+                        </div>
+                        <div className="text-sm text-warmgray-600 font-mono mt-0.5">
+                          {accountNumber || '—'}
+                        </div>
                       </td>
                       <td className="py-4 px-6 align-middle whitespace-nowrap">
-                        <Badge variant={statusVariant(status)}>
-                          {status || '—'}
-                        </Badge>
+                        <Badge variant={statusVariant(status)}>{status || '—'}</Badge>
                       </td>
                       <td className="py-4 px-6 align-middle text-sm text-warmgray-600 whitespace-nowrap">
                         {formatDateTime(w.createdAt || w.created_date || w.created_on)}

@@ -90,9 +90,7 @@ const UserManagement = () => {
     setError('');
     try {
       const response = await userApi.getAllUsers();
-      const data = Array.isArray(response?.data)
-        ? response.data
-        : response?.data?.data || [];
+      const data = Array.isArray(response?.data) ? response.data : response?.data?.data || [];
 
       const mappedUsers = data.map((item) => {
         const role = String(item?.role || 'buyer').toLowerCase();
@@ -131,12 +129,8 @@ const UserManagement = () => {
           phone: item?.phone || item?.profile?.phone || 'N/A',
           role,
           status: String(item?.status || 'active').toLowerCase(),
-          joinDate: item?.createdAt
-            ? new Date(item.createdAt).toLocaleDateString('vi-VN')
-            : '--',
-          lastLogin: item?.updatedAt
-            ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
-            : '--',
+          joinDate: item?.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : '--',
+          lastLogin: item?.updatedAt ? new Date(item.updatedAt).toLocaleDateString('vi-VN') : '--',
           sellerStatus: mapSellerStatus(item),
           verifiedRoleSeller: item?.verifiedRoleSeller,
           cccd: cccdArray,
@@ -171,9 +165,7 @@ const UserManagement = () => {
     if (!selectedUser || !newRole) return;
     try {
       await adminApi.updateUserRole(selectedUser.id, { role: newRole });
-      setUsers((prev) =>
-        prev.map((u) => (u.id === selectedUser.id ? { ...u, role: newRole } : u))
-      );
+      setUsers((prev) => prev.map((u) => (u.id === selectedUser.id ? { ...u, role: newRole } : u)));
       toast.success('Đã cập nhật vai trò thành công');
       setRoleModalOpen(false);
     } catch (err) {
@@ -351,12 +343,24 @@ const UserManagement = () => {
           <table className="w-full">
             <thead className="bg-warmgray-50 border-b border-warmgray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">Người dùng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">Vai trò</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">Trạng thái</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">Seller KYC</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">Ngày tham gia</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">Thao tác</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
+                  Người dùng
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
+                  Vai trò
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
+                  Trạng thái
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
+                  Seller KYC
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
+                  Ngày tham gia
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
+                  Thao tác
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -378,10 +382,10 @@ const UserManagement = () => {
                         roleColors[user.role] === 'blue'
                           ? 'bg-primary-800/10 text-primary-900'
                           : roleColors[user.role] === 'green'
-                          ? 'bg-success/10 text-green-800'
-                          : roleColors[user.role] === 'purple'
-                          ? 'bg-info/10 text-purple-800'
-                          : 'bg-danger/10 text-red-800'
+                            ? 'bg-success/10 text-green-800'
+                            : roleColors[user.role] === 'purple'
+                              ? 'bg-info/10 text-purple-800'
+                              : 'bg-danger/10 text-red-800'
                       }`}
                     >
                       {roleLabels[user.role] || user.role}
@@ -395,8 +399,8 @@ const UserManagement = () => {
                         statusColors[user.status] === 'green'
                           ? 'bg-success/10 text-green-800'
                           : statusColors[user.status] === 'yellow'
-                          ? 'bg-gold/10 text-yellow-800'
-                          : 'bg-danger/10 text-red-800'
+                            ? 'bg-gold/10 text-yellow-800'
+                            : 'bg-danger/10 text-red-800'
                       }`}
                     >
                       {statusLabels[user.status] || user.status}
@@ -411,10 +415,10 @@ const UserManagement = () => {
                           sellerStatusColors[user.sellerStatus] === 'success'
                             ? 'bg-success/10 text-green-800'
                             : sellerStatusColors[user.sellerStatus] === 'warning'
-                            ? 'bg-gold/10 text-yellow-800'
-                            : sellerStatusColors[user.sellerStatus] === 'danger'
-                            ? 'bg-danger/10 text-red-800'
-                            : 'bg-warmgray-200 text-warmgray-700'
+                              ? 'bg-gold/10 text-yellow-800'
+                              : sellerStatusColors[user.sellerStatus] === 'danger'
+                                ? 'bg-danger/10 text-red-800'
+                                : 'bg-warmgray-200 text-warmgray-700'
                         }`}
                       >
                         {sellerStatusLabels[user.sellerStatus] || sellerStatusLabels.none}
@@ -458,13 +462,6 @@ const UserManagement = () => {
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => openRoleModal(user)}
-                        disabled={user.role === 'admin'}
-                        className="px-3 py-1 text-primary-700 hover:bg-primary-800/5 rounded font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Đổi vai trò
-                      </button>
-                      <button
                         onClick={() => openStatusModal(user)}
                         disabled={user.role === 'admin'}
                         className="px-3 py-1 text-gold hover:bg-gold/5 rounded font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -478,9 +475,7 @@ const UserManagement = () => {
             </tbody>
           </table>
           {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-warmgray-500">
-              Không tìm thấy người dùng nào
-            </div>
+            <div className="text-center py-12 text-warmgray-500">Không tìm thấy người dùng nào</div>
           )}
         </div>
       )}
