@@ -140,7 +140,7 @@ const DashboardLayout = ({
         ),
         label: 'Tin nhắn',
         path: 'messages',
-        badge: 3,
+        // badge: 3,
       },
       {
         icon: (

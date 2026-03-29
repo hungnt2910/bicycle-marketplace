@@ -24,6 +24,7 @@ const ChatBox = () => {
   const [loadingUserInfo, setLoadingUserInfo] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const renderedMessageIds = useRef(new Set());
 
   // Load messages khi chọn conversation
   useEffect(() => {
@@ -421,16 +422,12 @@ const ChatBox = () => {
             const currentUserId = user._id || user.userId || user.id;
 
             const isOwnMessage = messageSenderId === currentUserId;
-            console.log('💬 Message display:', {
-              messageId: message._id,
-              messageSenderId,
-              currentUserId,
-              isOwnMessage,
-              position: isOwnMessage ? 'PHẢI (mình gửi)' : 'TRÁI (người khác gửi)',
-            });
 
             const showAvatar =
               index === 0 || messages[index - 1]?.senderId._id !== message.senderId._id;
+
+            const isNew = !renderedMessageIds.current.has(message._id);
+            if (isNew) renderedMessageIds.current.add(message._id);
 
             return (
               <div
@@ -440,7 +437,7 @@ const ChatBox = () => {
                   alignItems: 'flex-end',
                   gap: '10px',
                   flexDirection: isOwnMessage ? 'row-reverse' : 'row',
-                  animation: 'chatFadeIn 0.3s ease-out',
+                  animation: isNew ? 'chatFadeIn 0.3s ease-out' : 'none',
                 }}
               >
                 {/* Avatar */}
