@@ -217,7 +217,7 @@ const ManageListings = () => {
       sold: 'Đã bán',
       draft: 'Nháp',
     };
-    return <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>;
+    return <Badge variant={variants[status] || 'default'} className="badge">{labels[status] || status}</Badge>;
   };
 
   const filteredListings = listings.filter((l) => {
