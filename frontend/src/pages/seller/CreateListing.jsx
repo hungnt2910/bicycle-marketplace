@@ -21,6 +21,43 @@ const CreateListing = () => {
   const [wardOptions, setWardOptions] = useState([]);
   const [loadingWards, setLoadingWards] = useState(false);
 
+  const normalizeSlug = (value = '') =>
+    value
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+  const mapCategoryToEnum = (raw) => {
+    const slug = normalizeSlug(raw || '');
+    if (!slug) return '';
+
+    const directMap = {
+      mountain: 'mountain',
+      road: 'road',
+      hybrid: 'hybrid',
+      electric: 'electric',
+      folding: 'folding',
+      bmx: 'bmx',
+      cruiser: 'cruiser',
+    };
+
+    if (directMap[slug]) return directMap[slug];
+
+    if (slug.includes('mountain') || slug.includes('dia-hinh')) return 'mountain';
+    if (slug.includes('road')) return 'road';
+    if (slug.includes('hybrid')) return 'hybrid';
+    if (slug.includes('electric') || slug.includes('dien')) return 'electric';
+    if (slug.includes('folding') || slug.includes('gap')) return 'folding';
+    if (slug.includes('bmx')) return 'bmx';
+    if (slug.includes('cruiser') || slug.includes('dao-pho')) return 'cruiser';
+
+    return '';
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     // General Info
@@ -100,23 +137,15 @@ const CreateListing = () => {
       try {
         const response = await adminApi.getCategoriesPostNews();
         const data = response?.data?.data || response?.data || [];
-        const titleToEnum = (title = '') => {
-          const normalized = title.toLowerCase().trim();
-          if (normalized.includes('mountain') || normalized.includes('dia hinh')) return 'mountain';
-          if (normalized.includes('road') || normalized.includes('road')) return 'road';
-          if (normalized.includes('hybrid')) return 'hybrid';
-          if (normalized.includes('electric') || normalized.includes('dien')) return 'electric';
-          if (normalized.includes('folding') || normalized.includes('gap')) return 'folding';
-          if (normalized.includes('bmx')) return 'bmx';
-          if (normalized.includes('cruiser') || normalized.includes('dao pho')) return 'cruiser';
-          return '';
-        };
-        const options = data
-          .map((item) => ({
-            value: titleToEnum(item?.title || ''),
-            label: item?.title || 'Danh mục',
-          }))
-          .filter((opt) => opt.value);
+        const options = (Array.isArray(data) ? data : [])
+          .map((item) => {
+            const mappedValue = mapCategoryToEnum(item?.slug || item?.title || '');
+            return {
+              value: mappedValue,
+              label: item?.title || mappedValue || 'Danh mục',
+            };
+          })
+          .filter((opt) => !!opt.value);
         setTypeOptions(options);
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -132,12 +161,11 @@ const CreateListing = () => {
   const fetchPostFee = async () => {
     try {
       const res = await adminApi.getSystemSettings();
-      const postFee =
-        (res?.data?.data || res?.data || [])[0]?.name_value?.find(
-          (i) => i.key === 'post_fee'
-        )?.value;
-        console.log('💰 Fetched post fee from system settings:', postFee);
-      if (postFee) {        
+      const postFee = (res?.data?.data || res?.data || [])[0]?.name_value?.find(
+        (i) => i.key === 'post_fee'
+      )?.value;
+      console.log('💰 Fetched post fee from system settings:', postFee);
+      if (postFee) {
         setPostFee(postFee);
       } else {
         setPostFee(15000); // Default fee if not set in system settings

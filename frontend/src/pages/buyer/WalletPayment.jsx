@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Button, Badge } from '../../components/ui';
+import { Card, Button, Badge, Input } from '../../components/ui';
 import walletApi from '../../api/walletApi';
 import transactionApi from '../../api/transactionApi';
+import authApi from '../../api/authApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -33,6 +34,7 @@ const WalletPayment = () => {
   const [walletBalance, setWalletBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState('');
 
   const isInsufficientBalance = walletBalance !== null && walletBalance < amount;
   const remainingBalance = walletBalance !== null ? walletBalance - amount : null;
@@ -54,12 +56,45 @@ const WalletPayment = () => {
         setLoading(false);
       }
     };
+
+    const prefillAddressFromStorage = () => {
+      if (role !== 'buyer') return;
+      try {
+        const storedUser = localStorage.getItem('user');
+        const parsedUser = storedUser ? JSON.parse(storedUser) : {};
+        const presetAddress = parsedUser?.address || parsedUser?.profile?.address || '';
+        setShippingAddress((prev) => prev || presetAddress || '');
+      } catch (err) {
+        setShippingAddress((prev) => prev || '');
+      }
+    };
+
+    const fetchProfileAddress = async () => {
+      if (role !== 'buyer') return;
+      try {
+        const res = await authApi.profile();
+        const profileAddress = res?.data?.data?.address || res?.data?.address || '';
+        // const profileDistrict = res?.data?.data?.district || res?.data?.district || '';
+        const combined = [profileAddress].filter(Boolean).join(', ');
+        setShippingAddress((prev) => prev || combined || profileAddress || '');
+      } catch (err) {
+        // silent fallback to local storage
+      }
+    };
+
+    prefillAddressFromStorage();
     fetchWallet();
-  }, []);
+    fetchProfileAddress();
+  }, [role]);
 
   const handleConfirm = async () => {
     if (isInsufficientBalance) {
       toast.error('Số dư ví không đủ. Vui lòng nạp thêm tiền.');
+      return;
+    }
+
+    if (role === 'buyer' && !shippingAddress.trim()) {
+      toast.error('Vui lòng nhập địa chỉ nhận hàng');
       return;
     }
 
@@ -73,12 +108,14 @@ const WalletPayment = () => {
           amount,
           type: 'full_payment',
           paymentMethod: 'e_wallet',
+          shippingAddress: role === 'buyer' ? shippingAddress.trim() : undefined,
         });
       } else if (type === 'deposit') {
         res = await transactionApi.createDeposit({
           bicycleId,
           depositRate,
           paymentMethod: 'e_wallet',
+          shippingAddress: role === 'buyer' ? shippingAddress.trim() : undefined,
         });
       } else if (type === 'pay_balance') {
         res = await transactionApi.payRemainingBalance(transactionId);
@@ -88,6 +125,7 @@ const WalletPayment = () => {
           amount,
           type,
           paymentMethod: 'e_wallet',
+          shippingAddress: role === 'buyer' ? shippingAddress.trim() : undefined,
         });
       } else {
         throw new Error('Loại giao dịch không hợp lệ');
@@ -593,6 +631,28 @@ const WalletPayment = () => {
                 </div>
 
                 <div style={{ borderTop: '1px solid var(--lux-gray-100)' }} />
+
+                {/* Shipping Address (buyer only) */}
+                {role === 'buyer' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: 'var(--lux-gray-500)' }}
+                      >
+                        Địa chỉ nhận hàng
+                      </span>
+                    </div>
+                    <Input
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      placeholder="Nhập địa chỉ nhận hàng"
+                    />
+                    <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
+                      Bạn có thể thay đổi địa chỉ này trước khi thanh toán.
+                    </p>
+                  </div>
+                )}
 
                 {/* Payment Method */}
                 <div className="flex items-center justify-between">
