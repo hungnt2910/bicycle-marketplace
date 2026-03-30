@@ -84,6 +84,8 @@ export class TransactionsService {
           'held_in_escrow',
           'awaiting_delivery',
           'delivered',
+          'deposit_paid',
+          'deposit_forfeited',
         ],
       },
     });

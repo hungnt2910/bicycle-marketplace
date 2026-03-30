@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Bicycle, BicycleDocument, User, BicycleStatus } from 'src/entities';
+import { Bicycle, BicycleDocument, BicycleStatus } from 'src/entities';
 import { CreateBicyclesDto } from './dto/create-bicycles.dto';
 import { FilterBicycleDto } from './dto/filler-bicycle.dto';
 import { UpdateBicycleDto } from './dto/update-bicyce.dto';
