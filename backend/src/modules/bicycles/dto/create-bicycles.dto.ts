@@ -14,7 +14,6 @@ import {
 import { Type } from 'class-transformer';
 import { Types } from 'mongoose';
 import {
-  BicycleType,
   FrameMaterial,
   BrakeType,
   Suspension,
@@ -24,8 +23,7 @@ import {
 
 class SpecificationsDto {
   @IsOptional()
-  @IsEnum(BicycleType)
-  type?: BicycleType;
+  type?: string;
 
   @IsOptional()
   @IsString({ message: 'Please Enter Valid Name' })
