@@ -5,7 +5,37 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import bicycleApi from '../../api/postNewsApi';
 import favouriteApi from '../../api/favouriteApi';
+import adminApi from '../../api/adminApi';
 import { getPublicListingStatus, isBikePubliclySellable } from '../../utils/bicycleVisibility';
+
+const DEFAULT_TYPE_OPTIONS = [
+  { value: '', label: 'Tất cả loại xe' },
+  { value: 'mountain', label: 'Xe đạp địa hình' },
+  { value: 'road', label: 'Xe đạp đường trường' },
+  { value: 'hybrid', label: 'Xe đạp Hybrid' },
+  { value: 'electric', label: 'Xe đạp điện' },
+  { value: 'folding', label: 'Xe đạp gấp' },
+  { value: 'bmx', label: 'Xe đạp BMX' },
+  { value: 'cruiser', label: 'Xe đạp dạo phố' },
+];
+
+const normalizeSlug = (value = '') =>
+  value
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
+const mapCategoryOption = (item = {}) => {
+  const slug = normalizeSlug(item.slug || item.title || item.name || '');
+  if (!slug) return null;
+  return {
+    value: slug,
+    label: item.title || item.name || slug,
+  };
+};
 
 const Marketplace = ({ onNavigate }) => {
   const { isAuthenticated, user } = useAuth();
@@ -26,6 +56,7 @@ const Marketplace = ({ onNavigate }) => {
   });
   const [sortBy, setSortBy] = useState('newest');
   const [priceRange, setPriceRange] = useState([0, 100000000]);
+  const [typeOptions, setTypeOptions] = useState(DEFAULT_TYPE_OPTIONS);
 
   const { compareItems, addToCompare, removeFromCompare, isInCompare, canAddMore } = useCompare();
   const currentUserId =
@@ -75,16 +106,26 @@ const Marketplace = ({ onNavigate }) => {
     }
   };
 
-  const bikeTypes = [
-    { value: '', label: 'Tất cả loại xe' },
-    { value: 'mountain', label: 'Xe đạp địa hình' },
-    { value: 'road', label: 'Xe đạp đường trường' },
-    { value: 'hybrid', label: 'Xe đạp Hybrid' },
-    { value: 'electric', label: 'Xe đạp điện' },
-    { value: 'folding', label: 'Xe đạp gấp' },
-    { value: 'bmx', label: 'Xe đạp BMX' },
-    { value: 'cruiser', label: 'Xe đạp dạo phố' },
-  ];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await adminApi.getFieldCategories();
+        const data = response?.data?.data || response?.data || [];
+        const mapped = (Array.isArray(data) ? data : []).map(mapCategoryOption).filter(Boolean);
+
+        if (mapped.length) {
+          setTypeOptions([{ value: '', label: 'Tất cả loại xe' }, ...mapped]);
+        } else {
+          setTypeOptions(DEFAULT_TYPE_OPTIONS);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setTypeOptions(DEFAULT_TYPE_OPTIONS);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const priceRanges = [
     { value: '', label: 'Tất cả mức giá' },
@@ -508,8 +549,10 @@ const Marketplace = ({ onNavigate }) => {
                         color: 'var(--lux-gray-700)',
                       }}
                     >
-                      {bikeTypes.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                      {typeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -530,8 +573,10 @@ const Marketplace = ({ onNavigate }) => {
                         color: 'var(--lux-gray-700)',
                       }}
                     >
-                      {priceRanges.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                      {priceRanges.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -552,8 +597,10 @@ const Marketplace = ({ onNavigate }) => {
                         color: 'var(--lux-gray-700)',
                       }}
                     >
-                      {brands.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                      {brands.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -574,8 +621,10 @@ const Marketplace = ({ onNavigate }) => {
                         color: 'var(--lux-gray-700)',
                       }}
                     >
-                      {conditions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                      {conditions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -596,8 +645,10 @@ const Marketplace = ({ onNavigate }) => {
                         color: 'var(--lux-gray-700)',
                       }}
                     >
-                      {frameSizes.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                      {frameSizes.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -754,8 +805,9 @@ const Marketplace = ({ onNavigate }) => {
                   >
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`p-2.5 transition-all duration-300 ${viewMode === 'grid' ? 'bg-white shadow-soft' : ''
-                        }`}
+                      className={`p-2.5 transition-all duration-300 ${
+                        viewMode === 'grid' ? 'bg-white shadow-soft' : ''
+                      }`}
                       style={{
                         color:
                           viewMode === 'grid' ? 'var(--lux-primary-800)' : 'var(--lux-gray-500)',
@@ -777,8 +829,9 @@ const Marketplace = ({ onNavigate }) => {
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`p-2.5 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-soft' : ''
-                        }`}
+                      className={`p-2.5 transition-all duration-300 ${
+                        viewMode === 'list' ? 'bg-white shadow-soft' : ''
+                      }`}
                       style={{
                         color:
                           viewMode === 'list' ? 'var(--lux-primary-800)' : 'var(--lux-gray-500)',
@@ -823,7 +876,7 @@ const Marketplace = ({ onNavigate }) => {
                         color: 'var(--lux-primary-800)',
                       }}
                     >
-                      {bikeTypes.find((t) => t.value === filters.type)?.label}
+                      {typeOptions.find((t) => t.value === filters.type)?.label}
                       <button
                         onClick={() => setFilters({ ...filters, type: '' })}
                         className="rounded-full p-0.5 transition-colors"
@@ -1013,7 +1066,9 @@ const Marketplace = ({ onNavigate }) => {
             {/* Products */}
             <div
               className={
-                viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10' : 'space-y-6'
+                viewMode === 'grid'
+                  ? 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10'
+                  : 'space-y-6'
               }
             >
               {currentBikes.length > 0 ? (
@@ -1031,13 +1086,18 @@ const Marketplace = ({ onNavigate }) => {
                           alt={bike.name}
                           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                           loading="lazy"
-                          onError={(e) => { e.currentTarget.src = '/mountain_bike_hero_1768417732962.png'; }}
+                          onError={(e) => {
+                            e.currentTarget.src = '/mountain_bike_hero_1768417732962.png';
+                          }}
                         />
 
                         {bike.verified && (
                           <span
                             className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 tracking-wider"
-                            style={{ background: 'rgba(255,255,255,0.92)', color: 'var(--lux-primary-900)' }}
+                            style={{
+                              background: 'rgba(255,255,255,0.92)',
+                              color: 'var(--lux-primary-900)',
+                            }}
                           >
                             ✓ KIỂM ĐỊNH
                           </span>
@@ -1063,20 +1123,37 @@ const Marketplace = ({ onNavigate }) => {
 
                         <div
                           className="absolute inset-0 flex flex-col items-center justify-end pb-4 gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 60%)' }}
+                          style={{
+                            background:
+                              'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 60%)',
+                          }}
                         >
                           <div className="flex gap-2 w-full px-3">
                             <button
                               onClick={(e) => handleFavouriteToggle(e, bike)}
-                              aria-label={isFavourite(bike.id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                              aria-label={
+                                isFavourite(bike.id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'
+                              }
                               className="flex-1 py-2 text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur-sm transition-colors"
                               style={{
-                                background: isFavourite(bike.id) ? 'rgba(220,38,38,0.8)' : 'rgba(255,255,255,0.92)',
+                                background: isFavourite(bike.id)
+                                  ? 'rgba(220,38,38,0.8)'
+                                  : 'rgba(255,255,255,0.92)',
                                 color: isFavourite(bike.id) ? 'white' : 'var(--lux-primary-900)',
                               }}
                             >
-                              <svg className="w-3.5 h-3.5" fill={isFavourite(bike.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill={isFavourite(bike.id) ? 'currentColor' : 'none'}
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                />
                               </svg>
                               {isFavourite(bike.id) ? 'Đã thích' : 'Yêu thích'}
                             </button>
@@ -1085,12 +1162,26 @@ const Marketplace = ({ onNavigate }) => {
                               aria-label={isInCompare(bike.id) ? 'Bỏ so sánh' : 'So sánh'}
                               className="flex-1 py-2 text-xs font-semibold flex items-center justify-center gap-1 backdrop-blur-sm transition-colors"
                               style={{
-                                background: isInCompare(bike.id) ? 'var(--lux-primary-800)' : 'rgba(255,255,255,0.92)',
-                                color: isInCompare(bike.id) ? 'var(--lux-gold)' : 'var(--lux-primary-900)',
+                                background: isInCompare(bike.id)
+                                  ? 'var(--lux-primary-800)'
+                                  : 'rgba(255,255,255,0.92)',
+                                color: isInCompare(bike.id)
+                                  ? 'var(--lux-gold)'
+                                  : 'var(--lux-primary-900)',
                               }}
                             >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
                               </svg>
                               {isInCompare(bike.id) ? 'Đã chọn' : 'So sánh'}
                             </button>
@@ -1107,12 +1198,18 @@ const Marketplace = ({ onNavigate }) => {
                         </h4>
 
                         {bike.oldPrice && (
-                          <p className="text-xs line-through" style={{ color: 'var(--lux-gray-400)' }}>
+                          <p
+                            className="text-xs line-through"
+                            style={{ color: 'var(--lux-gray-400)' }}
+                          >
                             {bike.oldPrice.toLocaleString('vi-VN')} ₫
                           </p>
                         )}
 
-                        <p className="text-sm font-semibold" style={{ color: 'var(--lux-gray-800)' }}>
+                        <p
+                          className="text-sm font-semibold"
+                          style={{ color: 'var(--lux-gray-800)' }}
+                        >
                           {bike.price.toLocaleString('vi-VN')} ₫
                         </p>
 
@@ -1120,13 +1217,14 @@ const Marketplace = ({ onNavigate }) => {
                           <span
                             className="w-2 h-2 rounded-full shrink-0"
                             style={{
-                              backgroundColor: ({
-                                'Mới 100%': '#22c55e',
-                                'Như mới': '#86efac',
-                                'Tốt': '#f59e0b',
-                                'Khá': '#fb923c',
-                                'Cần sửa chữa': '#ef4444',
-                              })[bike.condition] || '#94a3b8',
+                              backgroundColor:
+                                {
+                                  'Mới 100%': '#22c55e',
+                                  'Như mới': '#86efac',
+                                  Tốt: '#f59e0b',
+                                  Khá: '#fb923c',
+                                  'Cần sửa chữa': '#ef4444',
+                                }[bike.condition] || '#94a3b8',
                             }}
                             aria-hidden="true"
                           />
@@ -1367,8 +1465,9 @@ const Marketplace = ({ onNavigate }) => {
                             </Button>
                             <button
                               onClick={(e) => handleCompareToggle(e, bike)}
-                              className={`px-6 py-3 border-2 transition-all font-medium ${isInCompare(bike.id) ? 'text-white' : ''
-                                }`}
+                              className={`px-6 py-3 border-2 transition-all font-medium ${
+                                isInCompare(bike.id) ? 'text-white' : ''
+                              }`}
                               style={{
                                 backgroundColor: isInCompare(bike.id)
                                   ? 'var(--lux-primary-800)'

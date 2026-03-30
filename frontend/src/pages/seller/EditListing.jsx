@@ -1,8 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import bicycleApi from '../../api/postNewsApi';
+import adminApi from '../../api/adminApi';
 import { toast } from 'react-toastify';
 import { Button, Card, Input, Select, Textarea } from '../../components/ui';
+
+const DEFAULT_TYPE_OPTIONS = [
+  { value: '', label: 'Chọn loại xe' },
+  { value: 'mountain', label: 'Xe đạp địa hình' },
+  { value: 'road', label: 'Xe đạp đường trường' },
+  { value: 'hybrid', label: 'Xe đạp Hybrid' },
+  { value: 'electric', label: 'Xe đạp điện' },
+  { value: 'folding', label: 'Xe đạp gấp' },
+  { value: 'bmx', label: 'Xe đạp BMX' },
+  { value: 'cruiser', label: 'Xe đạp dạo phố' },
+];
+
+const normalizeSlug = (value = '') =>
+  value
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
 
 const EditListing = () => {
   const navigate = useNavigate();
@@ -11,6 +32,7 @@ const EditListing = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
   const [inspectionType, setInspectionType] = useState('none');
+  const [typeOptions, setTypeOptions] = useState(DEFAULT_TYPE_OPTIONS);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -56,6 +78,36 @@ const EditListing = () => {
 
   const POST_FEE = 15000;
   const INSPECTION_FEE_OFFLINE = 200000;
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await adminApi.getFieldCategories();
+        const data = response?.data?.data || response?.data || [];
+        const options = (Array.isArray(data) ? data : [])
+          .map((item) => {
+            const slug = normalizeSlug(item.slug || item.title || item.name || '');
+            if (!slug) return null;
+            return {
+              value: slug,
+              label: item.title || item.name || slug,
+            };
+          })
+          .filter(Boolean);
+
+        if (options.length) {
+          setTypeOptions([{ value: '', label: 'Chọn loại xe' }, ...options]);
+        } else {
+          setTypeOptions(DEFAULT_TYPE_OPTIONS);
+        }
+      } catch (error) {
+        console.error('Error fetching categories for edit listing:', error);
+        setTypeOptions(DEFAULT_TYPE_OPTIONS);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     fetchBicycleData();
@@ -351,13 +403,14 @@ const EditListing = () => {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
+              <Select
                 label="Loại xe"
                 required
                 name="type"
                 value={formData.specifications.type}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Xe đạp địa hình, Xe đạp đường trường..."
+                placeholder="Chọn loại xe"
+                options={typeOptions}
               />
 
               <Input

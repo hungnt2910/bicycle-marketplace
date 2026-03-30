@@ -31,31 +31,13 @@ const CreateListing = () => {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
 
-  const mapCategoryToEnum = (raw) => {
-    const slug = normalizeSlug(raw || '');
-    if (!slug) return '';
-
-    const directMap = {
-      mountain: 'mountain',
-      road: 'road',
-      hybrid: 'hybrid',
-      electric: 'electric',
-      folding: 'folding',
-      bmx: 'bmx',
-      cruiser: 'cruiser',
+  const mapCategoryOption = (item = {}) => {
+    const slug = normalizeSlug(item.slug || item.title || item.name || '');
+    if (!slug) return null;
+    return {
+      value: slug,
+      label: item.title || item.name || slug,
     };
-
-    if (directMap[slug]) return directMap[slug];
-
-    if (slug.includes('mountain') || slug.includes('dia-hinh')) return 'mountain';
-    if (slug.includes('road')) return 'road';
-    if (slug.includes('hybrid')) return 'hybrid';
-    if (slug.includes('electric') || slug.includes('dien')) return 'electric';
-    if (slug.includes('folding') || slug.includes('gap')) return 'folding';
-    if (slug.includes('bmx')) return 'bmx';
-    if (slug.includes('cruiser') || slug.includes('dao-pho')) return 'cruiser';
-
-    return '';
   };
 
   // Form state
@@ -135,17 +117,9 @@ const CreateListing = () => {
     const fetchCategories = async () => {
       setLoadingTypes(true);
       try {
-        const response = await adminApi.getCategoriesPostNews();
+        const response = await adminApi.getFieldCategories();
         const data = response?.data?.data || response?.data || [];
-        const options = (Array.isArray(data) ? data : [])
-          .map((item) => {
-            const mappedValue = mapCategoryToEnum(item?.slug || item?.title || '');
-            return {
-              value: mappedValue,
-              label: item?.title || mappedValue || 'Danh mục',
-            };
-          })
-          .filter((opt) => !!opt.value);
+        const options = (Array.isArray(data) ? data : []).map(mapCategoryOption).filter(Boolean);
         setTypeOptions(options);
       } catch (error) {
         console.error('Error fetching categories:', error);
