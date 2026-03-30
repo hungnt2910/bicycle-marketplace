@@ -6,6 +6,7 @@ import bicycleApi from '../../api/postNewsApi';
 import authApi from '../../api/authApi';
 import favouriteApi from '../../api/favouriteApi';
 import userApi from '../../api/userApi';
+import adminApi from '../../api/adminApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import ReviewsSection from '../../components/reviews/ReviewsSection';
@@ -28,7 +29,7 @@ const ProductDetail = ({ productId }) => {
   const [transactionId, setTransactionId] = useState('');
   const MAX_PAYMENT_AMOUNT = 1000000000; // 1 tỷ VND - giới hạn an toàn cho ZaloPay
 
-  const typeLabelMap = {
+  const DEFAULT_TYPE_LABEL_MAP = {
     mountain: 'Xe đạp địa hình',
     road: 'Xe đạp đường trường',
     hybrid: 'Xe đạp Hybrid',
@@ -37,6 +38,17 @@ const ProductDetail = ({ productId }) => {
     bmx: 'Xe đạp BMX',
     cruiser: 'Xe đạp dạo phố',
   };
+
+  const normalizeSlug = (value = '') =>
+    value
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+  const [typeLabelMap, setTypeLabelMap] = useState(DEFAULT_TYPE_LABEL_MAP);
 
   const conditionLabelMap = {
     new: 'Mới 100%',
@@ -125,6 +137,32 @@ const ProductDetail = ({ productId }) => {
       toast.error('Không thể cập nhật yêu thích, thử lại sau');
     }
   };
+
+  const getTypeLabel = (slug) => typeLabelMap[slug] || DEFAULT_TYPE_LABEL_MAP[slug] || '—';
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await adminApi.getFieldCategories();
+        const data = response?.data?.data || response?.data || [];
+        const map = {};
+
+        (Array.isArray(data) ? data : []).forEach((item) => {
+          const slug = normalizeSlug(item.slug || item.title || item.name || '');
+          if (!slug) return;
+          map[slug] = item.title || item.name || slug;
+        });
+
+        if (Object.keys(map).length) {
+          setTypeLabelMap((prev) => ({ ...DEFAULT_TYPE_LABEL_MAP, ...prev, ...map }));
+        }
+      } catch (error) {
+        console.error('Error fetching categories for product detail:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const fetchProduct = useCallback(async () => {
     if (!productId) return;
@@ -248,7 +286,7 @@ const ProductDetail = ({ productId }) => {
           email: sellerEmail || '—',
         },
         specs: {
-          'Loại xe': typeLabelMap[bike?.specifications?.type] || '—',
+          'Loại xe': getTypeLabel(bike?.specifications?.type),
           'Thương hiệu': bike?.specifications?.brand || '—',
           'Năm sản xuất': bike?.specifications?.year || '—',
           'Kích thước khung': bike?.specifications?.frameSize || '—',
@@ -326,7 +364,7 @@ const ProductDetail = ({ productId }) => {
     } finally {
       setLoading(false);
     }
-  }, [productId]);
+  }, [productId, typeLabelMap]);
 
   useEffect(() => {
     fetchProduct();

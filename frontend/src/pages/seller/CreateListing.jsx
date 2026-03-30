@@ -21,6 +21,25 @@ const CreateListing = () => {
   const [wardOptions, setWardOptions] = useState([]);
   const [loadingWards, setLoadingWards] = useState(false);
 
+  const normalizeSlug = (value = '') =>
+    value
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+  const mapCategoryOption = (item = {}) => {
+    const slug = normalizeSlug(item.slug || item.title || item.name || '');
+    if (!slug) return null;
+    return {
+      value: slug,
+      label: item.title || item.name || slug,
+    };
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     // General Info
@@ -98,25 +117,9 @@ const CreateListing = () => {
     const fetchCategories = async () => {
       setLoadingTypes(true);
       try {
-        const response = await adminApi.getCategoriesPostNews();
+        const response = await adminApi.getFieldCategories();
         const data = response?.data?.data || response?.data || [];
-        const titleToEnum = (title = '') => {
-          const normalized = title.toLowerCase().trim();
-          if (normalized.includes('mountain') || normalized.includes('dia hinh')) return 'mountain';
-          if (normalized.includes('road') || normalized.includes('road')) return 'road';
-          if (normalized.includes('hybrid')) return 'hybrid';
-          if (normalized.includes('electric') || normalized.includes('dien')) return 'electric';
-          if (normalized.includes('folding') || normalized.includes('gap')) return 'folding';
-          if (normalized.includes('bmx')) return 'bmx';
-          if (normalized.includes('cruiser') || normalized.includes('dao pho')) return 'cruiser';
-          return '';
-        };
-        const options = data
-          .map((item) => ({
-            value: titleToEnum(item?.title || ''),
-            label: item?.title || 'Danh mục',
-          }))
-          .filter((opt) => opt.value);
+        const options = (Array.isArray(data) ? data : []).map(mapCategoryOption).filter(Boolean);
         setTypeOptions(options);
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -132,12 +135,11 @@ const CreateListing = () => {
   const fetchPostFee = async () => {
     try {
       const res = await adminApi.getSystemSettings();
-      const postFee =
-        (res?.data?.data || res?.data || [])[0]?.name_value?.find(
-          (i) => i.key === 'post_fee'
-        )?.value;
-        console.log('💰 Fetched post fee from system settings:', postFee);
-      if (postFee) {        
+      const postFee = (res?.data?.data || res?.data || [])[0]?.name_value?.find(
+        (i) => i.key === 'post_fee'
+      )?.value;
+      console.log('💰 Fetched post fee from system settings:', postFee);
+      if (postFee) {
         setPostFee(postFee);
       } else {
         setPostFee(15000); // Default fee if not set in system settings

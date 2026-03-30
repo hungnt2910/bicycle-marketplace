@@ -1,10 +1,6 @@
 import { IsOptional, IsString, IsNumber, IsIn, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import {
-  BicycleStatus,
-  BicycleType,
-  ConditionOverall,
-} from 'src/entities/bicycle.entity';
+import { BicycleStatus, ConditionOverall } from 'src/entities/bicycle.entity';
 
 export class FilterBicycleDto {
   // search
@@ -20,8 +16,7 @@ export class FilterBicycleDto {
 
   // basic
   @IsOptional()
-  @IsEnum(BicycleType)
-  type?: BicycleType;
+  type?: string;
 
   @IsOptional()
   brand?: string;

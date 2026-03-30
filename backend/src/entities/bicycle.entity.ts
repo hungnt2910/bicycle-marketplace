@@ -3,16 +3,6 @@ import { Document, Types } from 'mongoose';
 
 export type BicycleDocument = Bicycle & Document;
 
-export enum BicycleType {
-  MOUNTAIN = 'mountain',
-  ROAD = 'road',
-  HYBRID = 'hybrid',
-  ELECTRIC = 'electric',
-  FOLDING = 'folding',
-  BMX = 'bmx',
-  CRUISER = 'cruiser',
-}
-
 export enum FrameMaterial {
   ALUMINUM = 'aluminum',
   CARBON = 'carbon',
@@ -54,8 +44,8 @@ export enum BicycleStatus {
 }
 
 class Specifications {
-  @Prop({ enum: BicycleType })
-  type?: BicycleType;
+  @Prop()
+  type?: string;
 
   @Prop()
   brand?: string;
