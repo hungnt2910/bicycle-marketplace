@@ -516,7 +516,7 @@ export class TransactionsService {
 
       // Release bicycle back to market
       await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
-        status: 'active',
+        status: 'draft',
       });
 
       // Notify both parties
