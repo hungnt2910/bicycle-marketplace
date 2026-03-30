@@ -581,7 +581,7 @@ const Marketplace = ({ onNavigate }) => {
                     </select>
                   </div>
 
-                  <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
+                  {/* <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
                     <label
                       className="block text-sm font-semibold mb-3"
                       style={{ color: 'var(--lux-gray-700)' }}
@@ -603,7 +603,7 @@ const Marketplace = ({ onNavigate }) => {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </div> */}
 
                   <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
                     <label

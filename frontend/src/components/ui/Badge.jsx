@@ -18,7 +18,7 @@ const Badge = ({
         sold: 'status-sold',
     };
 
-    const classes = `${variants[variant]} ${className}`;
+    const classes = `badge ${variants[variant] || ''} ${className}`;
 
     return (
         <span className={classes} {...props}>
