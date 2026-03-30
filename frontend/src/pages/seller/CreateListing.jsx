@@ -255,154 +255,6 @@ const CreateListing = () => {
     return true;
   };
 
-  // const handleSubmit = async (isDraft = false) => {
-  //   try {
-  //     if (!isDraft && !validateForm()) {
-  //       return;
-  //     }
-
-  //     setLoading(true);
-
-  //     // Get sellerId from localStorage (user info)
-  //     const userInfoStr = localStorage.getItem('user') || localStorage.getItem('userInfo');
-  //     const accessToken = localStorage.getItem('accessToken');
-
-  //     console.log('🔍 Debug localStorage:', {
-  //       hasUserInfo: !!userInfoStr,
-  //       hasAccessToken: !!accessToken,
-  //       userInfoStr,
-  //     });
-
-  //     if (!userInfoStr) {
-  //       toast.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại');
-  //       navigate('/login');
-  //       return;
-  //     }
-
-  //     const userInfo = JSON.parse(userInfoStr);
-  //     const sellerId = userInfo._id || userInfo.id || userInfo.userId;
-
-  //     console.log('🔍 Debug userInfo:', {
-  //       userInfo,
-  //       sellerId,
-  //       hasId: !!(userInfo._id || userInfo.id || userInfo.userId),
-  //     });
-
-  //     if (!sellerId) {
-  //       toast.error('Không tìm thấy ID người dùng. Vui lòng đăng nhập lại');
-  //       console.error('UserInfo structure:', userInfo);
-  //       navigate('/login');
-  //       return;
-  //     }
-
-  //     if (!accessToken) {
-  //       toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
-  //       navigate('/login');
-  //       return;
-  //     }
-
-  //     // Prepare data for API or deferred creation after payment
-  //     const listingFee = isFirstPost ? 0 : post_fee;
-  //     const totalFee = listingFee;
-  //     const requiresPayment = !isDraft && totalFee > 0;
-
-  //     const submitData = {
-  //       sellerId,
-  //       title: formData.title,
-  //       description: formData.description,
-  //       price: Number(formData.price),
-  //       specifications: {
-  //         type: formData.specifications.type || undefined,
-  //         brand: formData.specifications.brand || undefined,
-  //         model: formData.specifications.model || undefined,
-  //         frameSize: formData.specifications.frameSize || undefined,
-  //         frameMaterial: formData.specifications.frameMaterial || undefined,
-  //         year: formData.specifications.year ? Number(formData.specifications.year) : undefined,
-  //         color: formData.specifications.color || undefined,
-  //         weight: formData.specifications.weight
-  //           ? Number(formData.specifications.weight)
-  //           : undefined,
-  //         wheelSize: formData.specifications.wheelSize || undefined,
-  //         gears: formData.specifications.gears ? Number(formData.specifications.gears) : undefined,
-  //         brakeType: formData.specifications.brakeType || undefined,
-  //         suspension: formData.specifications.suspension || undefined,
-  //       },
-  //       condition: {
-  //         overall: formData.condition.overall || undefined,
-  //         usageHistory: formData.condition.usageHistory || undefined,
-  //         mileage: formData.condition.mileage ? Number(formData.condition.mileage) : undefined,
-  //         lastServiceDate: formData.condition.lastServiceDate || undefined,
-  //       },
-  //       media: {
-  //         images: formData.media.images,
-  //         videos: formData.media.videos,
-  //         mainImage: formData.media.mainImage || formData.media.images[0],
-  //       },
-  //       location: {
-  //         city: formData.location.city || undefined,
-  //         district: formData.location.ward || undefined,
-  //         address: formData.location.address || undefined,
-  //       },
-  //       // If payment is required, we defer creation until after payment
-  //       status: isDraft ? 'draft' : requiresPayment ? 'pending_review' : 'pending_review',
-  //       pricing: {
-  //         listingFee,
-  //         commissionRate: 0.05, // 5% hoa hồng
-  //         isPaid: !requiresPayment,
-  //       },
-  //     };
-
-  //     // If this is a draft or a free post, create immediately
-  //     if (isDraft || !requiresPayment) {
-  //       const response = await bicycleApi.createBicycle(submitData);
-  //       const createdListing = response?.data?.data || response?.data;
-  //       if (!createdListing) {
-  //         throw new Error('Không thể tạo bài đăng, vui lòng thử lại.');
-  //       }
-
-  //       if (isDraft) {
-  //         toast.success('Lưu nháp thành công!');
-  //         navigate('/seller/my-listings');
-  //         return;
-  //       }
-
-  //       const successMessage = `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${
-  //         isFirstPost
-  //           ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT
-  //           : ''
-  //       }`;
-
-  //       toast.success(successMessage);
-  //       navigate('/');
-  //       return;
-  //     }
-
-  //     // Paid listing: defer creation until payment succeeds
-  //     localStorage.setItem(
-  //       'pendingListingPayload',
-  //       JSON.stringify({
-  //         ...submitData,
-  //         status: 'pending_review',
-  //         pricing: { ...submitData.pricing, isPaid: true },
-  //       })
-  //     );
-  //     localStorage.setItem('pendingListingReturnUrl', '/seller/manage-listings');
-
-  //     const params = new URLSearchParams({
-  //       type: 'fee',
-  //       amount: String(totalFee),
-  //       title: formData.title || 'Phí đăng tin',
-  //       returnUrl: '/seller/manage-listings',
-  //     });
-
-  //     navigate(`/wallet-payment?${params.toString()}`);
-  //   } catch (error) {
-  //     console.error('Error creating bicycle listing:', error);
-  //     toast.error(error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const handleSubmit = async (isDraft = false) => {
     try {
       if (!isDraft && !validateForm()) {
@@ -411,70 +263,155 @@ const CreateListing = () => {
 
       setLoading(true);
 
-      // Lấy sellerId
-      const storedUser = localStorage.getItem('user') || localStorage.getItem('userInfo');
-      const userInfo = JSON.parse(storedUser || '{}');
+      // Get sellerId from localStorage (user info)
+      const userInfoStr = localStorage.getItem('user') || localStorage.getItem('userInfo');
+      const accessToken = localStorage.getItem('accessToken');
+
+      console.log('🔍 Debug localStorage:', {
+        hasUserInfo: !!userInfoStr,
+        hasAccessToken: !!accessToken,
+        userInfoStr,
+      });
+
+      if (!userInfoStr) {
+        toast.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại');
+        navigate('/login');
+        return;
+      }
+
+      const userInfo = JSON.parse(userInfoStr);
       const sellerId = userInfo._id || userInfo.id || userInfo.userId;
 
-      // Fetch lại danh sách bài đăng để xác định còn lượt free không
-      const response = await bicycleApi.getMyBicycles(sellerId);
-      const bicycles = response.data || [];
-      const userPostCount = bicycles.length;
-      const FREE_POST_LIMIT = 2;
-      const hasFreePost = userPostCount < FREE_POST_LIMIT;
+      console.log('🔍 Debug userInfo:', {
+        userInfo,
+        sellerId,
+        hasId: !!(userInfo._id || userInfo.id || userInfo.userId),
+      });
 
-      // Chuẩn bị dữ liệu bài đăng
+      if (!sellerId) {
+        toast.error('Không tìm thấy ID người dùng. Vui lòng đăng nhập lại');
+        console.error('UserInfo structure:', userInfo);
+        navigate('/login');
+        return;
+      }
+
+      if (!accessToken) {
+        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
+        navigate('/login');
+        return;
+      }
+
+      // Prepare data for API
+      const listingFee = isFirstPost ? 0 : post_fee;
+      const totalFee = listingFee;
+      const requiresPayment = !isDraft && totalFee > 0;
+
       const submitData = {
         sellerId,
         title: formData.title,
         description: formData.description,
         price: Number(formData.price),
-        specifications: { ...formData.specifications },
-        condition: { ...formData.condition },
+        specifications: {
+          type: formData.specifications.type || undefined,
+          brand: formData.specifications.brand || undefined,
+          model: formData.specifications.model || undefined,
+          frameSize: formData.specifications.frameSize || undefined,
+          frameMaterial: formData.specifications.frameMaterial || undefined,
+          year: formData.specifications.year ? Number(formData.specifications.year) : undefined,
+          color: formData.specifications.color || undefined,
+          weight: formData.specifications.weight
+            ? Number(formData.specifications.weight)
+            : undefined,
+          wheelSize: formData.specifications.wheelSize || undefined,
+          gears: formData.specifications.gears ? Number(formData.specifications.gears) : undefined,
+          brakeType: formData.specifications.brakeType || undefined,
+          suspension: formData.specifications.suspension || undefined,
+        },
+        condition: {
+          overall: formData.condition.overall || undefined,
+          usageHistory: formData.condition.usageHistory || undefined,
+          mileage: formData.condition.mileage ? Number(formData.condition.mileage) : undefined,
+          lastServiceDate: formData.condition.lastServiceDate || undefined,
+        },
         media: {
-          ...formData.media,
+          images: formData.media.images,
+          videos: formData.media.videos,
           mainImage: formData.media.mainImage || formData.media.images[0],
         },
-        location: { ...formData.location },
+        location: {
+          city: formData.location.city || undefined,
+          district: formData.location.ward || undefined,
+          address: formData.location.address || undefined,
+        },
         status: isDraft ? 'draft' : 'pending_review',
         pricing: {
-          listingFee: hasFreePost ? 0 : post_fee,
-          commissionRate: 0.05,
-          isPaid: hasFreePost,
+          listingFee,
+          commissionRate: 0.05, // 5% hoa hồng
+          isPaid: !requiresPayment,
         },
       };
 
-      if (isDraft || hasFreePost) {
-        // Đăng tin miễn phí hoặc lưu nháp
-        await bicycleApi.createBicycle(submitData);
-        toast.success(
-          isDraft ? 'Lưu nháp thành công!' : 'Đăng tin thành công! Tin đăng đang chờ admin duyệt.'
-        );
-        navigate(isDraft ? '/seller/my-listings' : '/seller/manage-listings');
+      const response = await bicycleApi.createBicycle(submitData);
+      const createdListing = response?.data?.data || response?.data;
+      const bicycleId =
+        createdListing?._id ||
+        createdListing?.id ||
+        createdListing?.bicycleId ||
+        createdListing?.data?._id ||
+        createdListing?.data?.id;
+      if (!createdListing) {
+        throw new Error('Không thể tạo bài đăng, vui lòng thử lại.');
+      }
+
+      const newBicycleId = createdListing?._id || createdListing?.id || response?.data?.data?._id;
+
+      if (isDraft) {
+        toast.success('Lưu nháp thành công!');
+        navigate('/seller/my-listings');
         return;
       }
 
-      // Nếu hết lượt free: gọi API fee trước
-      try {
-        await transactionApi.payFee({
-          amount: post_fee,
-          type: 'fee',
-          paymentMethod: 'e_wallet',
-          // Có thể bổ sung address/phone nếu BE yêu cầu
-        });
-        // Nếu thanh toán thành công, mới tạo bài đăng
-        await bicycleApi.createBicycle(submitData);
-        toast.success('Đăng tin thành công! Tin đăng đang chờ admin duyệt.');
-        navigate('/seller/manage-listings');
-      } catch (err) {
-        toast.error('Thanh toán thất bại, không thể đăng tin');
+      // 🔹 Nếu không cần thanh toán
+      if (!requiresPayment) {
+        const successMessage = `Đăng tin thành công! Tin đăng đang chờ admin duyệt. ${
+          isFirstPost
+            ? '🎉 Miễn phí bài đăng thứ ' + (userPostCount + 1) + '/' + FREE_POST_LIMIT
+            : ''
+        }`;
+
+        toast.success(successMessage);
+        navigate('/');
+        return;
       }
+
+      // 🔹 Nếu cần thanh toán
+      if (!newBicycleId) {
+        throw new Error('Không tìm thấy mã bài đăng để tạo giao dịch thanh toán.');
+      }
+
+      toast.info('Bài đăng đã tạo. Chuyển sang thanh toán phí...', {
+        autoClose: 2000,
+      });
+
+      // Chuyển sang trang xác nhận thanh toán ví
+      const params = new URLSearchParams({
+        type: 'fee',
+        amount: String(totalFee),
+        bicycleId: newBicycleId,
+        title: formData.title || 'Phí đăng tin',
+        returnUrl: '/seller/manage-listings',
+      });
+
+      localStorage.setItem('pendingBicycleId', newBicycleId);
+      navigate(`/wallet-payment?${params.toString()}`);
     } catch (error) {
+      console.error('Error creating bicycle listing:', error);
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setLoading(false);
     }
   };
+
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
