@@ -69,6 +69,7 @@ export class TransactionsService {
         throw new BadRequestException(
           'Inspection report has expired. A new inspection is required.',
         );
+      
       }
     }
 
@@ -95,6 +96,15 @@ export class TransactionsService {
       autoReleaseDeadline.getDate() + 3
     );
 
+    // Debit full amount from buyer's wallet and hold in escrow
+    await this.walletService.debit(
+      buyerId,
+      amount,
+      WalletTransactionType.PURCHASE,
+      `Payment for bicycle ${bicycleId}`,
+      // { transactionId: transaction._id.toString(), bicycleId },
+    );
+
     const transaction = await this.transactionModel.create({
       buyerId,
       sellerId: bicycle.sellerId,
@@ -109,14 +119,7 @@ export class TransactionsService {
       phone,
     });
 
-    // Debit full amount from buyer's wallet and hold in escrow
-    await this.walletService.debit(
-      buyerId,
-      amount,
-      WalletTransactionType.PURCHASE,
-      `Payment for bicycle ${bicycleId}`,
-      { transactionId: transaction._id.toString(), bicycleId },
-    );
+    
 
     await this.walletService.holdInEscrow(
       buyerId,
@@ -1066,6 +1069,9 @@ export class TransactionsService {
     if (bicycle.status !== 'active') {
       throw new BadRequestException('Bicycle is not available');
     }
+
+    bicycle.status = BicycleStatus.RESERVED;
+    await bicycle.save();
 
     const existing = await this.transactionModel.findOne({
       bicycleId,

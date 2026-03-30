@@ -219,43 +219,26 @@ export class DisputesService {
       // If admin requires the buyer to return the bicycle first,
       // set the dispute to a return-requested state and wait for the
       // buyer to ship and seller to confirm before refunding.
-      if (requireReturn) {
-        dispute.status = DisputeStatus.RETURN_REQUESTED;
-        // if (!dispute.resolution) dispute.resolution = {} as any;
-        dispute.resolution.requireReturn = true;
+      dispute.status = DisputeStatus.RETURN_REQUESTED;
+      // if (!dispute.resolution) dispute.resolution = {} as any;
+      dispute.resolution.requireReturn = true;
 
-        disputeTimeline.push({
-          action: 'Return requested by admin',
-          performedBy: adminId as any,
-          notes: 'Buyer must return bicycle to seller before refund',
-          timestamp: new Date(),
-        } as any);
-      } else {
-        dispute.status = DisputeStatus.RESOLVED_BUYER_FAVOR;
-
-        // Refund buyer immediately
-        await this.escrowService.refundFunds(transaction);
-        transaction.status = TransactionStatus.REFUNDED;
-        
-        // Hide bicycle (not sellable without return)
-        const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
-        if (bicycle) {
-          bicycle.status = BicycleStatus.HIDDEN;
-          bicycle.updatedAt = new Date();
-          await bicycle.save();
-        }
-      }
+      disputeTimeline.push({
+        action: 'Return requested by admin',
+        performedBy: adminId as any,
+        notes: 'Buyer must return bicycle to seller before refund',
+        timestamp: new Date(),
+      } as any);
     } else if (decision === 'seller_favor') {
       dispute.status = DisputeStatus.RESOLVED_SELLER_FAVOR;
 
       // Release funds to seller
       await this.escrowService.releaseFunds(transaction._id.toString());
       transaction.status = TransactionStatus.COMPLETED;
-      
-      // Reset bicycle to ACTIVE so seller can sell again
+
       const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
       if (bicycle) {
-        bicycle.status = BicycleStatus.ACTIVE;
+        bicycle.status = BicycleStatus.SOLD;
         bicycle.updatedAt = new Date();
         await bicycle.save();
       }
@@ -340,7 +323,10 @@ export class DisputesService {
   }
 
   // Seller confirms they have received the returned bicycle — release refund
-  async sellerConfirmReceived(disputeId: string, sellerId: string): Promise<Dispute> {
+  async sellerConfirmReceived(
+    disputeId: string,
+    sellerId: string,
+  ): Promise<Dispute> {
     const dispute = await this.disputeModel.findById(disputeId);
     if (!dispute) throw new BadRequestException('Dispute not found');
 
@@ -348,7 +334,10 @@ export class DisputesService {
       throw new BadRequestException('Return not awaiting seller confirmation');
     }
 
-    if (!dispute.reportedUserId || dispute.reportedUserId.toString() !== sellerId) {
+    if (
+      !dispute.reportedUserId ||
+      dispute.reportedUserId.toString() !== sellerId
+    ) {
       throw new ForbiddenException('Only the seller can confirm receipt');
     }
 
@@ -356,13 +345,15 @@ export class DisputesService {
     (dispute.returnInfo as any).sellerConfirmedAt = new Date();
     dispute.status = DisputeStatus.RETURN_RECEIVED;
 
-    const transaction = await this.transactionModel.findById(dispute.transactionId);
+    const transaction = await this.transactionModel.findById(
+      dispute.transactionId,
+    );
     if (!transaction) throw new BadRequestException('Transaction not found');
 
     // Refund buyer now that seller confirmed receipt
     await this.escrowService.refundFunds(transaction);
     transaction.status = TransactionStatus.REFUNDED;
-    
+
     // Reset bicycle to DRAFT so seller can refurbish and re-list
     const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
     if (bicycle) {
@@ -386,7 +377,6 @@ export class DisputesService {
     return dispute;
   }
 
-
   async getDisputeById(disputeId: string): Promise<Dispute> {
     const dispute = await this.disputeModel.findById(disputeId);
     if (!dispute) {
@@ -395,10 +385,7 @@ export class DisputesService {
     return dispute;
   }
 
-  async getMyDisputes(
-    userId: string,
-    status?: string,
-  ): Promise<Dispute[]> {
+  async getMyDisputes(userId: string, status?: string): Promise<Dispute[]> {
     const query: any = {
       $or: [{ reporterId: userId }, { reportedUserId: userId }],
     };
@@ -407,7 +394,7 @@ export class DisputesService {
     }
     return this.disputeModel.find(query).sort({ createdAt: -1 }).exec();
   }
-    
+
   async getAllDisputes(
     status?: string,
     page = 1,
