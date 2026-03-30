@@ -30,7 +30,7 @@ const CategoryManagement = () => {
           slug: item?.slug || '',
           description: item?.description || '',
           icon: item?.icon || '🚲',
-          listingCount: item?.listingCount || 0,
+          // listingCount: item?.listingCount || 0,
           status: item?.status || 'active',
           createdDate: item?.createdAt
             ? new Date(item.createdAt).toISOString().slice(0, 10)
@@ -130,7 +130,7 @@ const CategoryManagement = () => {
           slug: created?.slug || slugify(payload.title),
           description: created?.description || '',
           icon: created?.icon || '🚲',
-          listingCount: created?.listingCount || 0,
+          // listingCount: created?.listingCount || 0,
           status: created?.status || 'active',
           createdDate: created?.createdAt
             ? new Date(created.createdAt).toISOString().slice(0, 10)
@@ -204,18 +204,18 @@ const CategoryManagement = () => {
             value: categories.filter((c) => c.status === 'active').length,
             color: 'green',
           },
-          {
-            label: 'Tổng tin đăng',
-            value: categories.reduce((sum, c) => sum + c.listingCount, 0),
-            color: 'purple',
-          },
-          {
-            label: 'Trung bình',
-            value: Math.round(
-              categories.reduce((sum, c) => sum + c.listingCount, 0) / categories.length
-            ),
-            color: 'orange',
-          },
+          // {
+          //   label: 'Tổng tin đăng',
+          //   value: categories.reduce((sum, c) => sum + c.listingCount, 0),
+          //   color: 'purple',
+          // },
+          // {
+          //   label: 'Trung bình',
+          //   value: Math.round(
+          //     categories.reduce((sum, c) => sum + c.listingCount, 0) / categories.length
+          //   ),
+          //   color: 'orange',
+          // },
         ].map((stat, idx) => (
           <div key={idx} className="lux-panel">
             <p className="text-warmgray-600 text-sm">{stat.label}</p>
@@ -236,9 +236,7 @@ const CategoryManagement = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Slug
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
-                  Số tin đăng
-                </th>
+
                 <th className="px-6 py-3 text-left text-xs font-medium text-warmgray-500 uppercase">
                   Trạng thái
                 </th>
@@ -276,14 +274,16 @@ const CategoryManagement = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <code className="text-sm bg-warmgray-100 px-2 py-1 rounded">{category.slug}</code>
+                      <code className="text-sm bg-warmgray-100 px-2 py-1 rounded">
+                        {category.slug}
+                      </code>
                     </td>
-                    <td className="px-6 py-4">
+                    {/* <td className="px-6 py-4">
                       <span className="text-lg font-bold text-primary-900">
                         {category.listingCount}
                       </span>
                       <span className="text-sm text-warmgray-500"> tin</span>
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4">
                       <Badge variant={category.status === 'active' ? 'success' : 'secondary'}>
                         {category.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
@@ -398,7 +398,9 @@ const CategoryManagement = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-warmgray-700 mb-2">Icon/Emoji</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                  Icon/Emoji
+                </label>
                 <input
                   type="text"
                   name="icon"
@@ -410,7 +412,9 @@ const CategoryManagement = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-warmgray-700 mb-2">Trạng thái</label>
+                <label className="block text-sm font-medium text-warmgray-700 mb-2">
+                  Trạng thái
+                </label>
                 <select
                   name="status"
                   value={formData.status}
