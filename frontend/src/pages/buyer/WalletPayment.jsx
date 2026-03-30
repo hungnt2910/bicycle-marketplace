@@ -4,6 +4,7 @@ import { Card, Button, Badge, Input } from '../../components/ui';
 import walletApi from '../../api/walletApi';
 import transactionApi from '../../api/transactionApi';
 import authApi from '../../api/authApi';
+import bicycleApi from '../../api/postNewsApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -30,11 +31,15 @@ const WalletPayment = () => {
   const transactionId = searchParams.get('transactionId') || '';
   const title = searchParams.get('title') || '';
   const returnUrl = searchParams.get('returnUrl') || '/';
+  const pendingBicycleId = localStorage.getItem('pendingBicycleId') || '';
+  const pendingListingPayload = localStorage.getItem('pendingListingPayload');
+  const pendingListingReturnUrl = localStorage.getItem('pendingListingReturnUrl') || '';
 
   const [walletBalance, setWalletBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
 
   const isInsufficientBalance = walletBalance !== null && walletBalance < amount;
   const remainingBalance = walletBalance !== null ? walletBalance - amount : null;
@@ -57,34 +62,39 @@ const WalletPayment = () => {
       }
     };
 
-    const prefillAddressFromStorage = () => {
+    const prefillContactFromStorage = () => {
       if (role !== 'buyer') return;
       try {
         const storedUser = localStorage.getItem('user');
         const parsedUser = storedUser ? JSON.parse(storedUser) : {};
         const presetAddress = parsedUser?.address || parsedUser?.profile?.address || '';
-        setShippingAddress((prev) => prev || presetAddress || '');
+        const presetPhone = parsedUser?.phone || parsedUser?.profile?.phone || '';
+        setAddress((prev) => prev || presetAddress || '');
+        setPhone((prev) => prev || presetPhone || '');
       } catch (err) {
-        setShippingAddress((prev) => prev || '');
+        setAddress((prev) => prev || '');
+        setPhone((prev) => prev || '');
       }
     };
 
-    const fetchProfileAddress = async () => {
+    const fetchProfileContact = async () => {
       if (role !== 'buyer') return;
       try {
         const res = await authApi.profile();
         const profileAddress = res?.data?.data?.address || res?.data?.address || '';
-        // const profileDistrict = res?.data?.data?.district || res?.data?.district || '';
+        const profilePhone =
+          res?.data?.data?.phone || res?.data?.phone || res?.data?.data?.profile?.phone || '';
         const combined = [profileAddress].filter(Boolean).join(', ');
-        setShippingAddress((prev) => prev || combined || profileAddress || '');
+        setAddress((prev) => prev || combined || profileAddress || '');
+        setPhone((prev) => prev || profilePhone || '');
       } catch (err) {
         // silent fallback to local storage
       }
     };
 
-    prefillAddressFromStorage();
+    prefillContactFromStorage();
     fetchWallet();
-    fetchProfileAddress();
+    fetchProfileContact();
   }, [role]);
 
   const handleConfirm = async () => {
@@ -93,8 +103,8 @@ const WalletPayment = () => {
       return;
     }
 
-    if (role === 'buyer' && !shippingAddress.trim()) {
-      toast.error('Vui lòng nhập địa chỉ nhận hàng');
+    if (role === 'buyer' && (!address.trim() || !phone.trim())) {
+      toast.error('Vui lòng nhập địa chỉ và số điện thoại');
       return;
     }
 
@@ -108,25 +118,47 @@ const WalletPayment = () => {
           amount,
           type: 'full_payment',
           paymentMethod: 'e_wallet',
-          shippingAddress: role === 'buyer' ? shippingAddress.trim() : undefined,
+          address: role === 'buyer' ? address.trim() : undefined,
+          phone: role === 'buyer' ? phone.trim() : undefined,
         });
       } else if (type === 'deposit') {
         res = await transactionApi.createDeposit({
           bicycleId,
           depositRate,
           paymentMethod: 'e_wallet',
-          shippingAddress: role === 'buyer' ? shippingAddress.trim() : undefined,
+          address: role === 'buyer' ? address.trim() : undefined,
+          phone: role === 'buyer' ? phone.trim() : undefined,
         });
       } else if (type === 'pay_balance') {
         res = await transactionApi.payRemainingBalance(transactionId);
       } else if (type === 'fee' || type === 'inspection_fee') {
+        // Pay fee; if listing not yet created, bicycleId will be empty
         res = await transactionApi.payFee({
-          bicycleId,
+          bicycleId: bicycleId || undefined,
           amount,
           type,
           paymentMethod: 'e_wallet',
-          shippingAddress: role === 'buyer' ? shippingAddress.trim() : undefined,
+          address: role === 'buyer' ? address.trim() : undefined,
+          phone: role === 'buyer' ? phone.trim() : undefined,
         });
+
+        // If this is a deferred listing creation (no bicycleId yet), create after payment success
+        if (type === 'fee' && pendingListingPayload && !bicycleId) {
+          try {
+            const payload = JSON.parse(pendingListingPayload);
+            const createRes = await bicycleApi.createBicycle(payload);
+            const created = createRes?.data?.data || createRes?.data;
+            if (!created) {
+              throw new Error('Thanh toán thành công nhưng không tạo được tin đăng.');
+            }
+            localStorage.removeItem('pendingListingPayload');
+            localStorage.removeItem('pendingListingReturnUrl');
+          } catch (createErr) {
+            console.error('Create listing after payment failed:', createErr);
+            toast.error('Đã trừ phí nhưng không tạo được tin đăng. Vui lòng thử lại.');
+            return;
+          }
+        }
       } else {
         throw new Error('Loại giao dịch không hợp lệ');
       }
@@ -136,6 +168,8 @@ const WalletPayment = () => {
       // Navigate to appropriate page after success
       if (type === 'pay_balance' && transactionId) {
         navigate(`/buyer/transactions/${transactionId}`);
+      } else if (pendingListingReturnUrl) {
+        navigate(pendingListingReturnUrl);
       } else if (returnUrl && returnUrl !== '/') {
         navigate(returnUrl);
       } else if (role === 'seller') {
@@ -147,6 +181,8 @@ const WalletPayment = () => {
       console.error('Payment error:', err);
       const message = err?.response?.data?.message || err.message || 'Thanh toán thất bại';
       toast.error(message);
+
+      // Keep pending payload so user can retry payment
     } finally {
       setConfirming(false);
     }
@@ -644,12 +680,25 @@ const WalletPayment = () => {
                       </span>
                     </div>
                     <Input
-                      value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
                       placeholder="Nhập địa chỉ nhận hàng"
                     />
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: 'var(--lux-gray-500)' }}
+                      >
+                        Số điện thoại liên hệ
+                      </span>
+                    </div>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Nhập số điện thoại"
+                    />
                     <p className="text-xs" style={{ color: 'var(--lux-gray-400)' }}>
-                      Bạn có thể thay đổi địa chỉ này trước khi thanh toán.
+                      Bạn có thể thay đổi địa chỉ và số điện thoại này trước khi thanh toán.
                     </p>
                   </div>
                 )}
