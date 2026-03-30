@@ -53,7 +53,7 @@ export class TransactionsService {
     buyerId: string,
     createDto: CreateTransactionDto,
   ): Promise<TransactionDocument> {
-    const { bicycleId, amount, type, paymentMethod } = createDto;
+    const { bicycleId, amount, type, paymentMethod, address, phone } = createDto;
 
     const bicycle = await this.bicycleModel.findById(bicycleId);
     if (!bicycle) throw new BadRequestException('Bicycle not found');
@@ -105,6 +105,8 @@ export class TransactionsService {
       escrow: { heldAmount: amount, autoReleaseDeadline },
       payment: { method: paymentMethod },
       buyerConfirmation: { confirmed: false },
+      address,
+      phone,
     });
 
     // Debit full amount from buyer's wallet and hold in escrow
@@ -369,6 +371,7 @@ export class TransactionsService {
     if(!bicycle) {
       throw new BadRequestException('Bicycle not found');
     }
+
     bicycle.status = BicycleStatus.SOLD;
     await bicycle.save();
 
@@ -1056,7 +1059,7 @@ export class TransactionsService {
     buyerId: string,
     dto: CreateDepositDto,
   ): Promise<TransactionDocument> {
-    const { bicycleId, depositRate = 0.2, paymentMethod } = dto;
+    const { bicycleId, depositRate = 0.2, paymentMethod, address, phone } = dto;
 
     const bicycle = await this.bicycleModel.findById(bicycleId);
     if (!bicycle) throw new BadRequestException('Bicycle not found');
@@ -1107,6 +1110,8 @@ export class TransactionsService {
         autoReleaseDeadline: paymentDeadline,
       },
       buyerConfirmation: { confirmed: false },
+      address,
+      phone,
     });
 
     // Debit deposit amount from buyer's wallet and hold in escrow

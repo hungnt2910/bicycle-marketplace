@@ -184,6 +184,12 @@ export class Transaction {
   buyerConfirmation?: BuyerConfirmation;
 
   @Prop()
+  address?: string;
+
+  @Prop()
+  phone?: string;
+
+  @Prop()
   createdAt?: Date;
 
   @Prop()

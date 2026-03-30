@@ -366,7 +366,7 @@ export class DisputesService {
     // Reset bicycle to DRAFT so seller can refurbish and re-list
     const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
     if (bicycle) {
-      bicycle.status = BicycleStatus.DRAFT;
+      bicycle.status = BicycleStatus.ACTIVE;
       bicycle.inspection = undefined;
       bicycle.updatedAt = new Date();
       await bicycle.save();
