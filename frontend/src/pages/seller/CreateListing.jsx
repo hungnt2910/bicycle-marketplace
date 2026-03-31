@@ -18,6 +18,28 @@ const CreateListing = () => {
   const [typeOptions, setTypeOptions] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [post_fee, setPostFee] = useState(0);
+  const [maxImagesPerListing, setMaxImagesPerListing] = useState(10);
+  const [wardOptions, setWardOptions] = useState([]);
+  const [loadingWards, setLoadingWards] = useState(false);
+
+  const normalizeSlug = (value = '') =>
+    value
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+  const mapCategoryOption = (item = {}) => {
+    const slug = normalizeSlug(item.slug || item.title || item.name || '');
+    if (!slug) return null;
+    return {
+      value: slug,
+      label: item.title || item.name || slug,
+    };
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -59,8 +81,8 @@ const CreateListing = () => {
 
     // Location
     location: {
-      city: '',
-      district: '',
+      city: 'TP. Hồ Chí Minh',
+      ward: '',
       address: '',
     },
 
@@ -96,25 +118,9 @@ const CreateListing = () => {
     const fetchCategories = async () => {
       setLoadingTypes(true);
       try {
-        const response = await adminApi.getCategoriesPostNews();
+        const response = await adminApi.getFieldCategories();
         const data = response?.data?.data || response?.data || [];
-        const titleToEnum = (title = '') => {
-          const normalized = title.toLowerCase().trim();
-          if (normalized.includes('mountain') || normalized.includes('dia hinh')) return 'mountain';
-          if (normalized.includes('road') || normalized.includes('road')) return 'road';
-          if (normalized.includes('hybrid')) return 'hybrid';
-          if (normalized.includes('electric') || normalized.includes('dien')) return 'electric';
-          if (normalized.includes('folding') || normalized.includes('gap')) return 'folding';
-          if (normalized.includes('bmx')) return 'bmx';
-          if (normalized.includes('cruiser') || normalized.includes('dao pho')) return 'cruiser';
-          return '';
-        };
-        const options = data
-          .map((item) => ({
-            value: titleToEnum(item?.title || ''),
-            label: item?.title || 'Danh mục',
-          }))
-          .filter((opt) => opt.value);
+        const options = (Array.isArray(data) ? data : []).map(mapCategoryOption).filter(Boolean);
         setTypeOptions(options);
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -127,27 +133,44 @@ const CreateListing = () => {
     fetchCategories();
   }, []);
 
-  const fetchPostFee = async () => {
-    try {
-      const res = await adminApi.getSystemSettings();
-      const postFee =
-        (res?.data?.data || res?.data || [])[0]?.name_value?.find(
-          (i) => i.key === 'post_fee'
-        )?.value;
-        console.log('💰 Fetched post fee from system settings:', postFee);
-      if (postFee) {        
-        setPostFee(postFee);
-      } else {
-        setPostFee(15000); // Default fee if not set in system settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await adminApi.getSystemSettings();
+        const settings = (res?.data?.data || res?.data || [])[0]?.name_value || [];
+        const postFeeVal = settings.find((i) => i.key === 'post_fee')?.value;
+        const maxImagesVal = settings.find((i) => i.key === 'max_images_per_listing')?.value;
+        if (postFeeVal) setPostFee(Number(postFeeVal));
+        if (maxImagesVal) setMaxImagesPerListing(Number(maxImagesVal));
+      } catch (error) {
+        console.error('Error fetching settings:', error);
       }
-    } catch (error) {
-      console.error('Error fetching post fee:', error);
-      setPostFee(15000); // Default fee on error
-    }
-  };
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
-    fetchPostFee();
+    const fetchHcmWards = async () => {
+      setLoadingWards(true);
+      try {
+        const response = await fetch('https://provinces.open-api.vn/api/v2/p/79?depth=2');
+        const data = await response.json();
+
+        const wardOpts = (Array.isArray(data?.wards) ? data.wards : [])
+          .map((ward) => ({ value: ward?.name || '', label: ward?.name || '' }))
+          .filter((item) => item.value)
+          .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+
+        setWardOptions(wardOpts);
+      } catch (error) {
+        console.error('Error fetching HCM wards:', error);
+        setWardOptions([]);
+      } finally {
+        setLoadingWards(false);
+      }
+    };
+
+    fetchHcmWards();
   }, []);
 
   const pollPaymentStatus = async (transactionId) => {
@@ -312,7 +335,7 @@ const CreateListing = () => {
         },
         location: {
           city: formData.location.city || undefined,
-          district: formData.location.district || undefined,
+          district: formData.location.ward || undefined,
           address: formData.location.address || undefined,
         },
         status: isDraft ? 'draft' : 'pending_review',
@@ -388,8 +411,8 @@ const CreateListing = () => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    if (files.length + formData.media.images.length > 10) {
-      toast.error('Tối đa 10 hình ảnh');
+    if (files.length + formData.media.images.length > maxImagesPerListing) {
+      toast.error(`Tối đa ${maxImagesPerListing} hình ảnh`);
       return;
     }
 
@@ -737,7 +760,7 @@ const CreateListing = () => {
                 <p className="text-xs text-warmgray-500">
                   {uploadingImages
                     ? 'Đang tải ảnh lên Cloudinary...'
-                    : 'Tối đa 10 ảnh, mỗi ảnh không quá 5MB'}
+                    : `Tối đa ${maxImagesPerListing} ảnh, mỗi ảnh không quá 5MB`}
                 </p>
               </label>
 
@@ -812,15 +835,16 @@ const CreateListing = () => {
                   label="Tỉnh/Thành phố"
                   name="city"
                   value={formData.location.city}
-                  onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: TP. Hồ Chí Minh"
+                  readOnly
+                  disabled
                 />
-                <Input
-                  label="Quận/Huyện"
-                  name="district"
-                  value={formData.location.district}
+                <Select
+                  label="Phường/Xã"
+                  name="ward"
+                  value={formData.location.ward}
                   onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: Quận 1"
+                  placeholder={loadingWards ? 'Đang tải danh sách phường/xã...' : 'Chọn phường/xã'}
+                  options={wardOptions}
                 />
               </div>
               <Input

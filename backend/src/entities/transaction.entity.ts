@@ -98,6 +98,15 @@ class Dispute {
 
   @Prop()
   filedAt?: Date;
+
+  @Prop()
+  raisedAt?: Date;
+
+  @Prop()
+  resolvedAt?: Date;
+
+  @Prop()
+  resolution?: string;
 }
 
 class BuyerConfirmation {
@@ -173,6 +182,12 @@ export class Transaction {
 
   @Prop({ type: BuyerConfirmation })
   buyerConfirmation?: BuyerConfirmation;
+
+  @Prop()
+  address?: string;
+
+  @Prop()
+  phone?: string;
 
   @Prop()
   createdAt?: Date;

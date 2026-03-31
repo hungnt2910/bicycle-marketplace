@@ -2,10 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import walletApi from '../../api/walletApi';
 import paymentApi from '../../api/paymentApi';
+import adminApi from '../../api/adminApi';
 import { Badge, Button, Card, Input, Pagination, Select } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
-
-const MIN_WITHDRAW = 100000;
 
 const numberOrZero = (value) => Number(value || 0);
 
@@ -32,13 +31,14 @@ const Wallet = () => {
     bankAccount: '',
     accountHolder: '',
   });
+  const [minWithdraw, setMinWithdraw] = useState(100000);
 
   const availableBalance = useMemo(
     () =>
       numberOrZero(
-        totals?.availableBalance ??
-          summary?.availableBalance ??
-          walletSummary?.wallet?.availableBalance ??
+        totals?.walletBalance ??
+          summary?.balance ??
+          walletSummary?.wallet?.balance ??
           (summary?.balance ?? summary?.currentBalance ?? 0) - (summary?.pendingBalance ?? 0)
       ),
     [summary, totals, walletSummary]
@@ -147,6 +147,17 @@ const Wallet = () => {
 
   useEffect(() => {
     refreshAll();
+    const fetchWalletSettings = async () => {
+      try {
+        const res = await adminApi.getSystemSettings();
+        const settings = (res?.data?.data || res?.data || [])[0]?.name_value || [];
+        const val = settings.find((i) => i.key === 'min_withdrawal_amount')?.value;
+        if (val) setMinWithdraw(Number(val));
+      } catch (error) {
+        console.error('Error fetching wallet settings:', error);
+      }
+    };
+    fetchWalletSettings();
   }, [escrowRole]);
 
   const filteredTransactions = useMemo(() => {
@@ -172,8 +183,8 @@ const Wallet = () => {
       toast.error('Số tiền rút không hợp lệ');
       return;
     }
-    if (amountNumber < MIN_WITHDRAW) {
-      toast.error(`Số tiền tối thiểu là ${MIN_WITHDRAW.toLocaleString('vi-VN')} ${currency}`);
+    if (amountNumber < minWithdraw) {
+      toast.error(`Số tiền tối thiểu là ${minWithdraw.toLocaleString('vi-VN')} ${currency}`);
       return;
     }
     if (amountNumber > availableBalance) {
@@ -942,7 +953,7 @@ const Wallet = () => {
                   min="0"
                   value={withdrawForm.amount}
                   onChange={(e) => setWithdrawForm((prev) => ({ ...prev, amount: e.target.value }))}
-                  placeholder={`${MIN_WITHDRAW.toLocaleString('vi-VN')} ${currency}`}
+                  placeholder={`${minWithdraw.toLocaleString('vi-VN')} ${currency}`}
                 />
                 <Input
                   label="Ngân hàng"

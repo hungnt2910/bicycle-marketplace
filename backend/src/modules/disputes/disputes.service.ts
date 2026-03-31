@@ -224,32 +224,23 @@ export class DisputesService {
       // If admin requires the buyer to return the bicycle first,
       // set the dispute to a return-requested state and wait for the
       // buyer to ship and seller to confirm before refunding.
-      if (requireReturn) {
-        dispute.status = DisputeStatus.RETURN_REQUESTED;
-        // if (!dispute.resolution) dispute.resolution = {} as any;
-        dispute.resolution.requireReturn = true;
-
-        disputeTimeline.push({
-          action: 'Return requested by admin',
-          performedBy: adminId as any,
-          notes: 'Buyer must return bicycle to seller before refund',
-          timestamp: new Date(),
-        } as any);
-      } else {
-        dispute.status = DisputeStatus.RESOLVED_BUYER_FAVOR;
-
-        // Refund buyer immediately
-        await this.escrowService.refundFunds(transaction);
-        transaction.status = TransactionStatus.REFUNDED;
-
-        // Hide bicycle (not sellable without return)
-        const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
-        if (bicycle) {
-          bicycle.status = BicycleStatus.HIDDEN;
-          bicycle.updatedAt = new Date();
-          await bicycle.save();
-        }
+      dispute.status = DisputeStatus.RETURN_REQUESTED;
+      // if (!dispute.resolution) dispute.resolution = {} as any;
+      dispute.resolution.requireReturn = true;
+      const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
+      if (bicycle) {
+        bicycle.status = BicycleStatus.DRAFT;
+        bicycle.updatedAt = new Date();
+        console.log('Update date at', bicycle.updatedAt);
+        await bicycle.save();
       }
+
+      disputeTimeline.push({
+        action: 'Return requested by admin',
+        performedBy: adminId as any,
+        notes: 'Buyer must return bicycle to seller before refund',
+        timestamp: new Date(),
+      } as any);
     } else if (decision === 'seller_favor') {
       dispute.status = DisputeStatus.RESOLVED_SELLER_FAVOR;
 
@@ -257,11 +248,11 @@ export class DisputesService {
       await this.escrowService.releaseFunds(transaction._id.toString());
       transaction.status = TransactionStatus.COMPLETED;
 
-      // Reset bicycle to ACTIVE so seller can sell again
       const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
       if (bicycle) {
-        bicycle.status = BicycleStatus.ACTIVE;
+        bicycle.status = BicycleStatus.SOLD;
         bicycle.updatedAt = new Date();
+        console.log('Update date at', bicycle.updatedAt);
         await bicycle.save();
       }
     } else if (decision === 'partial_refund') {
@@ -379,9 +370,11 @@ export class DisputesService {
     // Reset bicycle to DRAFT so seller can refurbish and re-list
     const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
     if (bicycle) {
-      bicycle.status = BicycleStatus.DRAFT;
+      bicycle.status = BicycleStatus.ACTIVE;
       bicycle.inspection = undefined;
       bicycle.updatedAt = new Date();
+      console.log('Update date at', bicycle.updatedAt);
+
       await bicycle.save();
     }
 

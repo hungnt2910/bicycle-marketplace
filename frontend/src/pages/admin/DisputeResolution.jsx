@@ -100,7 +100,7 @@ const DisputeResolution = () => {
       penaltyToSeller: 0,
       penaltyToBuyer: 0,
       notes: '',
-      requireReturn: false,
+      requireReturn: true,
     });
     setResolveModal(true);
   };
@@ -354,7 +354,7 @@ const DisputeResolution = () => {
                     >
                       Giải quyết
                     </button>
-                    <button
+                    {/* <button
                       onClick={() => openEscrowModal(dispute, 'refund')}
                       className="flex-1 border border-warmgray-300 py-2 rounded-[16px] hover:bg-warmgray-50 font-medium min-w-[120px]"
                     >
@@ -365,7 +365,7 @@ const DisputeResolution = () => {
                       className="flex-1 border border-warmgray-300 py-2 rounded-[16px] hover:bg-warmgray-50 font-medium min-w-[120px]"
                     >
                       Giải ngân (Escrow)
-                    </button>
+                    </button> */}
                   </>
                 )}
               </div>
@@ -399,7 +399,14 @@ const DisputeResolution = () => {
               <label className="block text-sm font-medium text-warmgray-700 mb-2">Quyết định</label>
               <select
                 value={resolveForm.decision}
-                onChange={(e) => setResolveForm((prev) => ({ ...prev, decision: e.target.value }))}
+                onChange={(e) => {
+                  const decision = e.target.value;
+                  setResolveForm((prev) => ({
+                    ...prev,
+                    decision,
+                    requireReturn: decision === 'buyer_favor',
+                  }));
+                }}
                 className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
               >
                 {Object.entries(DisputeDecisionLabels).map(([value, label]) => (
@@ -440,24 +447,17 @@ const DisputeResolution = () => {
             </div>
 
             {resolveForm.decision === 'buyer_favor' && (
-              <label className="flex items-center gap-3 p-3 rounded-[16px] border border-warmgray-200 bg-warmgray-50">
-                <input
-                  type="checkbox"
-                  checked={resolveForm.requireReturn}
-                  onChange={(e) =>
-                    setResolveForm((prev) => ({ ...prev, requireReturn: e.target.checked }))
-                  }
-                  className="w-4 h-4"
-                />
+              <div className="flex items-center gap-3 p-3 rounded-[16px] border border-blue-200 bg-blue-50">
+                <span className="text-blue-600 text-lg">ℹ️</span>
                 <div className="text-sm">
-                  <p className="font-semibold text-warmgray-900">
-                    Yêu cầu buyer trả xe rồi mới hoàn tiền
+                  <p className="font-semibold text-blue-900">
+                    Buyer phải trả xe trước khi được hoàn tiền
                   </p>
-                  <p className="text-warmgray-600 text-xs">
-                    Bật để chuyển trạng thái sang return_requested và mở bước buyer báo đã gửi hàng.
+                  <p className="text-blue-700 text-xs">
+                    Trạng thái sẽ chuyển sang return_requested và mở bước buyer báo đã gửi hàng.
                   </p>
                 </div>
-              </label>
+              </div>
             )}
 
             <div className="flex gap-3 pt-2">

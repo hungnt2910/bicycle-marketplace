@@ -237,7 +237,7 @@ export class WalletService {
       wallet.totalSpent += amount;
     }
 
-    await wallet.save({ session });
+    await wallet.save();
 
     const walletTransaction = await this.walletTransactionModel.create(
       [

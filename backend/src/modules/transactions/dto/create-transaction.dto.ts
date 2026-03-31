@@ -27,4 +27,14 @@ export class CreateTransactionDto {
   })
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
+
+  @ApiProperty({ example: '123 Main St, City, District', description: 'Delivery address' })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiProperty({ example: '+84901234567', description: 'Phone number for delivery' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
 }

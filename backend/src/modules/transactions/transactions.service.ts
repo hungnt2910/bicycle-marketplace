@@ -53,7 +53,7 @@ export class TransactionsService {
     buyerId: string,
     createDto: CreateTransactionDto,
   ): Promise<TransactionDocument> {
-    const { bicycleId, amount, type, paymentMethod } = createDto;
+    const { bicycleId, amount, type, paymentMethod, address, phone } = createDto;
 
     const bicycle = await this.bicycleModel.findById(bicycleId);
     if (!bicycle) throw new BadRequestException('Bicycle not found');
@@ -69,6 +69,7 @@ export class TransactionsService {
         throw new BadRequestException(
           'Inspection report has expired. A new inspection is required.',
         );
+      
       }
     }
 
@@ -83,6 +84,8 @@ export class TransactionsService {
           'held_in_escrow',
           'awaiting_delivery',
           'delivered',
+          'deposit_paid',
+          'deposit_forfeited',
         ],
       },
     });
@@ -95,6 +98,15 @@ export class TransactionsService {
       autoReleaseDeadline.getDate() + 3
     );
 
+    // Debit full amount from buyer's wallet and hold in escrow
+    // await this.walletService.debit(
+    //   buyerId,
+    //   amount,
+    //   WalletTransactionType.PURCHASE,
+    //   `Payment for bicycle ${bicycleId}`,
+    //   // { transactionId: transaction._id.toString(), bicycleId },
+    // );
+
     const transaction = await this.transactionModel.create({
       buyerId,
       sellerId: bicycle.sellerId,
@@ -105,16 +117,11 @@ export class TransactionsService {
       escrow: { heldAmount: amount, autoReleaseDeadline },
       payment: { method: paymentMethod },
       buyerConfirmation: { confirmed: false },
+      address,
+      phone,
     });
 
-    // Debit full amount from buyer's wallet and hold in escrow
-    await this.walletService.debit(
-      buyerId,
-      amount,
-      WalletTransactionType.PURCHASE,
-      `Payment for bicycle ${bicycleId}`,
-      { transactionId: transaction._id.toString(), bicycleId },
-    );
+    
 
     await this.walletService.holdInEscrow(
       buyerId,
@@ -369,6 +376,7 @@ export class TransactionsService {
     if(!bicycle) {
       throw new BadRequestException('Bicycle not found');
     }
+
     bicycle.status = BicycleStatus.SOLD;
     await bicycle.save();
 
@@ -508,7 +516,7 @@ export class TransactionsService {
 
       // Release bicycle back to market
       await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
-        status: 'active',
+        status: 'draft',
       });
 
       // Notify both parties
@@ -944,7 +952,7 @@ export class TransactionsService {
       .populate('buyerId', 'email profile.fullName')
       .populate('sellerId', 'email profile.fullName')
       .populate('bicycleId', 'title price')
-      .sort({ 'escrow.autoReleaseDeadline': 1 })
+      .sort({ 'createdAt': -1 })
       .exec();
   }
 
@@ -1056,13 +1064,16 @@ export class TransactionsService {
     buyerId: string,
     dto: CreateDepositDto,
   ): Promise<TransactionDocument> {
-    const { bicycleId, depositRate = 0.2, paymentMethod } = dto;
+    const { bicycleId, depositRate = 0.2, paymentMethod, address, phone } = dto;
 
     const bicycle = await this.bicycleModel.findById(bicycleId);
     if (!bicycle) throw new BadRequestException('Bicycle not found');
     if (bicycle.status !== 'active') {
       throw new BadRequestException('Bicycle is not available');
     }
+
+    bicycle.status = BicycleStatus.RESERVED;
+    await bicycle.save();
 
     const existing = await this.transactionModel.findOne({
       bicycleId,
@@ -1107,16 +1118,18 @@ export class TransactionsService {
         autoReleaseDeadline: paymentDeadline,
       },
       buyerConfirmation: { confirmed: false },
+      address,
+      phone,
     });
 
     // Debit deposit amount from buyer's wallet and hold in escrow
-    await this.walletService.debit(
-      buyerId,
-      depositAmount,
-      WalletTransactionType.DEPOSIT,
-      `Deposit for bicycle ${bicycleId}`,
-      { transactionId: transaction._id.toString(), bicycleId },
-    );
+    // await this.walletService.debit(
+    //   buyerId,
+    //   depositAmount,
+    //   WalletTransactionType.DEPOSIT,
+    //   `Deposit for bicycle ${bicycleId}`,
+    //   { transactionId: transaction._id.toString(), bicycleId },
+    // );
 
     await this.walletService.holdInEscrow(
       buyerId,
@@ -1271,5 +1284,85 @@ export class TransactionsService {
         console.error(`Failed to forfeit transaction ${transaction._id}:`, err);
       }
     }
+  }
+
+  /**
+   * SCHEDULER: Auto-refund if seller confirmed delivery but buyer didn't confirm within 7 days
+   * This handles "fake delivery" scenarios where seller marks as delivered but the item never reaches buyer
+   * Run every hour via cron
+   */
+  async autoRefundFakeDelivery(): Promise<void> {
+    const now = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Find transactions where:
+    // - Seller marked as DELIVERED (transaction.status = DELIVERED)
+    // - But buyer never confirmed within 7 days (buyerConfirmation.confirmed = false)
+    // - Delivery was marked 7+ days ago
+    const fakeDeliveries = await this.transactionModel.find({
+      status: TransactionStatus.DELIVERED,
+      'buyerConfirmation.confirmed': false,
+      'shipping.deliveredAt': { $lte: sevenDaysAgo },
+    });
+
+    for (const transaction of fakeDeliveries) {
+      try {
+        await this.autoRefundBuyerForFakeDelivery(transaction);
+        this.logger.log(
+          `Auto-refunded buyer for fake delivery on transaction ${transaction._id}`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Failed to auto-refund transaction ${transaction._id}: ${err.message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Helper: Process refund for fake delivery
+   */
+  private async autoRefundBuyerForFakeDelivery(
+    transaction: TransactionDocument,
+  ): Promise<void> {
+    // Release funds back to buyer (full amount)
+    await this.walletService.releaseFromEscrow(
+      transaction.buyerId.toString(),
+      transaction.amount,
+      transaction._id.toString(),
+    );
+
+    // Mark transaction as refunded
+    transaction.status = TransactionStatus.REFUNDED;
+    transaction.dispute = {
+      isDisputed: true,
+      reason: 'Seller marked as delivered but item not received after 7 days',
+      raisedAt: new Date(),
+      resolvedAt: new Date(),
+      resolution: 'Auto-refunded due to fake delivery',
+    };
+    transaction.markModified('dispute');
+    await transaction.save();
+
+    // Release bicycle back to market
+    await this.bicycleModel.findByIdAndUpdate(transaction.bicycleId, {
+      status: BicycleStatus.ACTIVE,
+    });
+
+    // // Notify buyer - refund processed
+    // await this.notificationsService.create({
+    //   userId: transaction.buyerId.toString(),
+    //   type: 'payment_refunded',
+    //   title: 'Refund Processed - Delivery Not Confirmed',
+    //   message:
+    //     'Since you did not confirm delivery within 7 days of seller marking it as delivered, your payment has been refunded to your wallet.',
+    //   relatedEntity: {
+    //     entityType: 'transaction',
+    //     entityId: transaction._id.toString(),
+    //   },
+    // });
+
+    // Notify seller - transaction cancelled and refunde
   }
 }

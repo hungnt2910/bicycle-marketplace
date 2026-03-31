@@ -367,7 +367,14 @@ export class InspectionsService {
   }
 
   async getPendingInspections(): Promise<InspectionReport[]> {
-    return this.inspectionModel.find({ verdict: InspectionVerdict.PENDING }).exec();
+    return this.inspectionModel
+      .find({ verdict: InspectionVerdict.PENDING })
+      .populate({
+        path: 'bicycleId',
+        select: 'title price location specifications condition',
+      })
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   async getInspectionById(inspectionId: string): Promise<InspectionReport> {
@@ -406,6 +413,10 @@ export class InspectionsService {
   ): Promise<InspectionReport[]> {
     return this.inspectionModel
       .find({ inspectorId })
+      .populate({
+        path: 'bicycleId',
+        select: 'title price location specifications condition',
+      })
       .sort({ createdAt: -1 })
       .exec();
   }

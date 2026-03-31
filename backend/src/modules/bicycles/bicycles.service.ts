@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Bicycle, BicycleDocument, User } from 'src/entities';
+import { Bicycle, BicycleDocument, BicycleStatus } from 'src/entities';
 import { CreateBicyclesDto } from './dto/create-bicycles.dto';
 import { FilterBicycleDto } from './dto/filler-bicycle.dto';
 import { UpdateBicycleDto } from './dto/update-bicyce.dto';
@@ -152,5 +152,59 @@ export class BicyclesService {
     await this.userModel.findByIdAndUpdate(userId, {
       $set: { favourites: [] },
     });
+  }
+
+  /**
+   * Validates bicycle status transitions to prevent data integrity issues.
+   * Prevents invalid state transitions like SOLD -> ACTIVE (which enables fraud).
+   *
+   * @param fromStatus - Current bicycle status
+   * @param toStatus - Target bicycle status
+   * @throws BadRequestException if transition is invalid
+   */
+  validateStatusTransition(fromStatus: string, toStatus: string): void {
+    // Define invalid transitions that should never occur
+    const invalidTransitions = new Set([
+      `${BicycleStatus.SOLD}|${BicycleStatus.ACTIVE}`, // SOLD -> ACTIVE (fraud risk)
+      `${BicycleStatus.SOLD}|${BicycleStatus.RESERVED}`, // SOLD -> RESERVED (create new transaction instead)
+      `${BicycleStatus.HIDDEN}|${BicycleStatus.ACTIVE}`, // HIDDEN -> ACTIVE (must go through review)
+      `${BicycleStatus.REJECTED}|${BicycleStatus.ACTIVE}`, // REJECTED -> ACTIVE (must resubmit)
+    ]);
+
+    const transitionKey = `${fromStatus}|${toStatus}`;
+
+    if (invalidTransitions.has(transitionKey)) {
+      throw new BadRequestException(
+        `Invalid status transition: ${fromStatus} → ${toStatus}. ` +
+        `Bicycle status changes must follow proper workflow rules.`,
+      );
+    }
+  }
+
+  /**
+   * Safe status update that validates the transition before applying.
+   * Use this when updating bicycle status to ensure data integrity.
+   *
+   * @param bicycleId - ID of bicycle to update
+   * @param newStatus - Target status
+   */
+  async updateStatusSafely(
+    bicycleId: string,
+    newStatus: string,
+  ): Promise<Bicycle | null> {
+    const bicycle = await this.bicycleModel.findById(bicycleId);
+    if (!bicycle) {
+      throw new BadRequestException('Bicycle not found');
+    }
+
+    // Validate the transition
+    this.validateStatusTransition(bicycle.status as string, newStatus);
+
+    // Apply the update
+    bicycle.status = newStatus as any;
+    bicycle.updatedAt = new Date();
+    console.log("Update date at", bicycle.updatedAt)
+
+    return await bicycle.save();
   }
 }

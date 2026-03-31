@@ -24,40 +24,46 @@ const ConversationList = () => {
     });
   };
 
-  // Fetch thông tin đầy đủ của tất cả users trong conversations
+  // Fetch thông tin user chưa có trong map khi conversations thay đổi
   useEffect(() => {
-    const fetchAllUsersInfo = async () => {
+    const fetchMissingUsersInfo = async () => {
       if (!conversations || conversations.length === 0) return;
 
-      const userIds = new Set();
+      const missingIds = new Set();
       conversations.forEach((conv) => {
         const otherUser = getOtherUser(conv);
         if (otherUser) {
           const userId = typeof otherUser === 'string' ? otherUser : otherUser._id || otherUser.id;
-          if (userId) {
-            userIds.add(userId);
+          if (userId && !userInfoMap.has(userId)) {
+            missingIds.add(userId);
           }
         }
       });
 
-      const newUserInfoMap = new Map();
+      if (missingIds.size === 0) return;
 
-      for (const userId of userIds) {
+      const newEntries = [];
+      for (const userId of missingIds) {
         try {
           const response = await userApi.getUserById(userId);
           if (response.data) {
-            newUserInfoMap.set(userId, response.data);
-            console.log('✅ Loaded user info for conversation:', response.data);
+            newEntries.push([userId, response.data]);
           }
         } catch (error) {
-          console.error('❌ Error fetching user info:', userId, error);
+          console.error('Error fetching user info:', userId, error);
         }
       }
 
-      setUserInfoMap(newUserInfoMap);
+      if (newEntries.length > 0) {
+        setUserInfoMap((prev) => {
+          const next = new Map(prev);
+          newEntries.forEach(([id, info]) => next.set(id, info));
+          return next;
+        });
+      }
     };
 
-    fetchAllUsersInfo();
+    fetchMissingUsersInfo();
   }, [conversations]);
 
   // Kiểm tra user có online không

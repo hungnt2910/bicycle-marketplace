@@ -4,6 +4,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { ApiResponse } from '@nestjs/swagger/dist/decorators/api-response.decorator';
 import { ApiOperation } from '@nestjs/swagger/dist/decorators/api-operation.decorator';
 import { ApiBody } from '@nestjs/swagger';
+import { UpdateUserDto } from './dto/update-user.dto';
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
@@ -40,11 +41,11 @@ export class UsersController {
     description: 'User updated successfully',
   })
   @ApiBody({
-    description: 'Fields to update (e.g., name, avatarUrl, etc.)',
-    type: 'object',
+    type: UpdateUserDto,
+    description: 'User profile fields to update',
   })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async updateUser(@Param('id') id: string, @Body() updateData: any) {
+  async updateUser(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
     return this.usersService.updateProfile(id, updateData);
   }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Badge, Button } from '../../components/ui';
+import { Badge, Button, Modal } from '../../components/ui';
 import { toast } from 'react-toastify';
 import adminApi from '../../api/adminApi';
 
@@ -10,6 +10,7 @@ const TransactionManagement = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
+  const [confirmModal, setConfirmModal] = useState({ open: false, type: '', txnId: '', txnName: '' });
 
   const loadData = async () => {
     setLoading(true);
@@ -131,8 +132,8 @@ const TransactionManagement = () => {
             value: heldCount,
           },
           {
-            label: 'Tổng tiền giữ (M ₫)',
-            value: (totalHeldAmount / 1000000).toFixed(2),
+            label: 'Tổng tiền giữ (VNĐ)',
+            value: totalHeldAmount.toLocaleString('vi-VN'),
           },
           {
             label: 'Sắp giải ngân (≤2 ngày)',
@@ -303,15 +304,20 @@ const TransactionManagement = () => {
                         </div>
                       </td>
                       <td className="py-3 px-3 align-middle whitespace-nowrap">
-                        <div className="text-sm font-bold text-primary-700">
-                          {(heldAmount / 1000000).toFixed(2)}M ₫
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-bold text-primary-700">
+                            {heldAmount.toLocaleString('vi-VN')}
+                          </span>
+                          <span className="text-xs font-bold text-primary-700">₫</span>
                         </div>
                         {txn.escrow?.heldAmount && heldAmount !== amount && (
                           <div
-                            className="text-[11px] text-warmgray-500 mt-0.5"
+                            className="text-[11px] text-warmgray-500 mt-0.5 flex items-baseline gap-1"
                             title={`${txn.escrow.heldAmount} ₫`}
                           >
-                            Tổng: {(amount / 1000000).toFixed(2)}M ₫
+                            <span>Tổng:</span>
+                            <span className="font-semibold">{amount.toLocaleString('vi-VN')}</span>
+                            <span className="text-[10px]">₫</span>
                           </div>
                         )}
                       </td>
@@ -358,9 +364,12 @@ const TransactionManagement = () => {
                             className="w-full px-2 py-1 bg-success text-white rounded-[6px] hover:bg-green-700 text-xs font-medium transition-colors disabled:opacity-50 text-center tracking-wide"
                             disabled={actionLoading === `release-${txn._id || txn.id}`}
                             onClick={() =>
-                              runAction(`release-${txn._id || txn.id}`, () =>
-                                adminApi.releaseEscrow(txn._id || txn.id)
-                              )
+                              setConfirmModal({
+                                open: true,
+                                type: 'release',
+                                txnId: txn._id || txn.id,
+                                txnName: bikeName,
+                              })
                             }
                           >
                             {actionLoading === `release-${txn._id || txn.id}`
@@ -370,13 +379,14 @@ const TransactionManagement = () => {
                           <button
                             className="w-full px-2 py-1 border border-red-300 bg-white text-danger rounded-[6px] hover:bg-danger/5 text-xs font-medium transition-colors disabled:opacity-50 text-center tracking-wide"
                             disabled={actionLoading === `refund-${txn._id || txn.id}`}
-                            onClick={() => {
-                              const confirmRefund = window.confirm('Hoàn escrow về buyer?');
-                              if (!confirmRefund) return;
-                              runAction(`refund-${txn._id || txn.id}`, () =>
-                                adminApi.refundEscrow(txn._id || txn.id)
-                              );
-                            }}
+                            onClick={() =>
+                              setConfirmModal({
+                                open: true,
+                                type: 'refund',
+                                txnId: txn._id || txn.id,
+                                txnName: bikeName,
+                              })
+                            }
                           >
                             {actionLoading === `refund-${txn._id || txn.id}` ? 'Đang...' : 'Refund'}
                           </button>
@@ -414,6 +424,63 @@ const TransactionManagement = () => {
           </div>
         </div>
       </div>
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, type: '', txnId: '', txnName: '' })}
+        title={confirmModal.type === 'release' ? 'Xác nhận giải ngân' : 'Xác nhận hoàn tiền'}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmModal({ open: false, type: '', txnId: '', txnName: '' })}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant={confirmModal.type === 'release' ? 'primary' : 'danger'}
+              size="sm"
+              onClick={() => {
+                const { type, txnId } = confirmModal;
+                setConfirmModal({ open: false, type: '', txnId: '', txnName: '' });
+                if (type === 'release') {
+                  runAction(`release-${txnId}`, () => adminApi.releaseEscrow(txnId));
+                } else {
+                  runAction(`refund-${txnId}`, () => adminApi.refundEscrow(txnId));
+                }
+              }}
+            >
+              {confirmModal.type === 'release' ? 'Giải ngân' : 'Hoàn tiền'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-warmgray-700">
+            {confirmModal.type === 'release'
+              ? 'Bạn có chắc chắn muốn giải ngân escrow cho giao dịch này?'
+              : 'Bạn có chắc chắn muốn hoàn escrow về cho người mua?'}
+          </p>
+          <div className="bg-warmgray-50 border border-warmgray-200 rounded-xl p-3">
+            <p className="text-sm text-warmgray-600">
+              <span className="font-medium text-warmgray-800">Mã GD:</span>{' '}
+              <span className="font-mono">{confirmModal.txnId}</span>
+            </p>
+            {confirmModal.txnName && (
+              <p className="text-sm text-warmgray-600 mt-1">
+                <span className="font-medium text-warmgray-800">Sản phẩm:</span>{' '}
+                {confirmModal.txnName}
+              </p>
+            )}
+          </div>
+          {confirmModal.type === 'refund' && (
+            <p className="text-xs text-danger font-medium">
+              ⚠ Thao tác này không thể hoàn tác sau khi thực hiện.
+            </p>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
