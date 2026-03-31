@@ -71,6 +71,11 @@ export class DisputesService {
     // Create dispute
     const dispute = await this.disputeModel.create({
       transactionId,
+      transactionDetails: {
+        buyerId: transaction.buyerId,
+        sellerId: transaction.sellerId,
+        bicycleId: transaction.bicycleId,
+      },
       reporterId,
       reportedUserId: transaction.sellerId,
       reason,
@@ -236,7 +241,7 @@ export class DisputesService {
         // Refund buyer immediately
         await this.escrowService.refundFunds(transaction);
         transaction.status = TransactionStatus.REFUNDED;
-        
+
         // Hide bicycle (not sellable without return)
         const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
         if (bicycle) {
@@ -251,7 +256,7 @@ export class DisputesService {
       // Release funds to seller
       await this.escrowService.releaseFunds(transaction._id.toString());
       transaction.status = TransactionStatus.COMPLETED;
-      
+
       // Reset bicycle to ACTIVE so seller can sell again
       const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
       if (bicycle) {
@@ -340,7 +345,10 @@ export class DisputesService {
   }
 
   // Seller confirms they have received the returned bicycle — release refund
-  async sellerConfirmReceived(disputeId: string, sellerId: string): Promise<Dispute> {
+  async sellerConfirmReceived(
+    disputeId: string,
+    sellerId: string,
+  ): Promise<Dispute> {
     const dispute = await this.disputeModel.findById(disputeId);
     if (!dispute) throw new BadRequestException('Dispute not found');
 
@@ -348,7 +356,10 @@ export class DisputesService {
       throw new BadRequestException('Return not awaiting seller confirmation');
     }
 
-    if (!dispute.reportedUserId || dispute.reportedUserId.toString() !== sellerId) {
+    if (
+      !dispute.reportedUserId ||
+      dispute.reportedUserId.toString() !== sellerId
+    ) {
       throw new ForbiddenException('Only the seller can confirm receipt');
     }
 
@@ -356,13 +367,15 @@ export class DisputesService {
     (dispute.returnInfo as any).sellerConfirmedAt = new Date();
     dispute.status = DisputeStatus.RETURN_RECEIVED;
 
-    const transaction = await this.transactionModel.findById(dispute.transactionId);
+    const transaction = await this.transactionModel.findById(
+      dispute.transactionId,
+    );
     if (!transaction) throw new BadRequestException('Transaction not found');
 
     // Refund buyer now that seller confirmed receipt
     await this.escrowService.refundFunds(transaction);
     transaction.status = TransactionStatus.REFUNDED;
-    
+
     // Reset bicycle to DRAFT so seller can refurbish and re-list
     const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
     if (bicycle) {
@@ -386,7 +399,6 @@ export class DisputesService {
     return dispute;
   }
 
-
   async getDisputeById(disputeId: string): Promise<Dispute> {
     const dispute = await this.disputeModel.findById(disputeId);
     if (!dispute) {
@@ -395,10 +407,7 @@ export class DisputesService {
     return dispute;
   }
 
-  async getMyDisputes(
-    userId: string,
-    status?: string,
-  ): Promise<Dispute[]> {
+  async getMyDisputes(userId: string, status?: string): Promise<Dispute[]> {
     const query: any = {
       $or: [{ reporterId: userId }, { reportedUserId: userId }],
     };
@@ -407,7 +416,7 @@ export class DisputesService {
     }
     return this.disputeModel.find(query).sort({ createdAt: -1 }).exec();
   }
-    
+
   async getAllDisputes(
     status?: string,
     page = 1,
