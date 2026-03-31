@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import ReviewsSection from '../../components/reviews/ReviewsSection';
 import transactionApi from '../../api/transactionApi';
+import adminApi from '../../api/adminApi';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -146,6 +147,7 @@ const TransactionDetail = () => {
   const [tx, setTx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState('');
+  const [disputeTimeLimitDays, setDisputeTimeLimitDays] = useState(3);
 
   /* -- data fetching (unchanged) -- */
   const fetchDetail = async () => {
@@ -165,6 +167,17 @@ const TransactionDetail = () => {
 
   useEffect(() => {
     fetchDetail();
+    const fetchSettings = async () => {
+      try {
+        const res = await adminApi.getSystemSettings();
+        const settings = (res?.data?.data || res?.data || [])[0]?.name_value || [];
+        const val = settings.find((i) => i.key === 'dispute_time_limit_days')?.value;
+        if (val) setDisputeTimeLimitDays(Number(val));
+      } catch (error) {
+        console.error('Error fetching dispute settings:', error);
+      }
+    };
+    fetchSettings();
   }, [id]);
 
   if (loading) return <LoadingScreen />;
@@ -197,7 +210,7 @@ const TransactionDetail = () => {
     isBuyer &&
     ['delivered', 'buyer_confirmed', 'completed'].includes(normalizedStatus) &&
     !tx.dispute &&
-    new Date() - new Date(tx.shipping?.deliveredAt || tx.updatedAt) < 3 * 24 * 60 * 60 * 1000;
+    new Date() - new Date(tx.shipping?.deliveredAt || tx.updatedAt) < disputeTimeLimitDays * 24 * 60 * 60 * 1000;
 
   /* -- action runner (unchanged) -- */
   const runAction = async (label, fn) => {
