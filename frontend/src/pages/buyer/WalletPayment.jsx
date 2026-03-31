@@ -51,8 +51,7 @@ const WalletPayment = () => {
         const res = await walletApi.getWallet();
         const data = res?.data?.data || res?.data || {};
         const balance =
-          data?.availableBalance ??
-          (data?.balance ?? data?.currentBalance ?? 0) - (data?.pendingBalance ?? 0);
+          data?.balance ?? (data?.balance ?? data?.balance ?? 0) - (data?.pendingBalance ?? 0);
         setWalletBalance(Number(balance));
       } catch (err) {
         console.error('Fetch wallet error:', err);

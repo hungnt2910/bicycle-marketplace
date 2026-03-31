@@ -36,9 +36,9 @@ const Wallet = () => {
   const availableBalance = useMemo(
     () =>
       numberOrZero(
-        totals?.availableBalance ??
-          summary?.availableBalance ??
-          walletSummary?.wallet?.availableBalance ??
+        totals?.walletBalance ??
+          summary?.balance ??
+          walletSummary?.wallet?.balance ??
           (summary?.balance ?? summary?.currentBalance ?? 0) - (summary?.pendingBalance ?? 0)
       ),
     [summary, totals, walletSummary]
