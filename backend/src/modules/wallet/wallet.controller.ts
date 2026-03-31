@@ -76,10 +76,19 @@ export class WalletController {
   @Get('summary')
   @ApiOperation({
     summary:
-      'Get wallet summary including recent transactions and 30-day stats',
+      'Get wallet summary including paginated recent transactions and 30-day stats',
   })
-  async getWalletSummary(@Request() req) {
-    return this.walletService.getWalletSummary(req.user.id);
+  @ApiQuery({ name: 'page', type: Number, required: false, example: 1 })
+  @ApiQuery({ name: 'limit', type: Number, required: false, example: 10 })
+  async getWalletSummary(
+    @Request() req,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.walletService.getWalletSummary(req.user.id, {
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get('totals')

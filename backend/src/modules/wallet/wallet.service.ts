@@ -406,41 +406,54 @@ export class WalletService {
   }
 
   /**
-   * Get wallet summary
+   * Get wallet summary with paginated recent transactions
    */
-  async getWalletSummary(userId: string): Promise<any> {
+  async getWalletSummary(
+    userId: string,
+    pagination?: {
+      page?: number;
+      limit?: number;
+    },
+  ): Promise<any> {
     const wallet = await this.getWallet(userId);
 
-    const recentTransactions = await this.walletTransactionModel
-      .find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .exec();
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 10;
+    const skip = (page - 1) * limit;
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const monthlyStats = await this.walletTransactionModel.aggregate([
-      {
-        $match: {
-          userId: wallet.userId,
-          createdAt: { $gte: thirtyDaysAgo },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalIn: {
-            $sum: { $cond: [{ $gt: ['$amount', 0] }, '$amount', 0] },
+    const [recentTransactions, totalTransactions, monthlyStats] = await Promise.all([
+      this.walletTransactionModel
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.walletTransactionModel.countDocuments({ userId }),
+      this.walletTransactionModel.aggregate([
+        {
+          $match: {
+            userId: wallet.userId,
+            createdAt: { $gte: thirtyDaysAgo },
           },
-          totalOut: {
-            $sum: {
-              $cond: [{ $lt: ['$amount', 0] }, { $abs: '$amount' }, 0],
+        },
+        {
+          $group: {
+            _id: null,
+            totalIn: {
+              $sum: { $cond: [{ $gt: ['$amount', 0] }, '$amount', 0] },
             },
+            totalOut: {
+              $sum: {
+                $cond: [{ $lt: ['$amount', 0] }, { $abs: '$amount' }, 0],
+              },
+            },
+            transactionCount: { $sum: 1 },
           },
-          transactionCount: { $sum: 1 },
         },
-      },
+      ]),
     ]);
 
     return {
@@ -454,7 +467,15 @@ export class WalletService {
         totalSpent: wallet.totalSpent,
         status: wallet.status,
       },
-      recentTransactions,
+      recentTransactions: {
+        data: recentTransactions,
+        pagination: {
+          page,
+          limit,
+          total: totalTransactions,
+          pages: Math.ceil(totalTransactions / limit),
+        },
+      },
       last30Days: monthlyStats[0] || {
         totalIn: 0,
         totalOut: 0,
