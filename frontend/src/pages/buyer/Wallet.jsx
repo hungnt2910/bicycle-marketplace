@@ -72,8 +72,9 @@ const Wallet = () => {
     setLoadingSummary(true);
     setLoadingTx(true);
     try {
-      const [walletRes, summaryRes, totalsRes] = await Promise.all([
-        walletApi.getWallet(),
+      // Ensure wallet exists before querying summary/totals (avoids 500 for new accounts)
+      const walletRes = await walletApi.getWallet();
+      const [summaryRes, totalsRes] = await Promise.all([
         walletApi.getSummary({ page: pageParam, limit }),
         walletApi.getTotals({ role: escrowRole }),
       ]);
