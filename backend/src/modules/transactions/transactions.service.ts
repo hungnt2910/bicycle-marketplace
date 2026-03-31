@@ -99,13 +99,13 @@ export class TransactionsService {
     );
 
     // Debit full amount from buyer's wallet and hold in escrow
-    await this.walletService.debit(
-      buyerId,
-      amount,
-      WalletTransactionType.PURCHASE,
-      `Payment for bicycle ${bicycleId}`,
-      // { transactionId: transaction._id.toString(), bicycleId },
-    );
+    // await this.walletService.debit(
+    //   buyerId,
+    //   amount,
+    //   WalletTransactionType.PURCHASE,
+    //   `Payment for bicycle ${bicycleId}`,
+    //   // { transactionId: transaction._id.toString(), bicycleId },
+    // );
 
     const transaction = await this.transactionModel.create({
       buyerId,
@@ -1123,13 +1123,13 @@ export class TransactionsService {
     });
 
     // Debit deposit amount from buyer's wallet and hold in escrow
-    await this.walletService.debit(
-      buyerId,
-      depositAmount,
-      WalletTransactionType.DEPOSIT,
-      `Deposit for bicycle ${bicycleId}`,
-      { transactionId: transaction._id.toString(), bicycleId },
-    );
+    // await this.walletService.debit(
+    //   buyerId,
+    //   depositAmount,
+    //   WalletTransactionType.DEPOSIT,
+    //   `Deposit for bicycle ${bicycleId}`,
+    //   { transactionId: transaction._id.toString(), bicycleId },
+    // );
 
     await this.walletService.holdInEscrow(
       buyerId,
