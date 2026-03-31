@@ -30,7 +30,7 @@ const SystemSettings = () => {
             key: nestedItem?.key || '',
             value: nestedItem?.value ?? '',
             description: nestedItem?.description || '',
-            category: nestedItem?.category || null,
+            // category: nestedItem?.category || null,
             _groupId: item?._id,
           }))
         : [];
@@ -41,7 +41,7 @@ const SystemSettings = () => {
               key: item?.key || '',
               value: item?.value ?? '',
               description: item?.description || '',
-              category: item?.category || null,
+              // category: item?.category || null,
               _id: item?._id,
             },
           ]
@@ -82,7 +82,7 @@ const SystemSettings = () => {
       key: '',
       value: '',
       description: '',
-      category: '',
+      // category: '',
     });
   };
 
@@ -98,7 +98,7 @@ const SystemSettings = () => {
       key: setting.key || '',
       value: setting.value !== undefined && setting.value !== null ? String(setting.value) : '',
       description: setting.description || '',
-      category: setting.category?._id || setting.category || '',
+      // category: setting.category?._id || setting.category || '',
     });
     setShowModal(true);
   };
@@ -126,11 +126,10 @@ const SystemSettings = () => {
       groupId: editingSetting?._groupId || null,
       value: settingValue,
       description: String(formData.description || '').trim(),
-      category: formData.category || null,
+      // category: formData.category || null,
     };
 
-    const isNotFoundMessage = (response) =>
-      response?.data?.message === 'System setting not found';
+    const isNotFoundMessage = (response) => response?.data?.message === 'System setting not found';
 
     const saveByUpdateWithRetry = async () => {
       const baseUpdateData = {
@@ -138,7 +137,7 @@ const SystemSettings = () => {
         originalKey: editingSetting?.key || keyValue,
         value: settingValue,
         description: String(formData.description || '').trim(),
-        category: formData.category || null,
+        // category: formData.category || null,
       };
 
       const attempts = [
@@ -187,7 +186,7 @@ const SystemSettings = () => {
           const verifySettings = normalizeSettings(verifyData);
 
           const stillExists = verifySettings.some(
-            (item) => String(item?.key || '').trim() === String(fallbackKey).trim(),
+            (item) => String(item?.key || '').trim() === String(fallbackKey).trim()
           );
 
           if (!stillExists) {
@@ -204,7 +203,7 @@ const SystemSettings = () => {
           key: fallbackKey,
           value: settingValue,
           description: String(formData.description || '').trim(),
-          category: formData.category || null,
+          // category: formData.category || null,
         });
 
         if (recreated?.data?.message === 'Key already exists') {
@@ -263,51 +262,49 @@ const SystemSettings = () => {
 
   return (
     <div className="dash-content">
-      {/* Header */}
+      {/* Header */}{' '}
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-primary-900 mb-2">Cài đặt hệ thống</h1>
             <p className="text-warmgray-600">Quản lý các thông số cấu hình hệ thống</p>
           </div>
-          <button
+          {/* <button
             onClick={openAddModal}
             className="bg-primary-700 text-white px-6 py-3 rounded-[16px] hover:bg-primary-800 font-medium"
           >
             + Thêm cài đặt
-          </button>
+          </button> */}
         </div>
       </div>
-
       {error && (
         <div className="mb-6 bg-danger/5 border border-red-200 text-danger px-4 py-3 rounded-[16px]">
           {error}
         </div>
       )}
-
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Tổng cài đặt</p>
           <p className="text-2xl font-bold text-primary-900">{settings.length}</p>
         </div>
-        <div className="lux-panel">
+        {/* <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Cài đặt đã gán danh mục</p>
-          <p className="text-2xl font-bold text-primary-900">{settings.length - uncategorizedCount}</p>
+          <p className="text-2xl font-bold text-primary-900">
+            {settings.length - uncategorizedCount}
+          </p>
         </div>
         <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Chưa gán danh mục</p>
           <p className="text-2xl font-bold text-primary-900">{uncategorizedCount}</p>
-        </div>
+        </div> */}
       </div>
-
       {/* Loading State */}
       {loading && (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       )}
-
       {/* Settings Table */}
       {!loading && (
         <div className="lux-panel overflow-hidden">
@@ -324,9 +321,9 @@ const SystemSettings = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider border-r border-warmgray-200">
                     Mô tả
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider border-r border-warmgray-200">
+                  {/* <th className="px-4 py-3 text-left text-xs font-semibold text-warmgray-700 uppercase tracking-wider border-r border-warmgray-200">
                     Danh mục
-                  </th>
+                  </th> */}
                   <th className="px-4 py-3 text-right text-xs font-semibold text-warmgray-700 uppercase tracking-wider">
                     Thao tác
                   </th>
@@ -355,9 +352,9 @@ const SystemSettings = () => {
                           {setting.description || '--'}
                         </p>
                       </td>
-                      <td className="px-4 py-4 align-top text-warmgray-700 whitespace-nowrap border-r border-warmgray-100">
+                      {/* <td className="px-4 py-4 align-top text-warmgray-700 whitespace-nowrap border-r border-warmgray-100">
                         {setting.category?.title || 'Không có danh mục'}
-                      </td>
+                      </td> */}
                       <td className="px-4 py-4 align-top">
                         <div className="flex justify-end gap-2">
                           <button
@@ -366,12 +363,12 @@ const SystemSettings = () => {
                           >
                             Sửa
                           </button>
-                          <button
+                          {/* <button
                             onClick={() => handleDelete(setting.key)}
                             className="px-3 py-2 text-danger hover:bg-danger/5 rounded-[12px] font-medium"
                           >
                             Xóa
-                          </button>
+                          </button> */}
                         </div>
                       </td>
                     </tr>
@@ -379,10 +376,9 @@ const SystemSettings = () => {
                 )}
               </tbody>
             </table>
-            </div>
+          </div>
         </div>
       )}
-
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
