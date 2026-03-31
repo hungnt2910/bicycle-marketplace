@@ -203,6 +203,8 @@ export class BicyclesService {
     // Apply the update
     bicycle.status = newStatus as any;
     bicycle.updatedAt = new Date();
+    console.log("Update date at", bicycle.updatedAt)
+
     return await bicycle.save();
   }
 }

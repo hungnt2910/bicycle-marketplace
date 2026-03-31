@@ -222,6 +222,13 @@ export class DisputesService {
       dispute.status = DisputeStatus.RETURN_REQUESTED;
       // if (!dispute.resolution) dispute.resolution = {} as any;
       dispute.resolution.requireReturn = true;
+      const bicycle = await this.bicycleModel.findById(transaction.bicycleId);
+      if (bicycle) {
+        bicycle.status = BicycleStatus.DRAFT;
+        bicycle.updatedAt = new Date();
+        console.log("Update date at", bicycle.updatedAt)
+        await bicycle.save();
+      }
 
       disputeTimeline.push({
         action: 'Return requested by admin',
@@ -240,6 +247,7 @@ export class DisputesService {
       if (bicycle) {
         bicycle.status = BicycleStatus.SOLD;
         bicycle.updatedAt = new Date();
+        console.log("Update date at", bicycle.updatedAt)
         await bicycle.save();
       }
     } else if (decision === 'partial_refund') {
@@ -360,6 +368,8 @@ export class DisputesService {
       bicycle.status = BicycleStatus.ACTIVE;
       bicycle.inspection = undefined;
       bicycle.updatedAt = new Date();
+        console.log("Update date at", bicycle.updatedAt)
+
       await bicycle.save();
     }
 
