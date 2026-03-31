@@ -40,18 +40,18 @@ export const DisputeStatusLabels = {
   return_received: 'Seller đã nhận lại hàng',
   resolved_buyer_favor: 'Hoàn tiền cho buyer',
   resolved_seller_favor: 'Giữ tiền cho seller',
-  resolved_partial_refund: 'Hoàn tiền một phần',
+  // resolved_partial_refund: 'Hoàn tiền một phần',
   closed: 'Đã đóng',
 };
 
 export const DisputeDecision = {
   BUYER_FAVOR: 'Có lợi cho người mua',
   SELLER_FAVOR: 'Có lợi cho người bán',
-  PARTIAL_REFUND: 'Hoàn tiền một phần',
+  // PARTIAL_REFUND: 'Hoàn tiền một phần',
 };
 
 export const DisputeDecisionLabels = {
   buyer_favor: 'Có lợi cho người mua (hoàn tiền)',
   seller_favor: 'Có lợi cho người bán (giải ngân)',
-  partial_refund: 'Hoàn tiền một phần',
+  // partial_refund: 'Hoàn tiền một phần',
 };

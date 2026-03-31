@@ -137,15 +137,7 @@ const SellerPublicPage = () => {
                 <h1 className="text-3xl font-bold text-primary-900">
                   {loadingSeller ? 'Đang tải...' : seller?.name || 'Người bán'}
                 </h1>
-                <div className="flex items-center gap-2 text-warmgray-600 mt-1">
-                  <Rating value={seller?.rating || 0} size="sm" readonly />
-                  <span className="text-sm font-semibold text-primary-800">
-                    {reviewSummary.averageRating.toFixed(1)} / 5
-                  </span>
-                  <span className="text-sm text-warmgray-500">
-                    ({reviewSummary.totalReviews} đánh giá)
-                  </span>
-                </div>
+
                 <div className="text-sm text-warmgray-700 mt-1 space-y-0.5">
                   <div>Email: {seller?.email || '—'}</div>
                   <div>Số điện thoại: {seller?.phone || '—'}</div>

@@ -299,13 +299,13 @@ const ProductDetail = ({ productId }) => {
         },
         inspectionReport: bike?.inspection?.isInspected
           ? {
-              score: bike?.inspection?.score || 0,
-              date: bike?.inspection?.inspectionDate
-                ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
-                : '—',
-              inspector: bike?.inspection?.inspectorName || '—',
-              notes: bike?.inspection?.label || 'Đã kiểm định',
-            }
+            score: bike?.inspection?.score || 0,
+            date: bike?.inspection?.inspectionDate
+              ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
+              : '—',
+            inspector: bike?.inspection?.inspectorName || '—',
+            notes: bike?.inspection?.label || 'Đã kiểm định',
+          }
           : null,
         rawType: bike?.specifications?.type || '',
         videos,
@@ -504,9 +504,8 @@ const ProductDetail = ({ productId }) => {
                 {Object.entries(product.specs).map(([key, value], index) => (
                   <div
                     key={key}
-                    className={`flex items-center justify-between py-4 px-5 rounded-[16px] transition-colors ${
-                      index % 2 === 0 ? 'bg-neutral-offwhite' : 'bg-white'
-                    } hover:bg-primary-800/5`}
+                    className={`flex items-center justify-between py-4 px-5 rounded-[16px] transition-colors ${index % 2 === 0 ? 'bg-neutral-offwhite' : 'bg-white'
+                      } hover:bg-primary-800/5`}
                   >
                     <span className="font-semibold text-warmgray-700 text-sm">{key}</span>
                     <span className="text-primary-900 font-medium text-sm">{value}</span>
@@ -722,11 +721,7 @@ const ProductDetail = ({ productId }) => {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Rating value={product.rating} size="sm" readonly />
-                    <span className="text-sm font-medium text-warmgray-700">{product.rating}</span>
-                    <span className="text-sm text-warmgray-500">({product.reviews} đánh giá)</span>
-                  </div>
+
                 </div>
 
                 {/* Price Section */}
@@ -775,28 +770,7 @@ const ProductDetail = ({ productId }) => {
                     <span className="text-warmgray-700 font-medium">{product.location}</span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-sm">
-                    <svg
-                      className="w-5 h-5 text-warmgray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                    <span className="text-warmgray-700 font-medium">{product.views} lượt xem</span>
-                  </div>
+
                 </div>
 
                 {/* Action Buttons */}
@@ -884,10 +858,6 @@ const ProductDetail = ({ productId }) => {
                       Người bán: {product.seller.name}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Rating value={product.seller.rating} size="sm" readonly />
-                      <span className="text-sm text-warmgray-600">
-                        ({product.seller.totalSales} đã bán)
-                      </span>
                     </div>
                     <div className="mt-2 text-sm text-warmgray-700">
                       <div>Email: {product.seller.email}</div>
@@ -896,73 +866,7 @@ const ProductDetail = ({ productId }) => {
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-5">
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2 text-warmgray-600">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span className="text-sm">Phản hồi</span>
-                    </div>
-                    <span className="font-semibold text-primary-900 text-sm">
-                      {product.seller.responseTime}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2 text-warmgray-600">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span className="text-sm">Tỷ lệ thành công</span>
-                    </div>
-                    <span className="font-semibold text-emerald-600 text-sm">
-                      {product.seller.successRate}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2 text-warmgray-600">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                      </svg>
-                      <span className="text-sm">Đã bán</span>
-                    </div>
-                    <span className="font-semibold text-primary-900 text-sm">
-                      {product.seller.totalSales} xe
-                    </span>
-                  </div>
-                </div>
 
                 <Button
                   variant="primary"
@@ -1017,7 +921,7 @@ const ProductDetail = ({ productId }) => {
                       </svg>
                     </div>
                     <span className="text-sm text-warmgray-700 leading-relaxed">
-                      Chỉ đặt cọc qua hệ thống ROUTIN
+                      Chỉ đặt cọc qua hệ thống Bicycle-Marketplace
                     </span>
                   </li>
                   <li className="flex items-start gap-3">

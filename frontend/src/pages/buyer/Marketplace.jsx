@@ -581,30 +581,6 @@ const Marketplace = ({ onNavigate }) => {
                     </select>
                   </div>
 
-                  {/* <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
-                    <label
-                      className="block text-sm font-semibold mb-3"
-                      style={{ color: 'var(--lux-gray-700)' }}
-                    >
-                      Thương hiệu
-                    </label>
-                    <select
-                      value={filters.brand}
-                      onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
-                      className="w-full px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all bg-white"
-                      style={{
-                        borderColor: 'var(--lux-gray-200)',
-                        color: 'var(--lux-gray-700)',
-                      }}
-                    >
-                      {brands.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div> */}
-
                   <div className="pt-6" style={{ borderTop: '1px solid var(--lux-gray-100)' }}>
                     <label
                       className="block text-sm font-semibold mb-3"
@@ -805,9 +781,8 @@ const Marketplace = ({ onNavigate }) => {
                   >
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`p-2.5 transition-all duration-300 ${
-                        viewMode === 'grid' ? 'bg-white shadow-soft' : ''
-                      }`}
+                      className={`p-2.5 transition-all duration-300 ${viewMode === 'grid' ? 'bg-white shadow-soft' : ''
+                        }`}
                       style={{
                         color:
                           viewMode === 'grid' ? 'var(--lux-primary-800)' : 'var(--lux-gray-500)',
@@ -829,9 +804,8 @@ const Marketplace = ({ onNavigate }) => {
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`p-2.5 transition-all duration-300 ${
-                        viewMode === 'list' ? 'bg-white shadow-soft' : ''
-                      }`}
+                      className={`p-2.5 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-soft' : ''
+                        }`}
                       style={{
                         color:
                           viewMode === 'list' ? 'var(--lux-primary-800)' : 'var(--lux-gray-500)',
@@ -1465,9 +1439,8 @@ const Marketplace = ({ onNavigate }) => {
                             </Button>
                             <button
                               onClick={(e) => handleCompareToggle(e, bike)}
-                              className={`px-6 py-3 border-2 transition-all font-medium ${
-                                isInCompare(bike.id) ? 'text-white' : ''
-                              }`}
+                              className={`px-6 py-3 border-2 transition-all font-medium ${isInCompare(bike.id) ? 'text-white' : ''
+                                }`}
                               style={{
                                 backgroundColor: isInCompare(bike.id)
                                   ? 'var(--lux-primary-800)'

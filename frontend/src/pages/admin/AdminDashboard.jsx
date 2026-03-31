@@ -355,9 +355,9 @@ const AdminDashboard = () => {
               {revenueLoading
                 ? '...'
                 : formatCurrency(
-                    (revenueSummary?.totalIn || 0) /
-                      Math.max(revenueChartData.reduce((sum, item) => sum + (item.count || 0), 0), 1),
-                  )}
+                  (revenueSummary?.totalIn || 0) /
+                  Math.max(revenueChartData.reduce((sum, item) => sum + (item.count || 0), 0), 1),
+                )}
             </p>
           </div>
           <div className="p-4 bg-gold/5 rounded-[16px]">
@@ -503,13 +503,14 @@ const AdminDashboard = () => {
                   <div>
                     <p className="font-medium text-primary-900">{seller.name}</p>
                     <p className="text-xs text-warmgray-600">
-                      {seller.sales} đơn hàng • ⭐ {seller.rating}
+                      {seller.sales} đơn hàng
+                      {/* • ⭐ {seller.rating} */}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-primary-900">
-                    {(seller.revenue / 1000000).toFixed(0)}M ₫
+                    {formatCurrency(seller.revenue)}
                   </p>
                 </div>
               </div>
@@ -529,12 +530,7 @@ const AdminDashboard = () => {
                     {product.sales} đã bán
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-warmgray-600">{product.views} lượt xem</span>
-                  <span className="text-primary-700 font-medium">
-                    {(product.conversion * 100).toFixed(1)}% chuyển đổi
-                  </span>
-                </div>
+
               </div>
             ))}
           </div>

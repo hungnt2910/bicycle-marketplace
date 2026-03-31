@@ -527,16 +527,18 @@ const SellerOrders = () => {
                             size="sm"
                             disabled={
                               actionLoading === 'shipping' ||
-                              ['buyer_confirmed', 'completed', 'refunded', 'cancelled', 'disputed'].includes(order.status)
+                              ['delivered', 'buyer_confirmed', 'completed', 'refunded', 'cancelled', 'disputed'].includes(order.status)
                             }
                             onClick={() => handleUpdateShipping(order)}
                             style={{ borderRadius: '8px', fontSize: '12px', padding: '4px 12px' }}
                           >
                             {actionLoading === 'shipping'
                               ? 'Đang cập nhật...'
-                              : ['buyer_confirmed', 'completed', 'refunded', 'cancelled', 'disputed'].includes(order.status)
-                                ? 'Đã xong'
-                                : 'Cập nhật vận chuyển'}
+                              : order.status === 'delivered'
+                                ? 'Đã giao'
+                                : ['buyer_confirmed', 'completed', 'refunded', 'cancelled', 'disputed'].includes(order.status)
+                                  ? 'Đã xong'
+                                  : 'Cập nhật vận chuyển'}
                           </Button>
                         </div>
                       </td>
