@@ -4,8 +4,8 @@ const walletApi = {
   // Detailed wallet document for current user
   getWallet: () => axiosClient.get('/api/v1/wallet'),
 
-  // Summary + 30-day stats + recent transactions
-  getSummary: () => axiosClient.get('/api/v1/wallet/summary'),
+  // Summary + 30-day stats + recent transactions (paginated)
+  getSummary: (params = {}) => axiosClient.get('/api/v1/wallet/summary', { params }),
 
   // Wallet + escrow totals (requires role param: buyer or seller)
   getTotals: (params = {}) => axiosClient.get('/api/v1/wallet/totals', { params }),

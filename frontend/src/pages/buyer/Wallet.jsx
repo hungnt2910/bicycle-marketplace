@@ -68,13 +68,13 @@ const Wallet = () => {
 
   const currency = summary?.currency || walletSummary?.wallet?.currency || 'VND';
 
-  const fetchSummary = async () => {
+  const fetchSummary = async (pageParam = 1) => {
     setLoadingSummary(true);
     setLoadingTx(true);
     try {
       const [walletRes, summaryRes, totalsRes] = await Promise.all([
         walletApi.getWallet(),
-        walletApi.getSummary(),
+        walletApi.getSummary({ page: pageParam, limit }),
         walletApi.getTotals({ role: escrowRole }),
       ]);
 
@@ -86,15 +86,27 @@ const Wallet = () => {
       setWalletSummary(summaryData);
       setTotals(totalsData);
 
+      const recentTx = summaryData?.recentTransactions;
       const txPayload =
-        summaryData?.transactions || summaryData?.recentTransactions || summaryData?.items || [];
+        summaryData?.transactions ||
+        (Array.isArray(recentTx) ? recentTx : recentTx?.data) ||
+        summaryData?.items ||
+        [];
       const txList = Array.isArray(txPayload) ? txPayload : [];
       setTransactions(txList);
+
+      const pg = summaryRes?.data?.pagination ||
+        recentTx?.pagination ||
+        summaryData?.pagination || {
+          total: summaryData?.total,
+          pages: summaryData?.pages,
+          page: summaryData?.page,
+        };
       setPagination({
-        total: txList.length,
-        pages: txList.length ? 1 : 0,
+        total: pg.total || txList.length,
+        pages: pg.pages || Math.ceil((pg.total || txList.length || limit) / limit),
       });
-      setPage(1);
+      setPage(pg.page || pageParam);
     } catch (err) {
       console.error('Load wallet summary error:', err);
       toast.error(err?.response?.data?.message || 'Không lấy được số dư ví');
@@ -740,7 +752,7 @@ const Wallet = () => {
                       <Pagination
                         currentPage={page}
                         totalPages={pagination.pages || 1}
-                        onPageChange={(newPage) => fetchTransactions(newPage)}
+                        onPageChange={(newPage) => fetchSummary(newPage)}
                       />
                     </>
                   ) : (
