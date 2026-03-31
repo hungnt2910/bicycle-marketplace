@@ -33,6 +33,9 @@ const EditListing = () => {
   const [fetchingData, setFetchingData] = useState(true);
   const [inspectionType, setInspectionType] = useState('none');
   const [typeOptions, setTypeOptions] = useState(DEFAULT_TYPE_OPTIONS);
+  const [wardOptions, setWardOptions] = useState([]);
+  const [loadingWards, setLoadingWards] = useState(false);
+  const [maxImagesPerListing, setMaxImagesPerListing] = useState(10);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -65,8 +68,8 @@ const EditListing = () => {
       mainImage: '',
     },
     location: {
-      city: '',
-      district: '',
+      city: 'TP. Hồ Chí Minh',
+      ward: '',
       address: '',
     },
     inspection: {
@@ -76,8 +79,40 @@ const EditListing = () => {
     status: 'draft',
   });
 
-  const POST_FEE = 15000;
-  const INSPECTION_FEE_OFFLINE = 200000;
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await adminApi.getSystemSettings();
+        const settings = (res?.data?.data || res?.data || [])[0]?.name_value || [];
+        const maxImagesVal = settings.find((i) => i.key === 'max_images_per_listing')?.value;
+        if (maxImagesVal) setMaxImagesPerListing(Number(maxImagesVal));
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    const fetchHcmWards = async () => {
+      setLoadingWards(true);
+      try {
+        const response = await fetch('https://provinces.open-api.vn/api/v2/p/79?depth=2');
+        const data = await response.json();
+        const wardOpts = (Array.isArray(data?.wards) ? data.wards : [])
+          .map((ward) => ({ value: ward?.name || '', label: ward?.name || '' }))
+          .filter((item) => item.value)
+          .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+        setWardOptions(wardOpts);
+      } catch (error) {
+        console.error('Error fetching HCM wards:', error);
+        setWardOptions([]);
+      } finally {
+        setLoadingWards(false);
+      }
+    };
+    fetchHcmWards();
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -150,8 +185,8 @@ const EditListing = () => {
             mainImage: bicycle.media?.mainImage || '',
           },
           location: {
-            city: bicycle.location?.city || '',
-            district: bicycle.location?.district || '',
+            city: 'TP. Hồ Chí Minh',
+            ward: bicycle.location?.district || '',
             address: bicycle.location?.address || '',
           },
           inspection: {
@@ -258,7 +293,7 @@ const EditListing = () => {
         },
         location: {
           city: formData.location.city || undefined,
-          district: formData.location.district || undefined,
+          district: formData.location.ward || undefined,
           address: formData.location.address || undefined,
         },
         inspection: {
@@ -284,8 +319,8 @@ const EditListing = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length + formData.media.images.length > 10) {
-      toast.error('Tối đa 10 hình ảnh');
+    if (files.length + formData.media.images.length > maxImagesPerListing) {
+      toast.error(`Tối đa ${maxImagesPerListing} hình ảnh`);
       return;
     }
 
@@ -578,7 +613,7 @@ const EditListing = () => {
                 <p className="text-sm font-semibold text-primary-900 mb-1">
                   Kéo thả hoặc click để upload ảnh
                 </p>
-                <p className="text-xs text-warmgray-500">Tối đa 10 ảnh, mỗi ảnh không quá 5MB</p>
+                <p className="text-xs text-warmgray-500">Tối đa {maxImagesPerListing} ảnh, mỗi ảnh không quá 5MB</p>
               </label>
 
               {/* Preview Images */}
@@ -647,15 +682,16 @@ const EditListing = () => {
                   label="Tỉnh/Thành phố"
                   name="city"
                   value={formData.location.city}
-                  onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: TP. Hồ Chí Minh"
+                  readOnly
+                  disabled
                 />
-                <Input
-                  label="Quận/Huyện"
-                  name="district"
-                  value={formData.location.district}
+                <Select
+                  label="Phường/Xã"
+                  name="ward"
+                  value={formData.location.ward}
                   onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: Quận 1"
+                  placeholder={loadingWards ? 'Đang tải danh sách phường/xã...' : 'Chọn phường/xã'}
+                  options={wardOptions}
                 />
               </div>
               <Input
