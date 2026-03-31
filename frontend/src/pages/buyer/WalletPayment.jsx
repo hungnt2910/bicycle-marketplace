@@ -643,7 +643,7 @@ const WalletPayment = () => {
                 <div style={{ borderTop: '1px solid var(--lux-gray-100)' }} />
 
                 {/* Transaction ID */}
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <span className="text-sm font-medium" style={{ color: 'var(--lux-gray-500)' }}>
                     Mã giao dịch
                   </span>
@@ -663,7 +663,7 @@ const WalletPayment = () => {
                       —
                     </span>
                   )}
-                </div>
+                </div> */}
 
                 <div style={{ borderTop: '1px solid var(--lux-gray-100)' }} />
 

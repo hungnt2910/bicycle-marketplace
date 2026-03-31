@@ -37,9 +37,9 @@ const Wallet = () => {
     () =>
       numberOrZero(
         totals?.walletBalance ??
-          summary?.balance ??
-          walletSummary?.wallet?.balance ??
-          (summary?.balance ?? summary?.currentBalance ?? 0) - (summary?.pendingBalance ?? 0)
+        summary?.balance ??
+        walletSummary?.wallet?.balance ??
+        (summary?.balance ?? summary?.currentBalance ?? 0) - (summary?.pendingBalance ?? 0)
       ),
     [summary, totals, walletSummary]
   );
@@ -48,9 +48,9 @@ const Wallet = () => {
     () =>
       numberOrZero(
         totals?.escrowHeld ??
-          totals?.pendingBalance ??
-          summary?.pendingBalance ??
-          summary?.escrowHold
+        totals?.pendingBalance ??
+        summary?.pendingBalance ??
+        summary?.escrowHold
       ),
     [summary, totals]
   );
@@ -59,9 +59,9 @@ const Wallet = () => {
     () =>
       numberOrZero(
         summary?.totalWithdrawn ||
-          walletSummary?.wallet?.totalWithdrawn ||
-          summary?.withdrawn ||
-          summary?.totalPayout
+        walletSummary?.wallet?.totalWithdrawn ||
+        summary?.withdrawn ||
+        summary?.totalPayout
       ),
     [summary, walletSummary]
   );
@@ -98,10 +98,10 @@ const Wallet = () => {
       const pg = summaryRes?.data?.pagination ||
         recentTx?.pagination ||
         summaryData?.pagination || {
-          total: summaryData?.total,
-          pages: summaryData?.pages,
-          page: summaryData?.page,
-        };
+        total: summaryData?.total,
+        pages: summaryData?.pages,
+        page: summaryData?.page,
+      };
       setPagination({
         total: pg.total || txList.length,
         pages: pg.pages || Math.ceil((pg.total || txList.length || limit) / limit),
@@ -133,10 +133,10 @@ const Wallet = () => {
       setTransactions(items);
       const pg = res?.data?.pagination ||
         data?.pagination || {
-          total: data?.total,
-          pages: data?.pages,
-          page: data?.page,
-        };
+        total: data?.total,
+        pages: data?.pages,
+        page: data?.page,
+      };
       setPagination({
         total: pg.total || items.length,
         pages: pg.pages || Math.ceil((pg.total || items.length || limit) / limit),
@@ -275,12 +275,12 @@ const Wallet = () => {
   const formatDateTime = (value) =>
     value
       ? new Date(value).toLocaleString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
       : '--';
 
   const statusVariant = (status) => {
@@ -345,30 +345,30 @@ const Wallet = () => {
         />
       ),
     },
-    {
-      label: 'Escrow',
-      value: loadingSummary ? '...' : formatMoney(escrowHold),
-      icon: (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-        />
-      ),
-    },
-    {
-      label: 'Đã rút',
-      value: loadingSummary ? '...' : formatMoney(totalWithdrawn),
-      icon: (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
-        />
-      ),
-    },
+    // {
+    //   label: 'Escrow',
+    //   value: loadingSummary ? '...' : formatMoney(escrowHold),
+    //   icon: (
+    //     <path
+    //       strokeLinecap="round"
+    //       strokeLinejoin="round"
+    //       strokeWidth={1.5}
+    //       d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+    //     />
+    //   ),
+    // },
+    // {
+    //   label: 'Đã rút',
+    //   value: loadingSummary ? '...' : formatMoney(totalWithdrawn),
+    //   icon: (
+    //     <path
+    //       strokeLinecap="round"
+    //       strokeLinejoin="round"
+    //       strokeWidth={1.5}
+    //       d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
+    //     />
+    //   ),
+    // },
   ];
 
   return (

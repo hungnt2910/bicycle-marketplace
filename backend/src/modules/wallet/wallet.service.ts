@@ -32,7 +32,7 @@ export class WalletService {
     private walletTransactionModel: Model<WalletTransactionDocument>,
     @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
-  ) {}
+  ) { }
 
   /**
    * Create wallet for new user
