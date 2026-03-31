@@ -18,6 +18,7 @@ const CreateListing = () => {
   const [typeOptions, setTypeOptions] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [post_fee, setPostFee] = useState(0);
+  const [maxImagesPerListing, setMaxImagesPerListing] = useState(10);
   const [wardOptions, setWardOptions] = useState([]);
   const [loadingWards, setLoadingWards] = useState(false);
 
@@ -132,26 +133,20 @@ const CreateListing = () => {
     fetchCategories();
   }, []);
 
-  const fetchPostFee = async () => {
-    try {
-      const res = await adminApi.getSystemSettings();
-      const postFee = (res?.data?.data || res?.data || [])[0]?.name_value?.find(
-        (i) => i.key === 'post_fee'
-      )?.value;
-      console.log('💰 Fetched post fee from system settings:', postFee);
-      if (postFee) {
-        setPostFee(postFee);
-      } else {
-        setPostFee(15000); // Default fee if not set in system settings
-      }
-    } catch (error) {
-      console.error('Error fetching post fee:', error);
-      setPostFee(15000); // Default fee on error
-    }
-  };
-
   useEffect(() => {
-    fetchPostFee();
+    const fetchSettings = async () => {
+      try {
+        const res = await adminApi.getSystemSettings();
+        const settings = (res?.data?.data || res?.data || [])[0]?.name_value || [];
+        const postFeeVal = settings.find((i) => i.key === 'post_fee')?.value;
+        const maxImagesVal = settings.find((i) => i.key === 'max_images_per_listing')?.value;
+        if (postFeeVal) setPostFee(Number(postFeeVal));
+        if (maxImagesVal) setMaxImagesPerListing(Number(maxImagesVal));
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
   }, []);
 
   useEffect(() => {
@@ -416,8 +411,8 @@ const CreateListing = () => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    if (files.length + formData.media.images.length > 10) {
-      toast.error('Tối đa 10 hình ảnh');
+    if (files.length + formData.media.images.length > maxImagesPerListing) {
+      toast.error(`Tối đa ${maxImagesPerListing} hình ảnh`);
       return;
     }
 
@@ -765,7 +760,7 @@ const CreateListing = () => {
                 <p className="text-xs text-warmgray-500">
                   {uploadingImages
                     ? 'Đang tải ảnh lên Cloudinary...'
-                    : 'Tối đa 10 ảnh, mỗi ảnh không quá 5MB'}
+                    : `Tối đa ${maxImagesPerListing} ảnh, mỗi ảnh không quá 5MB`}
                 </p>
               </label>
 

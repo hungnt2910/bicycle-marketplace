@@ -131,8 +131,8 @@ const TransactionManagement = () => {
             value: heldCount,
           },
           {
-            label: 'Tổng tiền giữ (M ₫)',
-            value: (totalHeldAmount / 1000000).toFixed(2),
+            label: 'Tổng tiền giữ (VNĐ)',
+            value: totalHeldAmount.toLocaleString('vi-VN'),
           },
           {
             label: 'Sắp giải ngân (≤2 ngày)',
@@ -303,15 +303,20 @@ const TransactionManagement = () => {
                         </div>
                       </td>
                       <td className="py-3 px-3 align-middle whitespace-nowrap">
-                        <div className="text-sm font-bold text-primary-700">
-                          {(heldAmount / 1000000).toFixed(2)}M ₫
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-bold text-primary-700">
+                            {heldAmount.toLocaleString('vi-VN')}
+                          </span>
+                          <span className="text-xs font-bold text-primary-700">₫</span>
                         </div>
                         {txn.escrow?.heldAmount && heldAmount !== amount && (
                           <div
-                            className="text-[11px] text-warmgray-500 mt-0.5"
+                            className="text-[11px] text-warmgray-500 mt-0.5 flex items-baseline gap-1"
                             title={`${txn.escrow.heldAmount} ₫`}
                           >
-                            Tổng: {(amount / 1000000).toFixed(2)}M ₫
+                            <span>Tổng:</span>
+                            <span className="font-semibold">{amount.toLocaleString('vi-VN')}</span>
+                            <span className="text-[10px]">₫</span>
                           </div>
                         )}
                       </td>

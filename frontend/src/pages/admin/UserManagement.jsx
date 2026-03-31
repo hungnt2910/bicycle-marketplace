@@ -378,7 +378,7 @@ const UserManagement = () => {
                   {/* Role */}
                   <td className="px-6 py-4">
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium ${
                         roleColors[user.role] === 'blue'
                           ? 'bg-primary-800/10 text-primary-900'
                           : roleColors[user.role] === 'green'
@@ -395,7 +395,7 @@ const UserManagement = () => {
                   {/* Status */}
                   <td className="px-6 py-4">
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium ${
                         statusColors[user.status] === 'green'
                           ? 'bg-success/10 text-green-800'
                           : statusColors[user.status] === 'yellow'
@@ -411,7 +411,7 @@ const UserManagement = () => {
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-2">
                       <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium inline-flex w-fit ${
+                        className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium inline-flex w-fit ${
                           sellerStatusColors[user.sellerStatus] === 'success'
                             ? 'bg-success/10 text-green-800'
                             : sellerStatusColors[user.sellerStatus] === 'warning'
@@ -464,7 +464,7 @@ const UserManagement = () => {
                       <button
                         onClick={() => openStatusModal(user)}
                         disabled={user.role === 'admin'}
-                        className="px-3 py-1 text-gold hover:bg-gold/5 rounded font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="whitespace-nowrap px-3 py-1 text-gold hover:bg-gold/5 rounded font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Đổi trạng thái
                       </button>

@@ -56,6 +56,7 @@ const ListingModeration = () => {
     name: bike?.title || 'Không có tiêu đề',
     seller: getSellerName(bike),
     price: bike?.price || 0,
+    oldPrice: bike?.originalPrice || bike?.oldPrice || null,
     status: normalizeStatus(bike),
     rawStatus: bike?.status,
     submitDate: formatDate(bike?.createdAt || bike?.submitDate),
@@ -192,13 +193,13 @@ const ListingModeration = () => {
         prev.map((listing) =>
           listing.id === listingId
             ? {
-                ...listing,
-                status: 'approved',
-                rawStatus: 'active',
-                approvedDate: formatDate(new Date()),
-                rejectedDate: '',
-                rejectedReason: '',
-              }
+              ...listing,
+              status: 'approved',
+              rawStatus: 'active',
+              approvedDate: formatDate(new Date()),
+              rejectedDate: '',
+              rejectedReason: '',
+            }
             : listing
         )
       );
@@ -220,12 +221,12 @@ const ListingModeration = () => {
         prev.map((listing) =>
           listing.id === listingId
             ? {
-                ...listing,
-                status: 'rejected',
-                rawStatus: 'rejected',
-                rejectedDate: formatDate(new Date()),
-                rejectedReason: reason,
-              }
+              ...listing,
+              status: 'rejected',
+              rawStatus: 'rejected',
+              rejectedDate: formatDate(new Date()),
+              rejectedReason: reason,
+            }
             : listing
         )
       );
@@ -340,9 +341,26 @@ const ListingModeration = () => {
                         {listing.seller}
                       </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-warmgray-600">
-                        <div>
+                        <div className="col-span-2 sm:col-span-1">
                           <span className="font-medium text-warmgray-800">Giá:</span>{' '}
-                          {(listing.price / 1000000).toFixed(1)}M ₫
+                          <div className="mt-0.5">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-base font-bold text-primary-800">
+                                {listing.price.toLocaleString('vi-VN')}
+                              </span>
+                              <span className="text-xs font-bold text-primary-800">₫</span>
+                            </div>
+                            {listing.oldPrice && listing.oldPrice > listing.price && (
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-xs text-warmgray-500 line-through">
+                                  {listing.oldPrice.toLocaleString('vi-VN')} ₫
+                                </span>
+                                <span className="px-1.5 py-0.5 bg-danger/10 text-danger text-[10px] font-bold rounded">
+                                  -{Math.round(((listing.oldPrice - listing.price) / listing.oldPrice) * 100)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <span className="font-medium text-warmgray-800">Danh mục:</span>{' '}

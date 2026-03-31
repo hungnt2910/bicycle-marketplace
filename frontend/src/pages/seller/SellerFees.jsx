@@ -72,7 +72,7 @@ const SellerFees = () => {
   }, [fees]);
 
   const getStatusBadge = (status) => (
-    <Badge variant={statusVariants[status] || 'default'}>
+    <Badge variant={statusVariants[status] || 'default'} className="badge">
       {statusLabels[status] || status || '--'}
     </Badge>
   );

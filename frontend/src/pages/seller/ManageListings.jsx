@@ -217,7 +217,7 @@ const ManageListings = () => {
       sold: 'Đã bán',
       draft: 'Nháp',
     };
-    return <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>;
+    return <Badge variant={variants[status] || 'default'} className="badge">{labels[status] || status}</Badge>;
   };
 
   const filteredListings = listings.filter((l) => {
@@ -314,7 +314,7 @@ const ManageListings = () => {
               </thead>
               <tbody className="divide-y divide-warmgray-200">
                 {filteredListings.map((listing) => {
-                  const isSold = listing.status === 'sold';
+                  const isDisabled = listing.status === 'sold' || listing.status === 'reserved';
 
                   return (
                     <tr
@@ -344,8 +344,8 @@ const ManageListings = () => {
                           <Button
                             variant="primary"
                             size="sm"
-                            disabled={isSold}
-                            className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
+                            disabled={isDisabled}
+                            className={isDisabled ? 'opacity-60 cursor-not-allowed' : ''}
                             onClick={() => handleEdit(listing._id || listing.id)}
                           >
                             Chỉnh sửa
@@ -353,8 +353,8 @@ const ManageListings = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={isSold}
-                            className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
+                            disabled={isDisabled}
+                            className={isDisabled ? 'opacity-60 cursor-not-allowed' : ''}
                             onClick={() => handleView(listing._id || listing.id)}
                           >
                             Xem tin
@@ -363,8 +363,6 @@ const ManageListings = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={isSold}
-                              className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
                               onClick={() =>
                                 handleToggleStatus(listing._id || listing.id, listing.status)
                               }
@@ -376,8 +374,6 @@ const ManageListings = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={isSold}
-                              className={isSold ? 'opacity-60 cursor-not-allowed' : ''}
                               onClick={() =>
                                 handleToggleStatus(listing._id || listing.id, listing.status)
                               }
@@ -388,8 +384,8 @@ const ManageListings = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={isSold}
-                            className={`text-danger-600 hover:bg-danger-50 ${isSold ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            disabled={isDisabled}
+                            className={`text-danger-600 hover:bg-danger-50 ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                             onClick={() => handleDelete(listing._id || listing.id)}
                           >
                             Xóa

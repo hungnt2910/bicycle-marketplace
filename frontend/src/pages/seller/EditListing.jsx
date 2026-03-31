@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import bicycleApi from '../../api/postNewsApi';
 import adminApi from '../../api/adminApi';
+import cloudinaryApi from '../../api/cloudinaryApi';
 import { toast } from 'react-toastify';
 import { Button, Card, Input, Select, Textarea } from '../../components/ui';
 
@@ -31,8 +32,13 @@ const EditListing = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [inspectionType, setInspectionType] = useState('none');
   const [typeOptions, setTypeOptions] = useState(DEFAULT_TYPE_OPTIONS);
+  const [wardOptions, setWardOptions] = useState([]);
+  const [loadingWards, setLoadingWards] = useState(false);
+  const [maxImagesPerListing, setMaxImagesPerListing] = useState(10);
+
 
   // Form state
   const [formData, setFormData] = useState({
@@ -65,8 +71,8 @@ const EditListing = () => {
       mainImage: '',
     },
     location: {
-      city: '',
-      district: '',
+      city: 'TP. Hồ Chí Minh',
+      ward: '',
       address: '',
     },
     inspection: {
@@ -76,8 +82,40 @@ const EditListing = () => {
     status: 'draft',
   });
 
-  const POST_FEE = 15000;
-  const INSPECTION_FEE_OFFLINE = 200000;
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await adminApi.getSystemSettings();
+        const settings = (res?.data?.data || res?.data || [])[0]?.name_value || [];
+        const maxImagesVal = settings.find((i) => i.key === 'max_images_per_listing')?.value;
+        if (maxImagesVal) setMaxImagesPerListing(Number(maxImagesVal));
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    const fetchHcmWards = async () => {
+      setLoadingWards(true);
+      try {
+        const response = await fetch('https://provinces.open-api.vn/api/v2/p/79?depth=2');
+        const data = await response.json();
+        const wardOpts = (Array.isArray(data?.wards) ? data.wards : [])
+          .map((ward) => ({ value: ward?.name || '', label: ward?.name || '' }))
+          .filter((item) => item.value)
+          .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+        setWardOptions(wardOpts);
+      } catch (error) {
+        console.error('Error fetching HCM wards:', error);
+        setWardOptions([]);
+      } finally {
+        setLoadingWards(false);
+      }
+    };
+    fetchHcmWards();
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -107,6 +145,30 @@ const EditListing = () => {
     };
 
     fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    const fetchHcmWards = async () => {
+      setLoadingWards(true);
+      try {
+        const response = await fetch('https://provinces.open-api.vn/api/v2/p/79?depth=2');
+        const data = await response.json();
+
+        const wardOpts = (Array.isArray(data?.wards) ? data.wards : [])
+          .map((ward) => ({ value: ward?.name || '', label: ward?.name || '' }))
+          .filter((item) => item.value)
+          .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+
+        setWardOptions(wardOpts);
+      } catch (error) {
+        console.error('Error fetching HCM wards:', error);
+        setWardOptions([]);
+      } finally {
+        setLoadingWards(false);
+      }
+    };
+
+    fetchHcmWards();
   }, []);
 
   useEffect(() => {
@@ -150,8 +212,8 @@ const EditListing = () => {
             mainImage: bicycle.media?.mainImage || '',
           },
           location: {
-            city: bicycle.location?.city || '',
-            district: bicycle.location?.district || '',
+            city: 'TP. Hồ Chí Minh',
+            ward: bicycle.location?.district || '',
             address: bicycle.location?.address || '',
           },
           inspection: {
@@ -258,7 +320,7 @@ const EditListing = () => {
         },
         location: {
           city: formData.location.city || undefined,
-          district: formData.location.district || undefined,
+          district: formData.location.ward || undefined,
           address: formData.location.address || undefined,
         },
         inspection: {
@@ -282,32 +344,69 @@ const EditListing = () => {
     }
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    if (files.length + formData.media.images.length > 10) {
-      toast.error('Tối đa 10 hình ảnh');
+    if (files.length + formData.media.images.length > maxImagesPerListing) {
+      toast.error(`Tối đa ${maxImagesPerListing} hình ảnh`);
+
       return;
     }
 
-    files.forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`File ${file.name} quá lớn (tối đa 5MB)`);
+    setUploadingImages(true);
+
+    try {
+      const userInfoStr = localStorage.getItem('user') || localStorage.getItem('userInfo');
+      const userInfo = userInfoStr ? JSON.parse(userInfoStr) : {};
+      const sellerId = userInfo._id || userInfo.id || userInfo.userId;
+
+      if (!sellerId) {
+        toast.error('Không tìm thấy thông tin người bán, vui lòng đăng nhập lại');
+        setUploadingImages(false);
+        navigate('/login');
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          media: {
-            ...prev.media,
-            images: [...prev.media.images, reader.result],
-            mainImage: prev.media.mainImage || reader.result,
-          },
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
+      const uploadPromises = files.map(async (file) => {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`File ${file.name} quá lớn (tối đa 5MB)`);
+          return null;
+        }
+
+        const formDataFile = new FormData();
+        formDataFile.append('file', file);
+
+        const res = await cloudinaryApi.uploadSellerImage(sellerId, formDataFile);
+        const data = res?.data?.data || res?.data;
+        const url = data?.url || data?.secure_url || data?.imageUrl;
+        if (!url) {
+          toast.error(`Không lấy được URL cho ảnh ${file.name}`);
+          return null;
+        }
+        return url;
+      });
+
+      const uploaded = (await Promise.all(uploadPromises)).filter(Boolean);
+
+      if (uploaded.length > 0) {
+        setFormData((prev) => {
+          const newImages = [...prev.media.images, ...uploaded];
+          return {
+            ...prev,
+            media: {
+              ...prev.media,
+              images: newImages,
+              mainImage: prev.media.mainImage || newImages[0],
+            },
+          };
+        });
+        toast.success(`Tải lên ${uploaded.length} ảnh thành công`);
+      }
+    } catch (err) {
+      console.error('Upload image error:', err);
+      toast.error('Tải ảnh thất bại, vui lòng thử lại');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   const removeImage = (index) => {
@@ -483,12 +582,19 @@ const EditListing = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Input
+              <Select
                 label="Chất liệu khung"
                 name="frameMaterial"
                 value={formData.specifications.frameMaterial}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Carbon, Aluminum, Thép..."
+                placeholder="Chọn chất liệu"
+                options={[
+                  { value: 'aluminum', label: 'Aluminum' },
+                  { value: 'carbon', label: 'Carbon' },
+                  { value: 'steel', label: 'Steel' },
+                  { value: 'titanium', label: 'Titanium' },
+                  { value: 'alloy', label: 'Alloy' },
+                ]}
               />
 
               <Input
@@ -510,20 +616,32 @@ const EditListing = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
+              <Select
                 label="Loại phanh"
                 name="brakeType"
                 value={formData.specifications.brakeType}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Phanh đĩa, Phanh dầu, Phanh cơ..."
+                placeholder="Chọn loại phanh"
+                options={[
+                  { value: 'disc', label: 'Phanh đĩa (Disc)' },
+                  { value: 'rim', label: 'Phanh vành (Rim)' },
+                  { value: 'hydraulic', label: 'Phanh dầu (Hydraulic)' },
+                  { value: 'mechanical', label: 'Phanh cơ (Mechanical)' },
+                ]}
               />
 
-              <Input
+              <Select
                 label="Giảm xóc"
                 name="suspension"
                 value={formData.specifications.suspension}
                 onChange={(e) => handleInputChange(e, 'specifications')}
-                placeholder="VD: Giảm xóc trước, Giảm xóc toàn phần..."
+                placeholder="Chọn loại giảm xóc"
+                options={[
+                  { value: 'none', label: 'Không giảm xóc' },
+                  { value: 'front', label: 'Giảm xóc trước' },
+                  { value: 'full', label: 'Giảm xóc toàn phần' },
+                  { value: 'rear', label: 'Giảm xóc sau' },
+                ]}
               />
             </div>
 
@@ -566,7 +684,7 @@ const EditListing = () => {
               </label>
 
               {/* Upload Area */}
-              <label className="block border-2 border-dashed border-warmgray-300 rounded-[16px] p-8 text-center hover:border-primary-500 transition-colors cursor-pointer bg-neutral-offwhite">
+              <label className="block border-2 border-dashed border-warmgray-300 rounded-[16px] p-8 text-center hover:border-primary-800 transition-colors cursor-pointer bg-neutral-offwhite hover:bg-primary-800/5">
                 <input
                   type="file"
                   multiple
@@ -578,45 +696,49 @@ const EditListing = () => {
                 <p className="text-sm font-semibold text-primary-900 mb-1">
                   Kéo thả hoặc click để upload ảnh
                 </p>
-                <p className="text-xs text-warmgray-500">Tối đa 10 ảnh, mỗi ảnh không quá 5MB</p>
-              </label>
+
+                <p className="text-xs text-warmgray-500">Tối đa {maxImagesPerListing} ảnh, mỗi ảnh không quá 5MB</p>
+
+              </label >
 
               {/* Preview Images */}
-              {formData.media.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                  {formData.media.images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200"
-                      />
-                      {formData.media.mainImage === image && (
-                        <div className="absolute top-2 left-2 bg-success-600 text-white text-xs px-2 py-1 rounded">
-                          Ảnh chính
+              {
+                formData.media.images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    {formData.media.images.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={image}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-[16px] border-2 border-warmgray-200"
+                        />
+                        {formData.media.mainImage === image && (
+                          <div className="absolute top-2 left-2 bg-success-600 text-white text-xs px-2 py-1 rounded">
+                            Ảnh chính
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-primary-900/45 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-[16px] flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMainImage(image)}
+                            className="px-3 py-1 bg-white text-xs rounded hover:bg-warmgray-100"
+                          >
+                            Đặt ảnh chính
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="px-3 py-1 bg-danger/50 text-white text-xs rounded hover:bg-danger"
+                          >
+                            Xóa
+                          </button>
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-primary-900/45 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-[16px] flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setMainImage(image)}
-                          className="px-3 py-1 bg-white text-xs rounded hover:bg-warmgray-100"
-                        >
-                          Đặt ảnh chính
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="px-3 py-1 bg-danger/50 text-white text-xs rounded hover:bg-danger"
-                        >
-                          Xóa
-                        </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )
+              }
+            </div >
 
             <Input
               label="Video giới thiệu (tùy chọn)"
@@ -624,80 +746,83 @@ const EditListing = () => {
               onChange={handleVideoInput}
               placeholder="Link YouTube hoặc upload video"
             />
-          </div>
+          </div >
         )}
 
-        {activeTab === 'pricing' && (
-          <div className="space-y-6">
-            <Input
-              label="Giá bán"
-              required
-              type="number"
-              name="price"
-              value={formData.price}
-              onChange={handleInputChange}
-              placeholder="15000000"
-            />
+        {
+          activeTab === 'pricing' && (
+            <div className="space-y-6">
+              <Input
+                label="Giá bán"
+                required
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                placeholder="15000000"
+              />
 
-            {/* Location */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-primary-900">Địa chỉ</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Location */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-primary-900">Địa chỉ</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Tỉnh/Thành phố"
+                    name="city"
+                    value={formData.location.city}
+                    readOnly
+                    disabled
+                  />
+                  <Select
+                    label="Phường/Xã"
+                    name="ward"
+                    value={formData.location.ward}
+                    onChange={(e) => handleInputChange(e, 'location')}
+                    placeholder={loadingWards ? 'Đang tải danh sách phường/xã...' : 'Chọn phường/xã'}
+                    options={wardOptions}
+                  />
+                </div>
                 <Input
-                  label="Tỉnh/Thành phố"
-                  name="city"
-                  value={formData.location.city}
+                  label="Địa chỉ cụ thể"
+                  name="address"
+                  value={formData.location.address}
                   onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: TP. Hồ Chí Minh"
-                />
-                <Input
-                  label="Quận/Huyện"
-                  name="district"
-                  value={formData.location.district}
-                  onChange={(e) => handleInputChange(e, 'location')}
-                  placeholder="VD: Quận 1"
+                  placeholder="VD: 123 Nguyễn Huệ, Phường Bến Nghé"
                 />
               </div>
-              <Input
-                label="Địa chỉ cụ thể"
-                name="address"
-                value={formData.location.address}
-                onChange={(e) => handleInputChange(e, 'location')}
-                placeholder="VD: 123 Nguyễn Huệ, Phường Bến Nghé"
-              />
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/seller/manage-listings')}
-                disabled={loading}
-                className="flex-1"
-              >
-                Hủy
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleSubmit(true)}
-                disabled={loading}
-                className="flex-1"
-              >
-                {loading ? 'Đang xử lý...' : 'Lưu nháp'}
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => handleSubmit(false)}
-                disabled={loading}
-                className="flex-1"
-              >
-                {loading ? 'Đang xử lý...' : 'Cập nhật tin đăng'}
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate('/seller/manage-listings')}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleSubmit(true)}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  {loading ? 'Đang xử lý...' : 'Lưu nháp'}
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => handleSubmit(false)}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  {loading ? 'Đang xử lý...' : 'Cập nhật tin đăng'}
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </Card>
-    </div>
+          )
+        }
+      </Card >
+    </div >
   );
 };
 
