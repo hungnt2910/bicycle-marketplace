@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, Button, Textarea } from '../../components/ui';
 import disputeApi from '../../api/disputeApi';
+import transactionApi from '../../api/transactionApi';
 import cloudinaryApi from '../../api/cloudinaryApi';
 import { DisputeReasonLabels } from '../../constants/dispute';
 import { toast } from 'react-toastify';
@@ -10,6 +11,23 @@ const CreateDispute = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId') || '';
+  const [transactionDetails, setTransactionDetails] = useState(null);
+
+  useEffect(() => {
+    if (!transactionId) return;
+    transactionApi.getById(transactionId)
+      .then((res) => {
+        const tx = res?.data?.data || res?.data;
+        if (tx) {
+          setTransactionDetails({
+            buyerId: tx.buyerId?._id || tx.buyerId?.id || tx.buyerId,
+            sellerId: tx.sellerId?._id || tx.sellerId?.id || tx.sellerId,
+            bicycleId: tx.bicycleId?._id || tx.bicycleId?.id || tx.bicycleId,
+          });
+        }
+      })
+      .catch((err) => console.error('Fetch transaction error:', err));
+  }, [transactionId]);
 
   const [form, setForm] = useState({
     reason: '',
@@ -81,6 +99,7 @@ const CreateDispute = () => {
     try {
       const payload = {
         transactionId,
+        ...(transactionDetails && { transactionDetails }),
         reason: form.reason,
         description: form.description,
       };
