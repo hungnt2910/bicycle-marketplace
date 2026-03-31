@@ -5,7 +5,6 @@ import { toast } from 'react-toastify';
 import transactionApi from '../../api/transactionApi';
 import disputeApi from '../../api/disputeApi';
 import bicycleApi from '../../api/postNewsApi';
-import userApi from '../../api/userApi';
 
 const statusLabels = {
   pending_payment: 'Chờ thanh toán',
@@ -128,6 +127,8 @@ const SellerOrders = () => {
               'Người mua',
             price: tx?.amount || 0,
             status: (tx?.status || '').toLowerCase(),
+            address: tx?.address || '',
+            phone: tx?.phone || '',
             disputeId: dispute.id,
             disputeStatus: (dispute.status || '').toLowerCase(),
             returnTracking: tx?.dispute?.returnInfo?.trackingInfo,
@@ -232,25 +233,9 @@ const SellerOrders = () => {
     setLoadingBuyerAddress(false);
   };
 
-  const loadBuyerAddress = async (buyerId) => {
-    if (!buyerId) {
-      setBuyerAddress('Không có địa chỉ');
-      return;
-    }
-
-    try {
-      setLoadingBuyerAddress(true);
-      const res = await userApi.getUserById(buyerId);
-      const payload = res?.data?.data ?? res?.data;
-      const buyer = Array.isArray(payload) ? payload[0] : payload;
-      const address = (buyer?.address || '').toString().trim();
-      setBuyerAddress(address || 'Chưa cập nhật địa chỉ');
-    } catch (err) {
-      console.error('Load buyer address error:', err);
-      setBuyerAddress('Không tải được địa chỉ');
-    } finally {
-      setLoadingBuyerAddress(false);
-    }
+  const loadBuyerAddress = (order) => {
+    const addr = (order?.address || '').trim();
+    setBuyerAddress(addr || 'Chưa cập nhật địa chỉ');
   };
 
   const handleUpdateShipping = async (order) => {
@@ -265,7 +250,7 @@ const SellerOrders = () => {
     setShippingErrors({});
     setBuyerAddress('');
     setShippingModalOpen(true);
-    loadBuyerAddress(order?.buyerId);
+    loadBuyerAddress(order);
   };
 
   const submitShipping = async () => {

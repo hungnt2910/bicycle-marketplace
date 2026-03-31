@@ -100,7 +100,7 @@ const ProductDetail = ({ productId }) => {
         amount: String(amount),
         bicycleId: String(bikeId),
         title: product.name || '',
-        returnUrl: `/product/${productId}`,
+        returnUrl: '/buyer/dashboard',
       });
       if (isDeposit) {
         params.set('depositRate', String(depositRate));
