@@ -71,6 +71,11 @@ export class DisputesService {
     // Create dispute
     const dispute = await this.disputeModel.create({
       transactionId,
+      transactionDetails: {
+        buyerId: transaction.buyerId,
+        sellerId: transaction.sellerId,
+        bicycleId: transaction.bicycleId,
+      },
       reporterId,
       reportedUserId: transaction.sellerId,
       reason,
@@ -226,7 +231,7 @@ export class DisputesService {
       if (bicycle) {
         bicycle.status = BicycleStatus.DRAFT;
         bicycle.updatedAt = new Date();
-        console.log("Update date at", bicycle.updatedAt)
+        console.log('Update date at', bicycle.updatedAt);
         await bicycle.save();
       }
 
@@ -247,7 +252,7 @@ export class DisputesService {
       if (bicycle) {
         bicycle.status = BicycleStatus.SOLD;
         bicycle.updatedAt = new Date();
-        console.log("Update date at", bicycle.updatedAt)
+        console.log('Update date at', bicycle.updatedAt);
         await bicycle.save();
       }
     } else if (decision === 'partial_refund') {
@@ -368,7 +373,7 @@ export class DisputesService {
       bicycle.status = BicycleStatus.ACTIVE;
       bicycle.inspection = undefined;
       bicycle.updatedAt = new Date();
-        console.log("Update date at", bicycle.updatedAt)
+      console.log('Update date at', bicycle.updatedAt);
 
       await bicycle.save();
     }

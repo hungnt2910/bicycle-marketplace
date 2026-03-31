@@ -26,6 +26,7 @@ import { User, UserRole } from '../../entities/user.entity';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { AddEvidenceDto } from './dto/add-evidence.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Disputes')
 @Controller('disputes')
@@ -37,8 +38,7 @@ export class DisputesController {
   /**
    * Create a new dispute (Buyer)
    */
-  @Post()
-  @Roles(UserRole.BUYER)
+  @Post('create-dispute')
   @ApiOperation({ summary: 'Create a new dispute (buyer only)' })
   @ApiResponse({ status: 201, description: 'Dispute created successfully' })
   @ApiResponse({
@@ -83,6 +83,7 @@ export class DisputesController {
    * Get dispute by ID
    */
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get dispute details' })
   @ApiResponse({ status: 200, description: 'Dispute found' })
   @ApiResponse({ status: 404, description: 'Dispute not found' })
@@ -104,30 +105,31 @@ export class DisputesController {
   /**
    * Add evidence to dispute (Buyer or Seller)
    */
-//   @Patch(':id/evidence')
-//   @Roles(UserRole.BUYER, UserRole.SELLER)
-//   @ApiOperation({ summary: 'Add additional evidence to dispute' })
-//   @ApiResponse({ status: 200, description: 'Evidence added successfully' })
-//   async addEvidence(
-//     @Param('id') id: string,
-//     @GetUser() user: User,
-//     @Body() addEvidenceDto: AddEvidenceDto,
-//   ) {
-//     const dispute = await this.disputesService.addEvidence(
-//       id,
-//       user._id.toString(),
-//       addEvidenceDto,
-//     );
+  //   @Patch(':id/evidence')
+  //   @Roles(UserRole.BUYER, UserRole.SELLER)
+  //   @ApiOperation({ summary: 'Add additional evidence to dispute' })
+  //   @ApiResponse({ status: 200, description: 'Evidence added successfully' })
+  //   async addEvidence(
+  //     @Param('id') id: string,
+  //     @GetUser() user: User,
+  //     @Body() addEvidenceDto: AddEvidenceDto,
+  //   ) {
+  //     const dispute = await this.disputesService.addEvidence(
+  //       id,
+  //       user._id.toString(),
+  //       addEvidenceDto,
+  //     );
 
-//     return {
-//       message: 'Evidence added successfully',
-//       data: dispute,
-//     };
-//   }
+  //     return {
+  //       message: 'Evidence added successfully',
+  //       data: dispute,
+  //     };
+  //   }
 
   /**
    * Inspector adds comparison evidence
    */
+  @Public()
   @Patch(':id/inspector-evidence')
   @Roles(UserRole.INSPECTOR)
   @ApiOperation({ summary: 'Add inspector comparison evidence' })
@@ -223,11 +225,11 @@ export class DisputesController {
   @Patch(':id/seller-confirm')
   @Roles(UserRole.SELLER)
   @ApiOperation({ summary: 'Seller confirms receipt of returned bicycle' })
-  @ApiResponse({ status: 200, description: 'Seller confirmed receipt and refund issued' })
-  async sellerConfirm(
-    @Param('id') id: string,
-    @GetUser() user: User,
-  ) {
+  @ApiResponse({
+    status: 200,
+    description: 'Seller confirmed receipt and refund issued',
+  })
+  async sellerConfirm(@Param('id') id: string, @GetUser() user: User) {
     const dispute = await this.disputesService.sellerConfirmReceived(
       id,
       user._id.toString(),

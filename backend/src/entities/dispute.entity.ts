@@ -26,6 +26,17 @@ export enum DisputeStatus {
   CLOSED = 'closed',
 }
 
+class TransactionDetails {
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  buyerId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  sellerId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Bicycle' })
+  bicycleId: Types.ObjectId;
+}
+
 class Evidence {
   @Prop({ type: [String] })
   photos?: string[];
@@ -103,6 +114,9 @@ class TimelineEntry {
 export class Dispute {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Transaction' })
   transactionId: Types.ObjectId;
+
+  @Prop({ type: TransactionDetails })
+  transactionDetails?: TransactionDetails;
 
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   reporterId: Types.ObjectId;
