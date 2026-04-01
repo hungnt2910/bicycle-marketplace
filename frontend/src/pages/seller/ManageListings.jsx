@@ -217,7 +217,11 @@ const ManageListings = () => {
       sold: 'Đã bán',
       draft: 'Nháp',
     };
-    return <Badge variant={variants[status] || 'default'} className="badge">{labels[status] || status}</Badge>;
+    return (
+      <Badge variant={variants[status] || 'default'} className="badge">
+        {labels[status] || status}
+      </Badge>
+    );
   };
 
   const filteredListings = listings.filter((l) => {
@@ -350,7 +354,7 @@ const ManageListings = () => {
                           >
                             Chỉnh sửa
                           </Button>
-                          <Button
+                          {/* <Button
                             variant="outline"
                             size="sm"
                             disabled={isDisabled}
@@ -358,7 +362,7 @@ const ManageListings = () => {
                             onClick={() => handleView(listing._id || listing.id)}
                           >
                             Xem tin
-                          </Button>
+                          </Button> */}
                           {listing.status === 'active' && (
                             <Button
                               variant="outline"
