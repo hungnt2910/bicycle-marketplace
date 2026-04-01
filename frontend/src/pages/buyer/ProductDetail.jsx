@@ -7,6 +7,7 @@ import authApi from '../../api/authApi';
 import favouriteApi from '../../api/favouriteApi';
 import userApi from '../../api/userApi';
 import adminApi from '../../api/adminApi';
+import inspectorApi from '../../api/inspectorApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import ReviewsSection from '../../components/reviews/ReviewsSection';
@@ -27,6 +28,9 @@ const ProductDetail = ({ productId }) => {
   const [paymentStatus, setPaymentStatus] = useState('');
   const [paymentUrl, setPaymentUrl] = useState('');
   const [transactionId, setTransactionId] = useState('');
+  const [inspectionModalOpen, setInspectionModalOpen] = useState(false);
+  const [inspectionDetail, setInspectionDetail] = useState(null);
+  const [inspectionLoading, setInspectionLoading] = useState(false);
   const MAX_PAYMENT_AMOUNT = 1000000000; // 1 tỷ VND - giới hạn an toàn cho ZaloPay
 
   const DEFAULT_TYPE_LABEL_MAP = {
@@ -100,7 +104,7 @@ const ProductDetail = ({ productId }) => {
         amount: String(amount),
         bicycleId: String(bikeId),
         title: product.name || '',
-        returnUrl: `/product/${productId}`,
+        returnUrl: '/buyer/dashboard',
       });
       if (isDeposit) {
         params.set('depositRate', String(depositRate));
@@ -138,7 +142,71 @@ const ProductDetail = ({ productId }) => {
     }
   };
 
+  const handleViewInspection = async () => {
+    const bicycleId = product?.id || productId;
+    if (!bicycleId) return;
+
+    setInspectionLoading(true);
+    try {
+      const res = await inspectorApi.getBicycleReport(bicycleId);
+      let detail = res?.data?.data || res?.data;
+      if (!detail) {
+        toast.error('Không tìm thấy báo cáo kiểm định');
+        return;
+      }
+      // Resolve inspector name if possible
+      let inspectorName =
+        detail.inspectorName ||
+        detail.inspector?.fullName ||
+        detail.inspector?.name ||
+        detail.inspector?.email ||
+        null;
+
+      if (!inspectorName && detail.inspectorId) {
+        try {
+          const inspectorRes = await userApi.getUserById(detail.inspectorId);
+          const inspectorData = inspectorRes?.data?.data || inspectorRes?.data;
+          inspectorName =
+            inspectorData?.fullName ||
+            `${inspectorData?.firstName || ''} ${inspectorData?.lastName || ''}`.trim() ||
+            inspectorData?.email ||
+            inspectorData?.name ||
+            inspectorName;
+        } catch (fetchInspectorErr) {
+          console.warn('Không lấy được tên kiểm định viên:', fetchInspectorErr);
+        }
+      }
+
+      const resolvedScore = detail.overallRating ?? detail.score ?? 0;
+      detail = { ...detail, inspectorName: inspectorName || '—', resolvedScore };
+
+      setInspectionDetail(detail);
+
+      // Cập nhật info hiển thị trên thẻ tóm tắt (nếu đã có product)
+      setProduct((prev) => {
+        if (!prev) return prev;
+        const prevReport = prev.inspectionReport || {};
+        return {
+          ...prev,
+          inspectionReport: {
+            ...prevReport,
+            score: resolvedScore || prevReport.score || 0,
+            inspector: inspectorName || prevReport.inspector || '—',
+          },
+        };
+      });
+      setInspectionModalOpen(true);
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Không thể tải báo cáo kiểm định';
+      toast.error(msg);
+    } finally {
+      setInspectionLoading(false);
+    }
+  };
+
   const getTypeLabel = (slug) => typeLabelMap[slug] || DEFAULT_TYPE_LABEL_MAP[slug] || '—';
+
+  const formatDateTime = (value) => (value ? new Date(value).toLocaleString('vi-VN') : '—');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -299,13 +367,13 @@ const ProductDetail = ({ productId }) => {
         },
         inspectionReport: bike?.inspection?.isInspected
           ? {
-            score: bike?.inspection?.score || 0,
-            date: bike?.inspection?.inspectionDate
-              ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
-              : '—',
-            inspector: bike?.inspection?.inspectorName || '—',
-            notes: bike?.inspection?.label || 'Đã kiểm định',
-          }
+              score: bike?.inspection?.score || 0,
+              date: bike?.inspection?.inspectionDate
+                ? new Date(bike.inspection.inspectionDate).toLocaleDateString('vi-VN')
+                : '—',
+              inspector: bike?.inspection?.inspectorName || '—',
+              notes: bike?.inspection?.label || 'Đã kiểm định',
+            }
           : null,
         rawType: bike?.specifications?.type || '',
         videos,
@@ -504,8 +572,9 @@ const ProductDetail = ({ productId }) => {
                 {Object.entries(product.specs).map(([key, value], index) => (
                   <div
                     key={key}
-                    className={`flex items-center justify-between py-4 px-5 rounded-[16px] transition-colors ${index % 2 === 0 ? 'bg-neutral-offwhite' : 'bg-white'
-                      } hover:bg-primary-800/5`}
+                    className={`flex items-center justify-between py-4 px-5 rounded-[16px] transition-colors ${
+                      index % 2 === 0 ? 'bg-neutral-offwhite' : 'bg-white'
+                    } hover:bg-primary-800/5`}
                   >
                     <span className="font-semibold text-warmgray-700 text-sm">{key}</span>
                     <span className="text-primary-900 font-medium text-sm">{value}</span>
@@ -600,8 +669,12 @@ const ProductDetail = ({ productId }) => {
                     </div>
                   </div>
 
-                  <button className="w-full px-4 py-3 bg-white border-2 border-emerald-200 text-emerald-700 font-semibold rounded-[16px] hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200">
-                    Xem báo cáo đầy đủ
+                  <button
+                    onClick={handleViewInspection}
+                    disabled={inspectionLoading}
+                    className="w-full px-4 py-3 bg-white border-2 border-emerald-200 text-emerald-700 font-semibold rounded-[16px] hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {inspectionLoading ? 'Đang tải báo cáo...' : 'Xem báo cáo đầy đủ'}
                   </button>
                 </div>
               </div>
@@ -720,8 +793,6 @@ const ProductDetail = ({ productId }) => {
                       {product.condition}
                     </span>
                   </div>
-
-
                 </div>
 
                 {/* Price Section */}
@@ -769,8 +840,6 @@ const ProductDetail = ({ productId }) => {
                     </svg>
                     <span className="text-warmgray-700 font-medium">{product.location}</span>
                   </div>
-
-
                 </div>
 
                 {/* Action Buttons */}
@@ -857,16 +926,13 @@ const ProductDetail = ({ productId }) => {
                     <div className="font-bold text-primary-900 mb-1">
                       Người bán: {product.seller.name}
                     </div>
-                    <div className="flex items-center gap-2">
-                    </div>
+                    <div className="flex items-center gap-2"></div>
                     <div className="mt-2 text-sm text-warmgray-700">
                       <div>Email: {product.seller.email}</div>
                       <div>Số điện thoại: {product.seller.phone}</div>
                     </div>
                   </div>
                 </div>
-
-
 
                 <Button
                   variant="primary"
@@ -1051,6 +1117,118 @@ const ProductDetail = ({ productId }) => {
           </div>
         </div>
       </div>
+
+      {/* Inspection Report Modal */}
+      <Modal
+        isOpen={inspectionModalOpen}
+        onClose={() => setInspectionModalOpen(false)}
+        title={<span className="text-xl font-bold text-primary-900">Báo cáo kiểm định</span>}
+        footer={
+          <button
+            onClick={() => setInspectionModalOpen(false)}
+            className="w-full px-4 py-3 bg-primary-800 text-white font-semibold rounded-[16px] hover:bg-primary-800/90 transition-colors"
+          >
+            Đóng
+          </button>
+        }
+      >
+        {inspectionDetail ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-neutral-offwhite border border-warmgray-200">
+                <p className="text-xs text-warmgray-500">Trạng thái</p>
+                <p className="text-sm font-semibold text-primary-900">
+                  {inspectionDetail.verdict || '—'}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-offwhite border border-warmgray-200">
+                <p className="text-xs text-warmgray-500">Hình thức</p>
+                <p className="text-sm font-semibold text-primary-900">
+                  {inspectionDetail.inspectionType || '—'}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-offwhite border border-warmgray-200">
+                <p className="text-xs text-warmgray-500">Điểm tổng thể</p>
+                <p className="text-sm font-semibold text-primary-900">
+                  {inspectionDetail.resolvedScore ??
+                    inspectionDetail.overallRating ??
+                    inspectionDetail.score ??
+                    '—'}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-offwhite border border-warmgray-200">
+                <p className="text-xs text-warmgray-500">Hiệu lực đến</p>
+                <p className="text-sm font-semibold text-primary-900">
+                  {formatDateTime(inspectionDetail.validUntil)}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-offwhite border border-warmgray-200 sm:col-span-2">
+                <p className="text-xs text-warmgray-500">Kiểm định viên</p>
+                <p className="text-sm font-semibold text-primary-900">
+                  {inspectionDetail.inspectorName || '—'}
+                </p>
+              </div>
+            </div>
+
+            {inspectionDetail.recommendations && (
+              <div className="p-4 rounded-xl bg-white border border-warmgray-200">
+                <p className="text-sm font-semibold text-primary-900 mb-1">Khuyến nghị</p>
+                <p className="text-sm text-warmgray-700">{inspectionDetail.recommendations}</p>
+              </div>
+            )}
+
+            {inspectionDetail.media?.photos?.length ? (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-primary-900">Ảnh kiểm định</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {inspectionDetail.media.photos.map((url) => (
+                    <img
+                      key={url}
+                      src={url}
+                      alt="inspection"
+                      className="w-full h-28 object-cover rounded-lg border border-warmgray-200"
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {inspectionDetail.technicalChecks && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-primary-900">Chi tiết hạng mục</p>
+                <div className="space-y-2">
+                  {Object.entries(inspectionDetail.technicalChecks || {}).map(([key, value]) => (
+                    <div key={key} className="p-3 rounded-xl border border-warmgray-200 bg-white">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-warmgray-800 capitalize">
+                          {key}
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-primary-800/10 text-primary-800 font-semibold">
+                          {value?.condition || '—'}
+                        </span>
+                      </div>
+                      {value?.issues?.length ? (
+                        <ul className="list-disc list-inside text-sm text-warmgray-700 mt-1 space-y-1">
+                          {value.issues.map((issue) => (
+                            <li key={issue}>{issue}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-warmgray-500 mt-1">Không có vấn đề ghi nhận</p>
+                      )}
+                      {value?.notes ? (
+                        <p className="text-xs text-warmgray-500 mt-1">Ghi chú: {value.notes}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-warmgray-600">Không có dữ liệu báo cáo</p>
+        )}
+      </Modal>
 
       {/* Deposit Modal - Modern Design */}
       <Modal

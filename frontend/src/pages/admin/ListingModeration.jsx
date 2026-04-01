@@ -5,6 +5,7 @@ import bicycleApi from '../../api/postNewsApi';
 import { isReturnedDraftReadyForRelist } from '../../utils/bicycleVisibility';
 import disputeApi from '../../api/disputeApi';
 import transactionApi from '../../api/transactionApi';
+import userApi from '../../api/userApi';
 
 const ListingModeration = () => {
   const [filterStatus, setFilterStatus] = useState('all');
@@ -12,6 +13,7 @@ const ListingModeration = () => {
 
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userMap, setUserMap] = useState({});
 
   const normalizeStatus = (bike) => {
     const status = (bike?.status || '').toLowerCase();
@@ -32,11 +34,14 @@ const ListingModeration = () => {
     return date.toLocaleDateString('vi-VN');
   };
 
-  const getSellerName = (bike) => {
+  const getSellerName = (bike, map = {}) => {
+    const sellerId = bike?.sellerId?._id || bike?.sellerId?.id || bike?.sellerId;
+    if (sellerId && map[sellerId]) return map[sellerId];
     const sellerFromId = bike?.sellerId;
-    const nameFromSellerId = sellerFromId
-      ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
-      : '';
+    const nameFromSellerId =
+      typeof sellerFromId === 'object' && sellerFromId
+        ? `${sellerFromId.firstName || ''} ${sellerFromId.lastName || ''}`.trim()
+        : '';
     const profile = bike?.seller?.profile || bike?.sellerProfile || bike?.profile;
     const fromProfile = profile
       ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
@@ -51,10 +56,10 @@ const ListingModeration = () => {
     );
   };
 
-  const mapListing = (bike) => ({
+  const mapListing = (bike, map = {}) => ({
     id: bike?._id || bike?.id,
     name: bike?.title || 'Không có tiêu đề',
-    seller: getSellerName(bike),
+    seller: getSellerName(bike, map),
     price: bike?.price || 0,
     oldPrice: bike?.originalPrice || bike?.oldPrice || null,
     status: normalizeStatus(bike),
@@ -74,7 +79,24 @@ const ListingModeration = () => {
     const fetchListings = async () => {
       try {
         setLoading(true);
-        const response = await bicycleApi.getAllBicycles();
+        const [response, usersRes] = await Promise.all([
+          bicycleApi.getAllBicycles(),
+          userApi.getAllUsers().catch(() => null),
+        ]);
+        const usersData = usersRes?.data?.data || usersRes?.data || [];
+        const map = {};
+        (Array.isArray(usersData) ? usersData : []).forEach((u) => {
+          const uid = u?._id || u?.id;
+          if (!uid) return;
+          const name =
+            `${u?.firstName || u?.profile?.firstName || ''} ${u?.lastName || u?.profile?.lastName || ''}`.trim() ||
+            u?.fullName ||
+            u?.name ||
+            u?.email ||
+            '';
+          if (name) map[uid] = name;
+        });
+        setUserMap(map);
         const apiData = response?.data?.data || response?.data || [];
 
         // Sync trả hàng: nếu dispute đã return_received thì mở bán lại xe và bỏ kiểm định
@@ -144,7 +166,7 @@ const ListingModeration = () => {
 
         const mapped = normalizedSource
           .filter((bike) => normalizeStatus(bike) !== 'draft')
-          .map(mapListing);
+          .map((bike) => mapListing(bike, map));
         setListings(mapped);
       } catch (error) {
         console.error('Error fetching listings:', error);
@@ -342,23 +364,20 @@ const ListingModeration = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-warmgray-600">
                         <div className="col-span-2 sm:col-span-1">
-                          <span className="font-medium text-warmgray-800">Giá:</span>{' '}
-                          <div className="mt-0.5">
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-base font-bold text-primary-800">
-                                {listing.price.toLocaleString('vi-VN')}
-                              </span>
-                              <span className="text-xs font-bold text-primary-800">₫</span>
-                            </div>
+                          <div className="flex items-baseline gap-1 flex-wrap">
+                            <span className="font-medium text-warmgray-800">Giá:</span>
+                            <span className="text-base font-bold text-primary-800 whitespace-nowrap">
+                              {listing.price.toLocaleString('vi-VN')} ₫
+                            </span>
                             {listing.oldPrice && listing.oldPrice > listing.price && (
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-xs text-warmgray-500 line-through">
+                              <>
+                                <span className="text-xs text-warmgray-500 line-through whitespace-nowrap">
                                   {listing.oldPrice.toLocaleString('vi-VN')} ₫
                                 </span>
-                                <span className="px-1.5 py-0.5 bg-danger/10 text-danger text-[10px] font-bold rounded">
+                                <span className="px-1.5 py-0.5 bg-danger/10 text-danger text-[10px] font-bold rounded whitespace-nowrap">
                                   -{Math.round(((listing.oldPrice - listing.price) / listing.oldPrice) * 100)}%
                                 </span>
-                              </div>
+                              </>
                             )}
                           </div>
                         </div>

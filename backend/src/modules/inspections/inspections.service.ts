@@ -1,6 +1,7 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InspectionReport, InspectionReportDocument, InspectionType, InspectionVerdict } from '../../entities/inspection-report.entity';
 import { Bicycle, BicycleDocument, BicycleStatus } from '../../entities/bicycle.entity';
 import { ConfigService } from '@nestjs/config';
@@ -8,6 +9,8 @@ import { User, UserDocument, UserRole } from 'src/entities';
 
 @Injectable()
 export class InspectionsService {
+  private readonly logger = new Logger(InspectionsService.name);
+
   constructor(
     @InjectModel(InspectionReport.name) 
     private inspectionModel: Model<InspectionReportDocument>,
@@ -419,5 +422,110 @@ export class InspectionsService {
       })
       .sort({ createdAt: -1 })
       .exec();
+  }
+
+  /**
+   * CRON JOB: Check for expired inspections every day at midnight
+   * If an inspection is not valid (30 days after inspection date),
+   * mark the bicycle as needing re-inspection
+   */
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async handleExpiredInspections(): Promise<void> {
+    try {
+      this.logger.log('Starting expired inspection check...');
+      
+      // Find all bicycles with valid inspections that have expired
+      const expiredBicycles = await this.bicycleModel.find({
+        'inspection.isInspected': true,
+        'inspection.expiryDate': { $lt: new Date() }, // expiry date is in the past
+      });
+
+      if (expiredBicycles.length === 0) {
+        this.logger.log('No expired inspections found');
+        return;
+      }
+
+      this.logger.log(`Found ${expiredBicycles.length} bicycles with expired inspections`);
+
+      // Update each expired bicycle
+      const updatePromises = expiredBicycles.map(async (bicycle) => {
+        try {
+          if (!bicycle.inspection) {
+            this.logger.warn(`Bicycle ${bicycle._id} has no inspection data, skipping`);
+            return;
+          }
+          // Mark inspection as expired by resetting inspection status
+          bicycle.inspection.isInspected = false;
+          bicycle.inspection.label = 'Inspection expired - Re-inspection required';
+          
+          // Change bicycle status to pending review (needs re-inspection)
+          bicycle.status = BicycleStatus.PENDING_REVIEW;
+          
+          await bicycle.save();
+          
+          this.logger.log(
+            `Marked bicycle ${bicycle._id} as needing re-inspection (expired on ${bicycle.inspection.expiryDate})`,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to update bicycle ${bicycle._id}: ${error.message}`,
+            error.stack,
+          );
+        }
+      });
+
+      await Promise.all(updatePromises);
+
+      this.logger.log(
+        `Completed expired inspection check. Updated ${expiredBicycles.length} bicycles`,
+      );
+    } catch (error) {
+      this.logger.error(
+        'Error checking expired inspections',
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Manual method to mark bicycles with expired inspections
+   * (for testing or manual trigger purposes)
+   */
+  async markExpiredInspectionsManually(): Promise<{
+    success: boolean;
+    updatedCount: number;
+    bicycles: any[];
+  }> {
+    const now = new Date();
+    
+    const expiredBicycles = await this.bicycleModel.find({
+      'inspection.isInspected': true,
+      'inspection.expiryDate': { $lt: now },
+    });
+
+    const updatedBicycles : any = [];
+
+    for (const bicycle of expiredBicycles) {
+      if(!bicycle.inspection) {
+        this.logger.warn(`Bicycle ${bicycle._id} has no inspection data, skipping`);
+            // return;
+        continue; // Skip if no inspection data
+      }
+      bicycle.inspection.isInspected = false;
+      bicycle.inspection.label = 'Inspection expired - Re-inspection required';
+      bicycle.status = BicycleStatus.PENDING_REVIEW;
+      await bicycle.save();
+      updatedBicycles.push({
+        bicycleId: bicycle._id,
+        title: bicycle.title,
+        expiredOn: bicycle.inspection.expiryDate,
+      });
+    }
+
+    return {
+      success: true,
+      updatedCount: updatedBicycles.length,
+      bicycles: updatedBicycles,
+    };
   }
 }

@@ -83,7 +83,7 @@ export class DisputesController {
    * Get dispute by ID
    */
   @Get(':id')
-  @Public()
+  
   @ApiOperation({ summary: 'Get dispute details' })
   @ApiResponse({ status: 200, description: 'Dispute found' })
   @ApiResponse({ status: 404, description: 'Dispute not found' })
@@ -129,7 +129,7 @@ export class DisputesController {
   /**
    * Inspector adds comparison evidence
    */
-  @Public()
+  
   @Patch(':id/inspector-evidence')
   @Roles(UserRole.INSPECTOR)
   @ApiOperation({ summary: 'Add inspector comparison evidence' })

@@ -37,9 +37,9 @@ const Wallet = () => {
     () =>
       numberOrZero(
         totals?.walletBalance ??
-          summary?.balance ??
-          walletSummary?.wallet?.balance ??
-          (summary?.balance ?? summary?.currentBalance ?? 0) - (summary?.pendingBalance ?? 0)
+        summary?.balance ??
+        walletSummary?.wallet?.balance ??
+        (summary?.balance ?? summary?.currentBalance ?? 0) - (summary?.pendingBalance ?? 0)
       ),
     [summary, totals, walletSummary]
   );
@@ -48,9 +48,9 @@ const Wallet = () => {
     () =>
       numberOrZero(
         totals?.escrowHeld ??
-          totals?.pendingBalance ??
-          summary?.pendingBalance ??
-          summary?.escrowHold
+        totals?.pendingBalance ??
+        summary?.pendingBalance ??
+        summary?.escrowHold
       ),
     [summary, totals]
   );
@@ -59,22 +59,23 @@ const Wallet = () => {
     () =>
       numberOrZero(
         summary?.totalWithdrawn ||
-          walletSummary?.wallet?.totalWithdrawn ||
-          summary?.withdrawn ||
-          summary?.totalPayout
+        walletSummary?.wallet?.totalWithdrawn ||
+        summary?.withdrawn ||
+        summary?.totalPayout
       ),
     [summary, walletSummary]
   );
 
   const currency = summary?.currency || walletSummary?.wallet?.currency || 'VND';
 
-  const fetchSummary = async () => {
+  const fetchSummary = async (pageParam = 1) => {
     setLoadingSummary(true);
     setLoadingTx(true);
     try {
-      const [walletRes, summaryRes, totalsRes] = await Promise.all([
-        walletApi.getWallet(),
-        walletApi.getSummary(),
+      // Ensure wallet exists before querying summary/totals (avoids 500 for new accounts)
+      const walletRes = await walletApi.getWallet();
+      const [summaryRes, totalsRes] = await Promise.all([
+        walletApi.getSummary({ page: pageParam, limit }),
         walletApi.getTotals({ role: escrowRole }),
       ]);
 
@@ -86,15 +87,27 @@ const Wallet = () => {
       setWalletSummary(summaryData);
       setTotals(totalsData);
 
+      const recentTx = summaryData?.recentTransactions;
       const txPayload =
-        summaryData?.transactions || summaryData?.recentTransactions || summaryData?.items || [];
+        summaryData?.transactions ||
+        (Array.isArray(recentTx) ? recentTx : recentTx?.data) ||
+        summaryData?.items ||
+        [];
       const txList = Array.isArray(txPayload) ? txPayload : [];
       setTransactions(txList);
+
+      const pg = summaryRes?.data?.pagination ||
+        recentTx?.pagination ||
+        summaryData?.pagination || {
+        total: summaryData?.total,
+        pages: summaryData?.pages,
+        page: summaryData?.page,
+      };
       setPagination({
-        total: txList.length,
-        pages: txList.length ? 1 : 0,
+        total: pg.total || txList.length,
+        pages: pg.pages || Math.ceil((pg.total || txList.length || limit) / limit),
       });
-      setPage(1);
+      setPage(pg.page || pageParam);
     } catch (err) {
       console.error('Load wallet summary error:', err);
       toast.error(err?.response?.data?.message || 'Không lấy được số dư ví');
@@ -121,10 +134,10 @@ const Wallet = () => {
       setTransactions(items);
       const pg = res?.data?.pagination ||
         data?.pagination || {
-          total: data?.total,
-          pages: data?.pages,
-          page: data?.page,
-        };
+        total: data?.total,
+        pages: data?.pages,
+        page: data?.page,
+      };
       setPagination({
         total: pg.total || items.length,
         pages: pg.pages || Math.ceil((pg.total || items.length || limit) / limit),
@@ -263,12 +276,12 @@ const Wallet = () => {
   const formatDateTime = (value) =>
     value
       ? new Date(value).toLocaleString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
       : '--';
 
   const statusVariant = (status) => {
@@ -333,30 +346,30 @@ const Wallet = () => {
         />
       ),
     },
-    {
-      label: 'Escrow',
-      value: loadingSummary ? '...' : formatMoney(escrowHold),
-      icon: (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-        />
-      ),
-    },
-    {
-      label: 'Đã rút',
-      value: loadingSummary ? '...' : formatMoney(totalWithdrawn),
-      icon: (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
-        />
-      ),
-    },
+    // {
+    //   label: 'Escrow',
+    //   value: loadingSummary ? '...' : formatMoney(escrowHold),
+    //   icon: (
+    //     <path
+    //       strokeLinecap="round"
+    //       strokeLinejoin="round"
+    //       strokeWidth={1.5}
+    //       d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+    //     />
+    //   ),
+    // },
+    // {
+    //   label: 'Đã rút',
+    //   value: loadingSummary ? '...' : formatMoney(totalWithdrawn),
+    //   icon: (
+    //     <path
+    //       strokeLinecap="round"
+    //       strokeLinejoin="round"
+    //       strokeWidth={1.5}
+    //       d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
+    //     />
+    //   ),
+    // },
   ];
 
   return (
@@ -740,7 +753,7 @@ const Wallet = () => {
                       <Pagination
                         currentPage={page}
                         totalPages={pagination.pages || 1}
-                        onPageChange={(newPage) => fetchTransactions(newPage)}
+                        onPageChange={(newPage) => fetchSummary(newPage)}
                       />
                     </>
                   ) : (

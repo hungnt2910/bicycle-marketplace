@@ -2,7 +2,7 @@ import axiosClient from '../services/axiosClient';
 
 const disputeApi = {
   // -- Buyer --
-  create: (payload) => axiosClient.post('/api/v1/disputes', payload),
+  create: (payload) => axiosClient.post('/api/v1/disputes/create-dispute', payload),
 
   getMyDisputes: (params = {}) => axiosClient.get('/api/v1/disputes/my-disputes', { params }),
 
