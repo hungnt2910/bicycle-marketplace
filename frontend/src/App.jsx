@@ -170,7 +170,13 @@ const AppRoutes = () => {
     const validRoles = ['guest', 'buyer', 'seller', 'inspector', 'admin'];
     if (!validRoles.includes(userRole)) return;
     login(userData, userRole);
-    navigate('/');
+    const dashboardByRole = {
+      admin: '/admin/dashboard',
+      seller: '/seller/dashboard',
+      inspector: '/inspector/dashboard',
+      buyer: '/',
+    };
+    navigate(dashboardByRole[userRole] || '/');
   };
 
   const handleRegister = (userData) => {
