@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -9,10 +10,13 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { User } from '../../entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { SignInDto } from './dto/signin.dto';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 
 @Injectable()
 export class AuthService {
   constructor(
+    @InjectModel('User') private userModel: Model<any>,
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
@@ -144,6 +148,15 @@ export class AuthService {
     const updatedUser = await this.usersService.findAndUpdate(userId, 'seller');
 
     return updatedUser;
+  }
+
+  async rejectSellerRole(
+    userId: string,
+    updateData: { reason: string; isRejectSeller: boolean },
+  ): Promise<User> {
+    return await this.userModel
+      .findByIdAndUpdate(userId, updateData, { new: true })
+      .exec();
   }
 
   private sanitizeUser(user: any) {
