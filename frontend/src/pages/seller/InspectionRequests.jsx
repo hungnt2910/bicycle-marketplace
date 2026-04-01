@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
 import bicycleApi from '../../api/postNewsApi';
-import transactionApi from '../../api/transactionApi';
 import inspectorApi from '../../api/inspectorApi';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +14,6 @@ const InspectionRequests = () => {
   const [selectedBicycle, setSelectedBicycle] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [isFirstInspection, setIsFirstInspection] = useState(false);
   const [ inspection_fee, setInspectionFee ] = useState(0);
 
   useEffect(() => {
@@ -68,17 +66,6 @@ const InspectionRequests = () => {
       setMyBicycles(approvedBicycles);
       setInspectionRequests(requestedInspections);
 
-      // Kiểm tra xem người dùng đã có giao dịch inspection_fee nào chưa
-      try {
-        const myTransactionsRes = await transactionApi.getMyTransactions();
-        const transactions = myTransactionsRes?.data?.data || myTransactionsRes?.data || [];
-        const hasInspectionFee = transactions.some((tx) => tx.type === 'inspection_fee');
-        setIsFirstInspection(!hasInspectionFee);
-        console.log('🆓 First inspection free:', !hasInspectionFee);
-      } catch (error) {
-        console.error('Error checking transactions:', error);
-        setIsFirstInspection(false);
-      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Không thể tải dữ liệu');
@@ -134,8 +121,8 @@ const InspectionRequests = () => {
   };
 
   const handleRequestInspection = async (bicycleId, title) => {
-    const INSPECTION_FEE = isFirstInspection ? 0 : inspection_fee || 200000;
-    const feeText = isFirstInspection ? 'MIỄN PHÍ (Lần đầu tiên)' : inspection_fee?.toLocaleString('vi-VN') + '₫';
+    const INSPECTION_FEE = inspection_fee || 200000;
+    const feeText = INSPECTION_FEE.toLocaleString('vi-VN') + '₫';
 
     if (
       !window.confirm(
@@ -147,18 +134,6 @@ const InspectionRequests = () => {
 
     setLoading(true);
     try {
-      // Nếu miễn phí, không cần thanh toán
-      // if (isFirstInspection) {
-      //   toast.info('Đang gửi yêu cầu kiểm định miễn phí...', { autoClose: 1500 });
-
-      //   // Gọi API yêu cầu kiểm định trực tiếp
-
-      //   toast.success('🎉 Yêu cầu kiểm định miễn phí đã được gửi thành công!', { autoClose: 3000 });
-      //   await fetchData(); // Refresh data
-      //   setActiveTab('list'); // Chuyển về tab danh sách
-      //   return;
-      // }
-
       const requestData = {
         bicycleId: bicycleId,
         inspectionType: 'online',
@@ -410,34 +385,17 @@ const InspectionRequests = () => {
           </Card>
 
           {/* Fee Info */}
-          <Card
-            className={`p-6 ${isFirstInspection ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' : 'bg-gradient-to-br from-neutral-offwhite to-warmgray-100 border-warmgray-200'}`}
-          >
+          <Card className="p-6 bg-gradient-to-br from-neutral-offwhite to-warmgray-100 border-warmgray-200">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-primary-900 text-lg mb-1">Phí kiểm định</h3>
                 <p className="text-sm text-warmgray-600">
                   Kiểm định viên sẽ đến tận nơi kiểm tra xe trong vòng 24h
                 </p>
-                {isFirstInspection && (
-                  <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-success/10 text-success rounded-full text-sm font-semibold">
-                    <span>🎉</span>
-                    <span>Chúc mừng! Bạn được MIỄN PHÍ lần kiểm định đầu tiên</span>
-                  </div>
-                )}
               </div>
               <div className="text-right">
-                {isFirstInspection ? (
-                  <>
-                    <div className="text-3xl font-bold text-success">MIỄN PHÍ</div>
-                    <p className="text-xs text-warmgray-500 mt-1 line-through">200.000₫</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-3xl font-bold text-primary-800">{inspection_fee?.toLocaleString('vi-VN')}₫</div>
-                    <p className="text-xs text-warmgray-500 mt-1">Có giá trị 1 năm</p>
-                  </>
-                )}
+                <div className="text-3xl font-bold text-primary-800">{inspection_fee?.toLocaleString('vi-VN')}₫</div>
+                <p className="text-xs text-warmgray-500 mt-1">Có giá trị 1 năm</p>
               </div>
             </div>
           </Card>
