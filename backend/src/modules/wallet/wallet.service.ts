@@ -497,7 +497,7 @@ export class WalletService {
     },
   ): Promise<WalletTransactionDocument> {
     const wallet = await this.getWallet(userId);
-    const availableBalance = wallet.balance - wallet.pendingBalance;
+    const availableBalance = wallet.balance;
 
     if (availableBalance < amount) {
       throw new BadRequestException(
