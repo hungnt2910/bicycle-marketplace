@@ -33,6 +33,8 @@ const adminApi = {
   // ==================== USER MANAGEMENT ====================
   // Xác minh và cấp quyền seller cho user cụ thể (admin duyệt hồ sơ)
   verifySeller: (userId) => axiosClient.post(`/api/v1/auth/verify-seller/${userId}`),
+  // Hủy quyền seller của user (admin từ chối hồ sơ hoặc thu hồi quyền)
+  rejectSeller: (userId, data) => axiosClient.post(`/api/v1/auth/reject-seller/${userId}`, data),
 
   // ==================== ESCROW CONTROL (ADMIN) ====================
   // Ép giải ngân escrow cho seller

@@ -433,7 +433,7 @@ const SystemSettings = () => {
                 />
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-warmgray-700 mb-2">Danh mục</label>
                 <select
                   name="category"
@@ -448,7 +448,7 @@ const SystemSettings = () => {
                     </option>
                   ))}
                 </select>
-              </div>
+              </div> */}
 
               <div className="flex gap-3 pt-4">
                 <button

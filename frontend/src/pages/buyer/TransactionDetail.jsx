@@ -36,12 +36,12 @@ const formatCurrency = (value) => Number(value || 0).toLocaleString('vi-VN');
 const formatDateTime = (value) =>
   value
     ? new Date(value).toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     : '--';
 
 /* ─── sub-components ─────────────────────────────────────── */
@@ -195,22 +195,33 @@ const TransactionDetail = () => {
   const transactionStatus = tx?.status || '';
 
   const paidStatuses = [
-    'payment_received', 'held_in_escrow', 'awaiting_delivery', 'delivered',
-    'buyer_confirmed', 'completed', 'deposit_paid',
+    'payment_received',
+    'held_in_escrow',
+    'awaiting_delivery',
+    'delivered',
+    'buyer_confirmed',
+    'completed',
+    'deposit_paid',
   ];
   const escrowStatuses = [
-    'held_in_escrow', 'awaiting_delivery', 'delivered', 'buyer_confirmed', 'completed',
+    'held_in_escrow',
+    'awaiting_delivery',
+    'delivered',
+    'buyer_confirmed',
+    'completed',
   ];
 
   /* -- buyer action guards (unchanged) -- */
   const isDeposit = (tx.type || '').toLowerCase() === 'deposit';
   const canPayBalance = isBuyer && isDeposit && ['deposit_paid'].includes(normalizedStatus);
-  const canConfirmDelivery = isBuyer && ['awaiting_delivery', 'delivered'].includes(normalizedStatus);
+  const canConfirmDelivery =
+    isBuyer && ['awaiting_delivery', 'delivered'].includes(normalizedStatus);
   const canDispute =
     isBuyer &&
     ['delivered', 'buyer_confirmed', 'completed'].includes(normalizedStatus) &&
     !tx.dispute &&
-    new Date() - new Date(tx.shipping?.deliveredAt || tx.updatedAt) < disputeTimeLimitDays * 24 * 60 * 60 * 1000;
+    new Date() - new Date(tx.shipping?.deliveredAt || tx.updatedAt) <
+      disputeTimeLimitDays * 24 * 60 * 60 * 1000;
 
   /* -- action runner (unchanged) -- */
   const runAction = async (label, fn) => {
@@ -251,21 +262,38 @@ const TransactionDetail = () => {
   const timelineSteps = [
     { key: 'created', label: 'Khởi tạo', time: tx.createdAt, done: true },
     {
-      key: 'paid', label: 'Thanh toán',
+      key: 'paid',
+      label: 'Thanh toán',
       time: tx.payment?.paidAt || (paidStatuses.includes(normalizedStatus) ? tx.updatedAt : null),
       done: !!tx.payment?.paidAt || paidStatuses.includes(normalizedStatus),
     },
     {
-      key: 'escrow', label: 'Escrow giữ tiền',
+      key: 'escrow',
+      label: 'Escrow giữ tiền',
       time:
         tx.escrow?.heldAt ||
         (tx.escrow?.heldAmount ? tx.updatedAt || tx.createdAt : null) ||
         (escrowStatuses.includes(normalizedStatus) ? tx.updatedAt : null),
       done: !!tx.escrow?.heldAmount || escrowStatuses.includes(normalizedStatus),
     },
-    { key: 'shipped', label: 'Đã gửi hàng', time: tx.shipping?.shippedAt, done: !!tx.shipping?.shippedAt },
-    { key: 'delivered', label: 'Đã giao', time: tx.shipping?.deliveredAt, done: !!tx.shipping?.deliveredAt },
-    { key: 'completed', label: 'Hoàn tất', time: tx.status === 'completed' ? tx.updatedAt : null, done: tx.status === 'completed' },
+    {
+      key: 'shipped',
+      label: 'Đã gửi hàng',
+      time: tx.shipping?.shippedAt,
+      done: !!tx.shipping?.shippedAt,
+    },
+    {
+      key: 'delivered',
+      label: 'Đã giao',
+      time: tx.shipping?.deliveredAt,
+      done: !!tx.shipping?.deliveredAt,
+    },
+    {
+      key: 'completed',
+      label: 'Hoàn tất',
+      time: tx.status === 'completed' ? tx.updatedAt : null,
+      done: tx.status === 'completed',
+    },
   ];
 
   /* ── render ────────────────────────────────────────────── */
@@ -275,7 +303,6 @@ const TransactionDetail = () => {
       aria-label="Chi tiết giao dịch"
     >
       <div className="max-w-7xl mx-auto space-y-6">
-
         {/* ── Top bar ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
           <Button
@@ -296,17 +323,17 @@ const TransactionDetail = () => {
             </span>
           </div>
         </div>
-
         {/* ── Two-panel side-by-side grid ── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-
           {/* ── Main statement card ── */}
           <Card className="bg-white rounded-3xl shadow-[0_20px_80px_-20px_rgba(0,0,0,0.06)] border border-[var(--lux-gray-200)]/60 overflow-hidden">
-
             {/* Hero: amount + status + actions */}
             <header className="relative px-8 md:px-16 py-14 md:py-20 text-center border-b border-[var(--lux-gray-100)]">
               {/* Top accent strip */}
-              <div className="absolute top-0 inset-x-0 h-1.5 bg-[var(--lux-primary-900)]" aria-hidden="true" />
+              <div
+                className="absolute top-0 inset-x-0 h-1.5 bg-[var(--lux-primary-900)]"
+                aria-hidden="true"
+              />
 
               {/* Status badge */}
               <div className="flex justify-center mb-7">
@@ -324,7 +351,9 @@ const TransactionDetail = () => {
                 aria-label={`${amount} đồng`}
               >
                 <span>{amount}</span>
-                <span className="text-2xl md:text-4xl font-medium text-[var(--lux-gray-400)] mt-2 md:mt-3">₫</span>
+                <span className="text-2xl md:text-4xl font-medium text-[var(--lux-gray-400)] mt-2 md:mt-3">
+                  ₫
+                </span>
               </div>
 
               {/* Bike & date */}
@@ -339,7 +368,11 @@ const TransactionDetail = () => {
 
               {/* Buyer action buttons */}
               {isBuyer && (
-                <div className="flex flex-wrap justify-center gap-3 mt-8" role="group" aria-label="Hành động giao dịch">
+                <div
+                  className="flex flex-wrap justify-center gap-3 mt-8"
+                  role="group"
+                  aria-label="Hành động giao dịch"
+                >
                   {canPayBalance && (
                     <Button
                       variant="primary"
@@ -347,7 +380,9 @@ const TransactionDetail = () => {
                       onClick={handlePayBalance}
                       aria-busy={actionLoading === 'pay-balance'}
                     >
-                      {actionLoading === 'pay-balance' ? 'Đang thanh toán...' : 'Thanh toán phần còn lại'}
+                      {actionLoading === 'pay-balance'
+                        ? 'Đang thanh toán...'
+                        : 'Thanh toán phần còn lại'}
                     </Button>
                   )}
                   {canConfirmDelivery && (
@@ -374,42 +409,57 @@ const TransactionDetail = () => {
 
             {/* Two-column detail grid */}
             <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-[var(--lux-gray-100)]">
-
               {/* Left: financial & logistics details */}
               <div className="md:col-span-7 p-6 sm:p-10 space-y-12 bg-white">
-
                 {/* Payment details */}
                 <section aria-labelledby="payment-section">
-                  <SectionHeading><span id="payment-section">Chi tiết thanh toán</span></SectionHeading>
+                  <SectionHeading>
+                    <span id="payment-section">Chi tiết thanh toán</span>
+                  </SectionHeading>
                   <dl>
                     <InfoRow label="Hạng mục" value={tx.type} />
                     <InfoRow label="Phương thức" value={tx.payment?.method || 'N/A'} />
-                    <InfoRow label="Mã khế ước đích" value={tx.payment?.transactionId || '--'} mono />
-                    <InfoRow label="Chữ ký thời gian" value={formatDateTime(tx.payment?.paidAt)} />
+                    {/* <InfoRow label="Mã khế ước đích" value={tx.payment?.transactionId || '--'} mono />
+                    <InfoRow label="Chữ ký thời gian" value={formatDateTime(tx.payment?.paidAt)} /> */}
                   </dl>
                 </section>
 
                 {/* Escrow details */}
                 <section aria-labelledby="escrow-section">
-                  <SectionHeading><span id="escrow-section">Bảo vệ Escrow</span></SectionHeading>
+                  <SectionHeading>
+                    <span id="escrow-section">Bảo vệ Escrow</span>
+                  </SectionHeading>
                   <dl>
                     <InfoRow
                       label="Pháp nhân giữ tiền"
-                      value={tx.escrow?.heldAmount ? `${formatCurrency(tx.escrow.heldAmount)} ₫` : '--'}
+                      value={
+                        tx.escrow?.heldAmount ? `${formatCurrency(tx.escrow.heldAmount)} ₫` : '--'
+                      }
                     />
-                    <InfoRow label="Mốc tự động giải ngân" value={formatDateTime(tx.escrow?.autoReleaseDeadline)} />
+                    <InfoRow
+                      label="Mốc tự động giải ngân"
+                      value={formatDateTime(tx.escrow?.autoReleaseDeadline)}
+                    />
                   </dl>
                 </section>
 
                 {/* Shipping details (conditional) */}
                 {tx.shipping && (
                   <section aria-labelledby="shipping-section">
-                    <SectionHeading><span id="shipping-section">Thông tin vận chuyển</span></SectionHeading>
+                    <SectionHeading>
+                      <span id="shipping-section">Thông tin vận chuyển</span>
+                    </SectionHeading>
                     <dl>
                       <InfoRow label="Đối tác logistics" value={tx.shipping.provider || '--'} />
                       <InfoRow label="Mã vận đơn" value={tx.shipping.trackingNumber || '--'} mono />
-                      <InfoRow label="Thời điểm lấy hàng" value={formatDateTime(tx.shipping.shippedAt)} />
-                      <InfoRow label="Thời điểm phát thành công" value={formatDateTime(tx.shipping.deliveredAt)} />
+                      <InfoRow
+                        label="Thời điểm lấy hàng"
+                        value={formatDateTime(tx.shipping.shippedAt)}
+                      />
+                      <InfoRow
+                        label="Thời điểm phát thành công"
+                        value={formatDateTime(tx.shipping.deliveredAt)}
+                      />
                     </dl>
                   </section>
                 )}
@@ -450,7 +500,10 @@ const TransactionDetail = () => {
                   <p className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase">
                     Đánh giá giao dịch này
                   </p>
-                  <h2 id="reviews-panel-title" className="text-xl font-bold text-[var(--lux-primary-900)] mt-1">
+                  <h2
+                    id="reviews-panel-title"
+                    className="text-xl font-bold text-[var(--lux-primary-900)] mt-1"
+                  >
                     Chỉ mở khi đơn đã hoàn tất
                   </h2>
                 </div>
@@ -470,8 +523,8 @@ const TransactionDetail = () => {
               />
             </section>
           )}
-
-        </div> {/* end two-panel grid */}
+        </div>{' '}
+        {/* end two-panel grid */}
       </div>
     </main>
   );
