@@ -429,7 +429,7 @@ export class InspectionsService {
    * If an inspection is not valid (30 days after inspection date),
    * mark the bicycle as needing re-inspection
    */
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleExpiredInspections(): Promise<void> {
     try {
       this.logger.log('Starting expired inspection check...');
