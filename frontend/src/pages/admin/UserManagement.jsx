@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { toast } from "react-toastify";
-import adminApi from "../../api/adminApi";
-import userApi from "../../api/userApi";
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
+import adminApi from '../../api/adminApi';
+import userApi from '../../api/userApi';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
-  const [newRole, setNewRole] = useState("");
-  const [newStatus, setNewStatus] = useState("");
+  const [newRole, setNewRole] = useState('');
+  const [newStatus, setNewStatus] = useState('');
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [sellerActionLoading, setSellerActionLoading] = useState({});
@@ -26,59 +26,59 @@ const UserManagement = () => {
   // ─── Labels & Colors ────────────────────────────────────────────────────────
 
   const roleLabels = {
-    buyer: "Người mua",
-    seller: "Người bán",
-    inspector: "Kiểm định viên",
-    admin: "Quản trị viên",
+    buyer: 'Người mua',
+    seller: 'Người bán',
+    inspector: 'Kiểm định viên',
+    admin: 'Quản trị viên',
   };
 
   const roleColors = {
-    buyer: "blue",
-    seller: "green",
-    inspector: "purple",
-    admin: "red",
+    buyer: 'blue',
+    seller: 'green',
+    inspector: 'purple',
+    admin: 'red',
   };
 
   const statusLabels = {
-    active: "Hoạt động",
-    suspended: "Tạm khóa",
-    banned: "Cấm vĩnh viễn",
+    active: 'Hoạt động',
+    suspended: 'Tạm khóa',
+    banned: 'Cấm vĩnh viễn',
   };
 
   const statusColors = {
-    active: "green",
-    suspended: "yellow",
-    banned: "red",
+    active: 'green',
+    suspended: 'yellow',
+    banned: 'red',
   };
 
   const sellerStatusLabels = {
-    pending: "Chờ duyệt seller",
-    approved: "Đã là seller",
-    rejected: "Từ chối seller",
-    none: "Chưa yêu cầu",
+    pending: 'Chờ duyệt seller',
+    approved: 'Đã là seller',
+    rejected: 'Từ chối seller',
+    none: 'Chưa yêu cầu',
   };
 
   const sellerStatusColors = {
-    pending: "warning",
-    approved: "success",
-    rejected: "danger",
-    none: "muted",
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
+    none: 'muted',
   };
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
   const mapSellerStatus = (user) => {
-    const role = (user?.role || "").toLowerCase();
+    const role = (user?.role || '').toLowerCase();
+    if (user?.sellerRejectReason || user?.reason || user?.isRejectSeller) return 'rejected';
     const hasKycArray = Array.isArray(user?.CCCD) && user.CCCD.length > 0;
     const hasKycFlat = Boolean(
-      user?.cccdFront || user?.cccdBack || user?.cccd_front || user?.cccd_back,
+      user?.cccdFront || user?.cccdBack || user?.cccd_front || user?.cccd_back
     );
-    const hasKyc =
-      hasKycArray || hasKycFlat || Boolean(user?.kycImages?.length);
+    const hasKyc = hasKycArray || hasKycFlat || Boolean(user?.kycImages?.length);
 
-    if (user?.verifiedRoleSeller || role === "seller") return "approved";
-    if (user?.sellerRequest === true || hasKyc) return "pending";
-    return "none";
+    if (user?.verifiedRoleSeller || role === 'seller') return 'approved';
+    if (user?.sellerRequest === true || hasKyc) return 'pending';
+    return 'none';
   };
 
   const withSellerLoading = (userId, value) => {
@@ -89,36 +89,34 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
-    setError("");
+    setError('');
     try {
       const response = await userApi.getAllUsers();
-      const data = Array.isArray(response?.data)
-        ? response.data
-        : response?.data?.data || [];
+      const data = Array.isArray(response?.data) ? response.data : response?.data?.data || [];
 
       const mappedUsers = data.map((item) => {
-        const role = String(item?.role || "buyer").toLowerCase();
+        const role = String(item?.role || 'buyer').toLowerCase();
+        const sellerRejectReason =
+          item?.sellerRejectReason || item?.seller_reject_reason || item?.reason || '';
+        const isRejectSeller = Boolean(item?.isRejectSeller);
 
         // Parse CCCD images
         const cccdArray = [];
         if (Array.isArray(item?.CCCD)) {
           item.CCCD.forEach((entry) => {
-            if (entry && typeof entry === "object") {
-              const frontImage =
-                entry.frontImage || entry.front || entry.front_image;
-              const backImage =
-                entry.backImage || entry.back || entry.back_image;
-              if (frontImage || backImage)
-                cccdArray.push({ frontImage, backImage });
-            } else if (typeof entry === "string") {
+            if (entry && typeof entry === 'object') {
+              const frontImage = entry.frontImage || entry.front || entry.front_image;
+              const backImage = entry.backImage || entry.back || entry.back_image;
+              if (frontImage || backImage) cccdArray.push({ frontImage, backImage });
+            } else if (typeof entry === 'string') {
               const parts = entry
-                .split(",")
-                .map((p) => p.replace(/^"|"$/g, "").trim())
+                .split(',')
+                .map((p) => p.replace(/^"|"$/g, '').trim())
                 .filter(Boolean);
               if (parts.length) {
                 cccdArray.push({
                   frontImage: parts[0],
-                  backImage: parts[1] || "",
+                  backImage: parts[1] || '',
                 });
               }
             }
@@ -126,36 +124,41 @@ const UserManagement = () => {
         }
         const flatFront = item?.cccdFront || item?.cccd_front;
         const flatBack = item?.cccdBack || item?.cccd_back;
-        if (flatFront || flatBack)
-          cccdArray.push({ frontImage: flatFront, backImage: flatBack });
+        if (flatFront || flatBack) cccdArray.push({ frontImage: flatFront, backImage: flatBack });
+
+        const sellerStatus = mapSellerStatus({
+          ...item,
+          role,
+          sellerRejectReason,
+          reason: item?.reason,
+          isRejectSeller,
+        });
 
         return {
           id: item?._id || item?.id,
           fullName:
-            `${item?.firstName || ""} ${item?.lastName || ""}`.trim() ||
+            `${item?.firstName || ''} ${item?.lastName || ''}`.trim() ||
             item?.profile?.fullName ||
             item?.fullName ||
-            "N/A",
-          email: item?.email || "N/A",
-          phone: item?.phone || item?.profile?.phone || "N/A",
+            'N/A',
+          email: item?.email || 'N/A',
+          phone: item?.phone || item?.profile?.phone || 'N/A',
           role,
-          status: String(item?.status || "active").toLowerCase(),
-          joinDate: item?.createdAt
-            ? new Date(item.createdAt).toLocaleDateString("vi-VN")
-            : "--",
-          lastLogin: item?.updatedAt
-            ? new Date(item.updatedAt).toLocaleDateString("vi-VN")
-            : "--",
-          sellerStatus: mapSellerStatus(item),
+          status: String(item?.status || 'active').toLowerCase(),
+          joinDate: item?.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : '--',
+          lastLogin: item?.updatedAt ? new Date(item.updatedAt).toLocaleDateString('vi-VN') : '--',
+          sellerStatus,
           verifiedRoleSeller: item?.verifiedRoleSeller,
+          sellerRejectReason,
+          isRejectSeller,
           cccd: cccdArray,
         };
       });
 
       setUsers(mappedUsers.reverse());
     } catch (err) {
-      console.error("Error fetching users:", err);
-      setError("Không thể tải danh sách người dùng");
+      console.error('Error fetching users:', err);
+      setError('Không thể tải danh sách người dùng');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -180,16 +183,12 @@ const UserManagement = () => {
     if (!selectedUser || !newRole) return;
     try {
       await adminApi.updateUserRole(selectedUser.id, { role: newRole });
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === selectedUser.id ? { ...u, role: newRole } : u,
-        ),
-      );
-      toast.success("Đã cập nhật vai trò thành công");
+      setUsers((prev) => prev.map((u) => (u.id === selectedUser.id ? { ...u, role: newRole } : u)));
+      toast.success('Đã cập nhật vai trò thành công');
       setRoleModalOpen(false);
     } catch (err) {
-      console.error("Error updating role:", err);
-      toast.error(err?.response?.data?.message || "Không thể cập nhật vai trò");
+      console.error('Error updating role:', err);
+      toast.error(err?.response?.data?.message || 'Không thể cập nhật vai trò');
     }
   };
 
@@ -198,17 +197,13 @@ const UserManagement = () => {
     try {
       await userApi.updateUser(selectedUser.id, { status: newStatus });
       setUsers((prev) =>
-        prev.map((u) =>
-          u.id === selectedUser.id ? { ...u, status: newStatus } : u,
-        ),
+        prev.map((u) => (u.id === selectedUser.id ? { ...u, status: newStatus } : u))
       );
-      toast.success("Đã cập nhật trạng thái thành công");
+      toast.success('Đã cập nhật trạng thái thành công');
       setStatusModalOpen(false);
     } catch (err) {
-      console.error("Error updating status:", err);
-      toast.error(
-        err?.response?.data?.message || "Không thể cập nhật trạng thái",
-      );
+      console.error('Error updating status:', err);
+      toast.error(err?.response?.data?.message || 'Không thể cập nhật trạng thái');
     }
   };
 
@@ -224,17 +219,17 @@ const UserManagement = () => {
           u.id === user.id
             ? {
                 ...u,
-                role: "seller",
-                sellerStatus: "approved",
+                role: 'seller',
+                sellerStatus: 'approved',
                 verifiedRoleSeller: true,
               }
-            : u,
-        ),
+            : u
+        )
       );
-      toast.success("Đã xác minh seller thành công");
+      toast.success('Đã xác minh seller thành công');
     } catch (err) {
-      console.error("Error verifying seller:", err);
-      toast.error(err?.response?.data?.message || "Không thể xác minh seller");
+      console.error('Error verifying seller:', err);
+      toast.error(err?.response?.data?.message || 'Không thể xác minh seller');
     } finally {
       withSellerLoading(user.id, false);
     }
@@ -242,7 +237,7 @@ const UserManagement = () => {
 
   const handleRejectSeller = async (user) => {
     if (!user?.id) return;
-    const reason = window.prompt("Nhập lý do từ chối hồ sơ seller");
+    const reason = window.prompt('Nhập lý do từ chối hồ sơ seller');
     if (reason === null) return;
     withSellerLoading(user.id, true);
     try {
@@ -250,15 +245,13 @@ const UserManagement = () => {
       await adminApi.rejectSeller(user.id, { reason });
       setUsers((prev) =>
         prev.map((u) =>
-          u.id === user.id
-            ? { ...u, sellerStatus: "rejected", sellerRejectReason: reason }
-            : u,
-        ),
+          u.id === user.id ? { ...u, sellerStatus: 'rejected', sellerRejectReason: reason } : u
+        )
       );
-      toast.info("Đã từ chối hồ sơ seller");
+      toast.info('Đã từ chối hồ sơ seller');
     } catch (err) {
-      console.error("Error rejecting seller:", err);
-      toast.error(err?.response?.data?.message || "Không thể từ chối hồ sơ");
+      console.error('Error rejecting seller:', err);
+      toast.error(err?.response?.data?.message || 'Không thể từ chối hồ sơ');
     } finally {
       withSellerLoading(user.id, false);
     }
@@ -270,16 +263,14 @@ const UserManagement = () => {
     const matchSearch =
       user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.phone || "").toString().includes(searchQuery);
-    const matchRole = filterRole === "all" || user.role === filterRole;
-    const matchStatus = filterStatus === "all" || user.status === filterStatus;
+      (user.phone || '').toString().includes(searchQuery);
+    const matchRole = filterRole === 'all' || user.role === filterRole;
+    const matchStatus = filterStatus === 'all' || user.status === filterStatus;
     return matchSearch && matchRole && matchStatus;
   });
 
   // FIX: đếm đúng — chỉ tính pending
-  const sellerPendingCount = users.filter(
-    (u) => u.sellerStatus === "pending",
-  ).length;
+  const sellerPendingCount = users.filter((u) => u.sellerStatus === 'pending').length;
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 
@@ -301,7 +292,7 @@ const UserManagement = () => {
         <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Hoạt động</p>
           <p className="text-2xl font-bold text-success">
-            {users.filter((u) => u.status === "active").length}
+            {users.filter((u) => u.status === 'active').length}
           </p>
         </div>
         <div className="lux-panel">
@@ -311,7 +302,7 @@ const UserManagement = () => {
         <div className="lux-panel">
           <p className="text-warmgray-600 text-sm">Kiểm định viên</p>
           <p className="text-2xl font-bold text-primary-900">
-            {users.filter((u) => u.role === "inspector").length}
+            {users.filter((u) => u.role === 'inspector').length}
           </p>
         </div>
       </div>
@@ -320,9 +311,7 @@ const UserManagement = () => {
       <div className="lux-panel mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-warmgray-700 mb-2">
-              Tìm kiếm
-            </label>
+            <label className="block text-sm font-medium text-warmgray-700 mb-2">Tìm kiếm</label>
             <input
               type="text"
               placeholder="Tìm theo tên, email, SĐT..."
@@ -332,9 +321,7 @@ const UserManagement = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-warmgray-700 mb-2">
-              Vai trò
-            </label>
+            <label className="block text-sm font-medium text-warmgray-700 mb-2">Vai trò</label>
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
@@ -349,9 +336,7 @@ const UserManagement = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-warmgray-700 mb-2">
-              Trạng thái
-            </label>
+            <label className="block text-sm font-medium text-warmgray-700 mb-2">Trạng thái</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -407,9 +392,7 @@ const UserManagement = () => {
                   {/* User info */}
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-primary-900">
-                        {user.fullName}
-                      </p>
+                      <p className="font-medium text-primary-900">{user.fullName}</p>
                       <p className="text-sm text-warmgray-600">{user.email}</p>
                       <p className="text-sm text-warmgray-500">{user.phone}</p>
                     </div>
@@ -419,13 +402,13 @@ const UserManagement = () => {
                   <td className="px-6 py-4">
                     <span
                       className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium ${
-                        roleColors[user.role] === "blue"
-                          ? "bg-primary-800/10 text-primary-900"
-                          : roleColors[user.role] === "green"
-                            ? "bg-success/10 text-green-800"
-                            : roleColors[user.role] === "purple"
-                              ? "bg-info/10 text-purple-800"
-                              : "bg-danger/10 text-red-800"
+                        roleColors[user.role] === 'blue'
+                          ? 'bg-primary-800/10 text-primary-900'
+                          : roleColors[user.role] === 'green'
+                            ? 'bg-success/10 text-green-800'
+                            : roleColors[user.role] === 'purple'
+                              ? 'bg-info/10 text-purple-800'
+                              : 'bg-danger/10 text-red-800'
                       }`}
                     >
                       {roleLabels[user.role] || user.role}
@@ -436,11 +419,11 @@ const UserManagement = () => {
                   <td className="px-6 py-4">
                     <span
                       className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium ${
-                        statusColors[user.status] === "green"
-                          ? "bg-success/10 text-green-800"
-                          : statusColors[user.status] === "yellow"
-                            ? "bg-gold/10 text-yellow-800"
-                            : "bg-danger/10 text-red-800"
+                        statusColors[user.status] === 'green'
+                          ? 'bg-success/10 text-green-800'
+                          : statusColors[user.status] === 'yellow'
+                            ? 'bg-gold/10 text-yellow-800'
+                            : 'bg-danger/10 text-red-800'
                       }`}
                     >
                       {statusLabels[user.status] || user.status}
@@ -452,19 +435,16 @@ const UserManagement = () => {
                     <div className="flex flex-col gap-2">
                       <span
                         className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium inline-flex w-fit ${
-                          sellerStatusColors[user.sellerStatus] === "success"
-                            ? "bg-success/10 text-green-800"
-                            : sellerStatusColors[user.sellerStatus] ===
-                                "warning"
-                              ? "bg-gold/10 text-yellow-800"
-                              : sellerStatusColors[user.sellerStatus] ===
-                                  "danger"
-                                ? "bg-danger/10 text-red-800"
-                                : "bg-warmgray-200 text-warmgray-700"
+                          sellerStatusColors[user.sellerStatus] === 'success'
+                            ? 'bg-success/10 text-green-800'
+                            : sellerStatusColors[user.sellerStatus] === 'warning'
+                              ? 'bg-gold/10 text-yellow-800'
+                              : sellerStatusColors[user.sellerStatus] === 'danger'
+                                ? 'bg-danger/10 text-red-800'
+                                : 'bg-warmgray-200 text-warmgray-700'
                         }`}
                       >
-                        {sellerStatusLabels[user.sellerStatus] ||
-                          sellerStatusLabels.none}
+                        {sellerStatusLabels[user.sellerStatus] || sellerStatusLabels.none}
                       </span>
 
                       <div className="flex flex-wrap gap-2">
@@ -476,25 +456,21 @@ const UserManagement = () => {
                             Xem CCCD
                           </button>
                         )}
-                        {user.sellerStatus !== "approved" && (
+                        {user.sellerStatus === 'pending' && (
                           <>
                             <button
                               onClick={() => handleApproveSeller(user)}
                               disabled={sellerActionLoading[user.id]}
                               className="px-3 py-1 bg-primary-700 text-white rounded font-medium text-sm hover:bg-primary-800 disabled:opacity-60"
                             >
-                              {sellerActionLoading[user.id]
-                                ? "Đang duyệt..."
-                                : "Duyệt seller"}
+                              {sellerActionLoading[user.id] ? 'Đang duyệt...' : 'Duyệt seller'}
                             </button>
                             <button
                               onClick={() => handleRejectSeller(user)}
                               disabled={sellerActionLoading[user.id]}
                               className="px-3 py-1 bg-danger text-white rounded font-medium text-sm hover:bg-red-700 disabled:opacity-60"
                             >
-                              {sellerActionLoading[user.id]
-                                ? "Đang xử lý..."
-                                : "Từ chối"}
+                              {sellerActionLoading[user.id] ? 'Đang xử lý...' : 'Từ chối'}
                             </button>
                           </>
                         )}
@@ -503,16 +479,14 @@ const UserManagement = () => {
                   </td>
 
                   {/* Join date */}
-                  <td className="px-6 py-4 text-sm text-warmgray-600">
-                    {user.joinDate}
-                  </td>
+                  <td className="px-6 py-4 text-sm text-warmgray-600">{user.joinDate}</td>
 
                   {/* Actions */}
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
                       <button
                         onClick={() => openStatusModal(user)}
-                        disabled={user.role === "admin"}
+                        disabled={user.role === 'admin'}
                         className="whitespace-nowrap px-3 py-1 text-gold hover:bg-gold/5 rounded font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Đổi trạng thái
@@ -524,9 +498,7 @@ const UserManagement = () => {
             </tbody>
           </table>
           {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-warmgray-500">
-              Không tìm thấy người dùng nào
-            </div>
+            <div className="text-center py-12 text-warmgray-500">Không tìm thấy người dùng nào</div>
           )}
         </div>
       )}
@@ -543,7 +515,7 @@ const UserManagement = () => {
               className="w-full px-4 py-2 border border-warmgray-300 rounded-[16px] focus:outline-none focus:border-primary-600"
             >
               {Object.keys(roleLabels)
-                .filter((r) => r !== "admin")
+                .filter((r) => r !== 'admin')
                 .map((r) => (
                   <option key={r} value={r}>
                     {roleLabels[r]}
@@ -572,9 +544,7 @@ const UserManagement = () => {
       {statusModalOpen && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-[16px] max-w-md w-full p-6 space-y-4">
-            <h2 className="text-xl font-bold text-primary-900">
-              Đổi trạng thái
-            </h2>
+            <h2 className="text-xl font-bold text-primary-900">Đổi trạng thái</h2>
             <p className="text-warmgray-600 text-sm">{selectedUser.fullName}</p>
             <select
               value={newStatus}
@@ -609,9 +579,7 @@ const UserManagement = () => {
       {rejectModalUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-[16px] max-w-md w-full p-6 space-y-4">
-            <h2 className="text-xl font-bold text-danger">
-              Từ chối hồ sơ seller
-            </h2>
+            <h2 className="text-xl font-bold text-danger">Từ chối hồ sơ seller</h2>
             <p className="text-warmgray-600 text-sm">
               Người dùng: <strong>{rejectModalUser.fullName}</strong>
             </p>
@@ -653,12 +621,8 @@ const UserManagement = () => {
           <div className="bg-white rounded-[16px] max-w-3xl w-full p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-bold text-primary-900">
-                  CCCD/CMND của seller
-                </h2>
-                <p className="text-warmgray-600 text-sm">
-                  {kycModalUser.fullName}
-                </p>
+                <h2 className="text-xl font-bold text-primary-900">CCCD/CMND của seller</h2>
+                <p className="text-warmgray-600 text-sm">{kycModalUser.fullName}</p>
               </div>
               <button
                 onClick={() => setKycModalUser(null)}
@@ -677,9 +641,7 @@ const UserManagement = () => {
                 <div key={idx} className="space-y-2">
                   {item.frontImage && (
                     <div>
-                      <p className="text-sm text-warmgray-600 mb-1">
-                        Mặt trước
-                      </p>
+                      <p className="text-sm text-warmgray-600 mb-1">Mặt trước</p>
                       <img
                         src={item.frontImage}
                         alt="CCCD front"

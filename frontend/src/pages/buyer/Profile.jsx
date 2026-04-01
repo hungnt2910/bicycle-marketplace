@@ -294,7 +294,7 @@ const Profile = () => {
                 {/* ADDRESS SECTION */}
                 <section>
                   <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6 border-b border-[var(--lux-gray-100)] pb-4">
-                    Tọa độ vật lý
+                    Địa chỉ cư trú
                   </h3>
                   <dl className="space-y-1">
                     <div className="flex justify-between items-center py-3 border-b border-[var(--lux-gray-50)]">
@@ -352,27 +352,7 @@ const Profile = () => {
                     <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6">
                       Xác thực & Quyền
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="bg-white p-4 rounded-xl border border-[var(--lux-gray-200)]/60 shadow-sm flex items-center justify-between">
-                        <span className="text-[12.5px] font-medium text-[var(--lux-gray-600)]">
-                          Email
-                        </span>
-                        <span
-                          className={`text-[11px] font-extrabold tracking-[0.15em] uppercase px-3 py-1 rounded-full ${profile.verifiedEmail ? 'bg-success/10 text-green-800' : 'bg-warmgray-200 text-warmgray-700'}`}
-                        >
-                          {profile.verifiedEmail ? 'ĐÃ XÁC THỰC' : 'CHƯA XÁC THỰC'}
-                        </span>
-                      </div>
-                      <div className="bg-white p-4 rounded-xl border border-[var(--lux-gray-200)]/60 shadow-sm flex items-center justify-between">
-                        <span className="text-[12.5px] font-medium text-[var(--lux-gray-600)]">
-                          Điện thoại
-                        </span>
-                        <span
-                          className={`text-[11px] font-extrabold tracking-[0.15em] uppercase px-3 py-1 rounded-full ${profile.verifiedPhone ? 'bg-success/10 text-green-800' : 'bg-warmgray-200 text-warmgray-700'}`}
-                        >
-                          {profile.verifiedPhone ? 'ĐÃ XÁC THỰC' : 'CHƯA XÁC THỰC'}
-                        </span>
-                      </div>
+                    <div className="grid grid-cols-1  gap-3">
                       <div className="bg-white p-4 rounded-xl border border-[var(--lux-gray-200)]/60 shadow-sm flex items-center justify-between">
                         <span className="text-[12.5px] font-medium text-[var(--lux-gray-600)]">
                           Quyền seller
@@ -384,42 +364,14 @@ const Profile = () => {
                         </span>
                       </div>
                     </div>
+                    {(profile.sellerRejectReason || profile.reason) &&
+                      !profile.verifiedRoleSeller && (
+                        <div className="mt-4 bg-danger/10 border border-danger/30 text-danger rounded-xl p-4 text-sm leading-relaxed">
+                          <div className="font-semibold mb-1">Yêu cầu seller đã bị từ chối</div>
+                          <div>{profile.sellerRejectReason || profile.reason}</div>
+                        </div>
+                      )}
                   </section>
-
-                  {/* REPUTATION METRICS */}
-                  {profile.reputation && (
-                    <section>
-                      <h3 className="text-[11px] font-extrabold tracking-[0.2em] text-[var(--lux-gray-400)] uppercase mb-6">
-                        Chỉ số tín nhiệm
-                      </h3>
-                      <div className="bg-white p-5 rounded-xl border border-[var(--lux-gray-200)]/60 shadow-sm space-y-5">
-                        <div className="text-center pb-5 border-b border-[var(--lux-gray-100)]">
-                          <div className="text-4xl font-black text-[var(--lux-primary-900)] tracking-tighter">
-                            {profile.reputation.rating?.toFixed(1) || '0'}
-                          </div>
-                          <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--lux-gray-400)] mt-1">
-                            Hạng tổng hợp
-                          </div>
-                        </div>
-                        <div className="flex justify-between text-[13px]">
-                          <span className="font-medium text-[var(--lux-gray-500)]">
-                            Tổng đánh giá
-                          </span>
-                          <span className="font-bold text-[var(--lux-gray-900)]">
-                            {profile.reputation.totalReviews || 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-[13px]">
-                          <span className="font-medium text-[var(--lux-gray-500)]">
-                            Giao dịch thành công
-                          </span>
-                          <span className="font-bold text-[var(--lux-gray-900)]">
-                            {profile.reputation.totalSales || 0}
-                          </span>
-                        </div>
-                      </div>
-                    </section>
-                  )}
                 </div>
 
                 {/* ACTION PANEL */}
@@ -439,7 +391,7 @@ const Profile = () => {
                         →
                       </span>
                     </button>
-                    <Button
+                    {/* <Button
                       variant="primary"
                       className="w-full flex items-center justify-between p-3.5 rounded-xl shadow-none hover:shadow-md transition-all group py-[14px]"
                     >
@@ -450,7 +402,7 @@ const Profile = () => {
                         Đổi mật khẩu
                       </span>
                       <span className="pr-1">→</span>
-                    </Button>
+                    </Button> */}
                   </div>
                 </section>
               </div>
