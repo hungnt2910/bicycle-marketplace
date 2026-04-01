@@ -242,6 +242,14 @@ const CreateListing = () => {
       setActiveTab('general');
       return false;
     }
+    if (formData.specifications.year) {
+      const currentYear = new Date().getFullYear();
+      if (Number(formData.specifications.year) > currentYear) {
+        toast.error('Năm sản xuất không được vượt quá năm hiện tại');
+        setActiveTab('specs');
+        return false;
+      }
+    }
     if (formData.media.images.length === 0) {
       toast.error('Vui lòng upload ít nhất 1 hình ảnh');
       setActiveTab('media');
