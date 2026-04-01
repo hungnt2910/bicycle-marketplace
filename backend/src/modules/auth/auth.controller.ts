@@ -99,4 +99,25 @@ export class AuthController {
       data: updatedUser,
     };
   }
+
+  @Public()
+  @Post('reject-seller/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Reject seller role' })
+  @ApiResponse({
+    status: 200,
+    description: 'Seller role rejected successfully',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async rejectSellerRole(
+    @Param('id') userId: string,
+    @Body() data: { reason: string; isRejectSeller: boolean },
+  ) {
+    const updatedUser = await this.authService.rejectSellerRole(userId, data);
+    return {
+      message: 'Seller role rejected successfully',
+      data: updatedUser,
+    };
+  }
 }

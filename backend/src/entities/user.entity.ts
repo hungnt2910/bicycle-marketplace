@@ -72,6 +72,12 @@ export class User {
   @Prop()
   district?: string;
 
+  @Prop()
+  reason?: string;
+
+  @Prop({ default: false })
+  isRejectSeller?: boolean;
+
   @Prop({ type: Reputation })
   reputation?: Reputation;
 
